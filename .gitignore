@@ -1,0 +1,27 @@
+**/nbproject/
+**/bin
+**/dist
+**/build
+**/target
+**/.DS_Store
+**/nbbuild/
+**/nbdist/
+**/.nb-gradle/
+**/node_modules/
+/jcardsim
+**/tomcat.*/
+/bin
+.settings/
+mv.sh
+.gradle/
+
+## private field
+src/coolbitx/Bip32Ed25519.java
+src/coolbitx/Blake2b.java
+src/coolbitx/Ed25519.java
+src/coolbitx/Secp256k1.java
+src/coolbitx/Sha2.java
+src/coolbitx/Sha3.java
+src/coolbitx/HmacDrbg.java
+src/coolbitx/HmacSha.java
+src/coolbitx/Ripemd.java

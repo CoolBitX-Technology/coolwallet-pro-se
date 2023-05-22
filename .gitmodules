@@ -1,0 +1,3 @@
+[submodule "coolwallet-pro-se-crypto"]
+	path = coolwallet-pro-se-crypto
+	url = git@github.com:CoolBitX-Technology/coolwallet-pro-se-crypto.git
