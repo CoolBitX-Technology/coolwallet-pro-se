@@ -1,3 +1,7 @@
+## [330] - 2023-06-28
+
+- `ScriptInterpreter` support btc replace-by-fee.
+
 ## [329] - 2023-04-27
 
 - `Secp256k1` support deterministic ECDSA.
