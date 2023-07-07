@@ -851,6 +851,12 @@ public class ScriptInterpreter {
 			(byte) 0x00, (byte) 0x81, (byte) 0x00, (byte) 0x00, (byte) 0x00,
 			(byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,
 			(byte) 0x00, (byte) 0x41, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
+	private static final byte[] utxoRBFConstant = { (byte) 0x02, (byte) 0x00,
+			(byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0xFD, (byte) 0xFF,
+			(byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+			(byte) 0x00, (byte) 0x81, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+			(byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+			(byte) 0x00, (byte) 0x41, (byte) 0x00, (byte) 0x00, (byte) 0x00 };
 	private static final byte[] scriptConstant = { (byte) 0x19, (byte) 0x76,
 			(byte) 0xA9, (byte) 0x14, (byte) 0x88, (byte) 0xAC, (byte) 0x17,
 			(byte) 0xA9, (byte) 0x14, (byte) 0x87, (byte) 0x3F, (byte) 0x76,
@@ -923,17 +929,19 @@ public class ScriptInterpreter {
 
 		switch (type) {
 		case 0x10: // legacyBTC
-		case 0x13: // ZEN
+		case 0x13: { // ZEN
 			if (remainDataType != 0x10) {
 				ISOException.throwIt((short) 0x6AC2);
 			}
-			ShaUtil.m_sha_256.update(utxoConstant, (short) 0, (short) 5);
+
+			byte[] utxo = type == 0x10 ? utxoRBFConstant : utxoConstant;
+			ShaUtil.m_sha_256.update(utxo, (short) 0, (short) 5);
 			ShaUtil.m_sha_256.update(utxoArgument, utxoArgumentOffset,
 					(short) 36);
 			updateBtcScript(utxoArgument, utxoArgumentOffset, type);
-			ShaUtil.m_sha_256.update(utxoConstant, (short) 5, (short) 4);
+			ShaUtil.m_sha_256.update(utxo, (short) 5, (short) 4);
 			ShaUtil.m_sha_256.update(transaction, (short) 0, ti);
-			ShaUtil.m_sha_256.doFinal(utxoConstant, (short) 9, (short) 8,
+			ShaUtil.m_sha_256.doFinal(utxo, (short) 9, (short) 8,
 					workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
@@ -941,15 +949,18 @@ public class ScriptInterpreter {
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
+		}
 		case 0x11: // segwitBTC
-		case 0x12: // BCH
+		case 0x12: { // BCH
 			if (remainDataType != 0x10) {
 				ISOException.throwIt((short) 0x6AC2);
 			}
+
+			byte[] utxo = type == 0x11 ? utxoRBFConstant : utxoConstant;
 			ShaUtil.DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
 					workspace, workspaceOffset);
 
-			ShaUtil.m_sha_256.update(utxoConstant, (short) 0, (short) 4);
+			ShaUtil.m_sha_256.update(utxo, (short) 0, (short) 4);
 			ShaUtil.m_sha_256.update(cache1, (short) 0, (short) 64);
 			ShaUtil.m_sha_256.update(utxoArgument, utxoArgumentOffset,
 					(short) 36);
@@ -958,9 +969,9 @@ public class ScriptInterpreter {
 				ShaUtil.m_sha_256.update(utxoArgument,
 						(short) (utxoArgumentOffset + 44 - i), (short) 1);
 			}
-			ShaUtil.m_sha_256.update(utxoConstant, (short) 5, (short) 4);
+			ShaUtil.m_sha_256.update(utxo, (short) 5, (short) 4);
 			ShaUtil.m_sha_256.update(workspace, workspaceOffset, (short) 32);
-			ShaUtil.m_sha_256.doFinal(utxoConstant, (short) (type == 0x11 ? 14
+			ShaUtil.m_sha_256.doFinal(utxo, (short) (type == 0x11 ? 14
 					: 19), (short) 8, workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
@@ -968,6 +979,7 @@ public class ScriptInterpreter {
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
+		}
 		case 0x26: // any data (for ERC20 approve to 0x)
 			if (remainDataType != 0x20) {
 				ISOException.throwIt((short) 0x6AC2);

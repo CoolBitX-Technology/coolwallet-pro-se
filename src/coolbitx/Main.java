@@ -20,7 +20,7 @@ import javacardx.apdu.ExtendedLength;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
-	private static final short ver = 329;
+	private static final short ver = 330;
 	private static boolean isInit = false;
 
 	private byte[] longBuf;
