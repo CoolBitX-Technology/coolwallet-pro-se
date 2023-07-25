@@ -2,7 +2,7 @@
 
 ![CoolWallet Pro Firmware Logo](coolwallet-pro-firmware-logo.png)
 
-[Discord](https://discordapp.com/channels/640544929680064512/660894930604130304/) | [Twitter Follow](https://twitter.com/coolwallet)
+[Official Website](https://www.coolwallet.io/)｜[Discord](https://discordapp.com/channels/640544929680064512/660894930604130304/) | [Twitter Follow](https://twitter.com/coolwallet)
 
 ## Introduction
 CoolWallet Pro Firmware is a Javacard firmware designed specifically for the [CoolWallet Pro](https://www.coolwallet.io/coolwallet_pro/). It offers advanced features for private key management, signing, and transaction data composition. The firmware focuses on developing a secure element solution using Java Card technology to ensure a high level of security for cryptographic operations and the protection of sensitive data.
@@ -111,7 +111,7 @@ After executing the `Installation` script, proceed with the following steps in E
 Upon successful build completion, the `coolbitx.cap` file will be generated in the following location: `\coolwallet-pro-se\bin\coolbitx\javacard`.
 
 ## License
-This project is licensed under the [XX License](LICENSE).
+This project is licensed under the [CoolBitX Limited Use License](LICENSE).
 
 ## Security Vulnerability Disclosure
 
