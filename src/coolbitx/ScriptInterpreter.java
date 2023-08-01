@@ -929,12 +929,14 @@ public class ScriptInterpreter {
 
 		switch (type) {
 		case 0x10: // legacyBTC
-		case 0x13: { // ZEN
+		case 0x13: // ZEN
+		case 0x14: { // RBF legacyBTC
 			if (remainDataType != 0x10) {
 				ISOException.throwIt((short) 0x6AC2);
 			}
+			boolean isRBF = type == 0x14;
 
-			byte[] utxo = type == 0x10 ? utxoRBFConstant : utxoConstant;
+			byte[] utxo = isRBF ? utxoRBFConstant : utxoConstant;
 			ShaUtil.m_sha_256.update(utxo, (short) 0, (short) 5);
 			ShaUtil.m_sha_256.update(utxoArgument, utxoArgumentOffset,
 					(short) 36);
@@ -951,12 +953,15 @@ public class ScriptInterpreter {
 			break;
 		}
 		case 0x11: // segwitBTC
-		case 0x12: { // BCH
+		case 0x12: // BCH
+		case 0x15: { // RBF SegwitBTC
 			if (remainDataType != 0x10) {
 				ISOException.throwIt((short) 0x6AC2);
 			}
+			boolean isSegwit = type == 0x11 || type == 0x15;
+			boolean isRBF = type == 0x15;
 
-			byte[] utxo = type == 0x11 ? utxoRBFConstant : utxoConstant;
+			byte[] utxo = isRBF ? utxoRBFConstant : utxoConstant;
 			ShaUtil.DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
 					workspace, workspaceOffset);
 
@@ -971,7 +976,7 @@ public class ScriptInterpreter {
 			}
 			ShaUtil.m_sha_256.update(utxo, (short) 5, (short) 4);
 			ShaUtil.m_sha_256.update(workspace, workspaceOffset, (short) 32);
-			ShaUtil.m_sha_256.doFinal(utxo, (short) (type == 0x11 ? 14
+			ShaUtil.m_sha_256.doFinal(utxo, (short) (isSegwit ? 14
 					: 19), (short) 8, workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
