@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 6;
+	public static final byte scriptVersion = 7;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -41,6 +41,7 @@ public class ScriptInterpreter {
 
 	private static boolean isExecuted = false;
 	private static byte hashType, signType, remainDataType, argType;
+	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
 	private static final byte type_bcd = (byte) 0x01;
@@ -96,6 +97,7 @@ public class ScriptInterpreter {
 		isExecuted = false;
 		hashType = signType = remainDataType = argType = 0;
 		detailIcon = (byte) 0xFF;
+		isUTXOtx =false; 
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
@@ -724,6 +726,8 @@ public class ScriptInterpreter {
 					placeholderOffset += destLength;
 					addDestOffset(destBuf, destLength);
 					WorkCenter.release(WorkCenter.WORK, dataLength);
+				} else if (argInt0 == 2) { // utxo
+					isUTXOtx = true;
 				}
 				break;
 			}
@@ -778,7 +782,7 @@ public class ScriptInterpreter {
 		if (!isExecuted) {
 			ISOException.throwIt((short) 0x6AC0);
 		}
-		if (signType == 0) {
+		if (signType == 0 || isUTXOtx) {
 			return false;
 		}
 		if (isCoinTypeExist) {
@@ -829,15 +833,22 @@ public class ScriptInterpreter {
 		}
 		// Hashing data
 		getUpdateHash(data, offset, length, hashType);
-		placeholderLength -= length;
-		if (placeholderLength != 0)
+		if (isUTXOtx) {
+			placeholderLength = 0;
+		} else {
+			placeholderLength -= length;
+		}
+		if (placeholderLength != 0) {
 			return ret;
+		}
 		short remainLength = (short) (ti - placeholderOffset);
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+
 		getHash(transaction, placeholderOffset, remainLength, workspace,
 				workspaceOffset, hashType);
+
 		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
 				destOffset);
@@ -943,8 +954,8 @@ public class ScriptInterpreter {
 			updateBtcScript(utxoArgument, utxoArgumentOffset, type);
 			ShaUtil.m_sha_256.update(utxo, (short) 5, (short) 4);
 			ShaUtil.m_sha_256.update(transaction, (short) 0, ti);
-			ShaUtil.m_sha_256.doFinal(utxo, (short) 9, (short) 8,
-					workspace, workspaceOffset);
+			ShaUtil.m_sha_256.doFinal(utxo, (short) 9, (short) 8, workspace,
+					workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
 			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
@@ -962,7 +973,7 @@ public class ScriptInterpreter {
 			boolean isRBF = type == 0x15;
 
 			byte[] utxo = isRBF ? utxoRBFConstant : utxoConstant;
-			ShaUtil.DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
+			ShaUtil.S_DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
 					workspace, workspaceOffset);
 
 			ShaUtil.m_sha_256.update(utxo, (short) 0, (short) 4);
@@ -976,8 +987,8 @@ public class ScriptInterpreter {
 			}
 			ShaUtil.m_sha_256.update(utxo, (short) 5, (short) 4);
 			ShaUtil.m_sha_256.update(workspace, workspaceOffset, (short) 32);
-			ShaUtil.m_sha_256.doFinal(utxo, (short) (isSegwit ? 14
-					: 19), (short) 8, workspace, workspaceOffset);
+			ShaUtil.m_sha_256.doFinal(utxo, (short) (isSegwit ? 14 : 19),
+					(short) 8, workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
 			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
@@ -1114,6 +1125,7 @@ public class ScriptInterpreter {
 			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
+		case 0xD: // double sha-256, should hash again later
 			ShaUtil.m_s_sha_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 6:
@@ -1171,7 +1183,7 @@ public class ScriptInterpreter {
 			length = 20;
 			break;
 		case 0xD:
-			length = ShaUtil.DoubleSHA256(dataBuf, dataOffset, dataLength,
+			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
 		case 0xB:
