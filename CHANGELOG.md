@@ -1,3 +1,11 @@
+## [332] - 2023-08-10
+
+- `Blake3` support Blake3.
+
+## [331] - 2023-08-01
+
+- `ScriptInterpreter` fix btc replace-by-fee bug.
+
 ## [330] - 2023-06-28
 
 - `ScriptInterpreter` support btc replace-by-fee.
