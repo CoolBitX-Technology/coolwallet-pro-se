@@ -98,6 +98,8 @@ public class Common {
 	public static final short LENGTH_INDEX = 4;
 	public static final short LENGTH_MESSAGE = 37;
 
+	public static final short INT_LENGTH = 4;
+
 	public static byte booleanToByte(boolean input) {
 		return (byte) (input ? 1 : 0);
 	}
