@@ -97,7 +97,7 @@ public class ScriptInterpreter {
 		isExecuted = false;
 		hashType = signType = remainDataType = argType = 0;
 		detailIcon = (byte) 0xFF;
-		isUTXOtx =false; 
+		isUTXOtx = false;
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
@@ -782,7 +782,7 @@ public class ScriptInterpreter {
 		if (!isExecuted) {
 			ISOException.throwIt((short) 0x6AC0);
 		}
-		if (signType == 0 || isUTXOtx) {
+		if (signType == 0) {
 			return false;
 		}
 		if (isCoinTypeExist) {
@@ -801,6 +801,9 @@ public class ScriptInterpreter {
 	public static short signTransaction(byte[] path, short pathOffset,
 			short pathLength, byte[] destBuf, short destOffset) {
 		short ret = 0;
+		if (isUTXOtx) {
+			return ret;
+		}
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		// If hashType is zero means transaction does not need to hash.
