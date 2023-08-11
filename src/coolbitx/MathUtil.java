@@ -43,18 +43,61 @@ public class MathUtil {
 		return carry;
 	}
 
+	public static int makeInt(byte[] a, short aOff) {
+		return a[(short) (aOff + 3)] & 0xFF
+				| (a[(short) (aOff + 2)] & 0xff) << 8
+				| (a[(short) (aOff + 1)] & 0xff) << 16
+				| (a[(aOff)] & 0xff) << 24;
+	}
+
 	/**
-	 * Assign given int to given bytes array.
-	 * <code> a = value; </code>
-	 * @param a bytes array.
-	 * @param aOff offset of bytes array.
-	 * @param value int value.
+	 * Set given int to given bytes array. <code> a = value; </code>
+	 * 
+	 * @param a
+	 *            bytes array.
+	 * @param aOff
+	 *            offset of bytes array.
+	 * @param value
+	 *            int value.
 	 */
-	public static void assignInt(byte[] a, short aOff, int value) {
+	public static void setInt(byte[] a, short aOff, int value) {
 		a[aOff] = (byte) (value >>> 24);
 		a[(short) (aOff + 1)] = (byte) (value >>> 16);
 		a[(short) (aOff + 2)] = (byte) (value >>> 8);
 		a[(short) (aOff + 3)] = (byte) value;
+	}
+
+	// a = a+b
+	public static void addInt(byte[] a, short aOff, byte[] b, short bOff) {
+		int aValue = makeInt(a, aOff);
+		int bValue = makeInt(b, bOff);
+		setInt(a, aOff, aValue + bValue);
+	}
+
+	// a ^= b
+	public static void xorInt(byte[] a, short aOff, byte[] b, short bOff) {
+		int aValue = makeInt(a, aOff);
+		int bValue = makeInt(b, bOff);
+		setInt(a, aOff, aValue ^ bValue);
+	}
+
+	public static void big2littleEndian(byte[] big, short bigOff,
+			short bigLength, short size) {
+		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short workspaceOffset = WorkCenter.getWorkspaceOffset(bigLength);
+		Util.arrayCopyNonAtomic(big, bigOff, workspace, workspaceOffset,
+				bigLength);
+		for (short i = 0; i < bigLength; i += size) {
+			for (short j = 0; j < size; j++) {
+				big[(short) (bigOff + i + j)] = workspace[(short) (workspaceOffset
+						+ i + (size - 1 - j))];
+			}
+		}
+		WorkCenter.release(WorkCenter.WORK, bigLength);
+	}
+
+	public static short min(short a, short b) {
+		return (a <= b) ? a : b;
 	}
 
 	private static short sub(byte[] a, short aOff, short length, byte[] b,
@@ -77,7 +120,7 @@ public class MathUtil {
 			byte[] secondBuf, short secondOffset, byte[] destBuf,
 			short destOffset) {
 		for (short j = 0; j < length; j++) {
-			destBuf[(short) (destOffset++)] = (byte) (buf[(short) (offset++)] ^ secondBuf[(short) (secondOffset++)]);
+			destBuf[(destOffset++)] = (byte) (buf[(offset++)] ^ secondBuf[(secondOffset++)]);
 		}
 	}
 
@@ -131,6 +174,12 @@ public class MathUtil {
 		shiftBit = (short) ((short) (shiftBit + lenBits) % lenBits);
 		// we don't care if we pass 0 or lenBits, rotr will adjust
 		rotr(buf, off, len, (short) (lenBits - shiftBit));
+	}
+
+	public static void rotrInt(byte[] buf, short off, short rot) {
+		int value = makeInt(buf, off);
+		value = (value >>> rot) | (value << (32 - rot));
+		setInt(buf, off, value);
 	}
 
 	public static void rotr(byte[] buf, short off, short len, short rot) {

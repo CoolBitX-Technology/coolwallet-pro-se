@@ -20,7 +20,7 @@ import javacardx.apdu.ExtendedLength;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
-	private static final short ver = 331;
+	private static final short ver = 332;
 	private static boolean isInit = false;
 
 	private byte[] longBuf;
@@ -99,6 +99,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				Sha3.init();
 				Sha2.init();
 				Blake2b.init();
+				Blake3.init();
 				ShaUtil.init();
 				KeyManager.init(); // must after ShaUtil
 				Device.init();
@@ -620,6 +621,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		Sha3.uninit();
 		Sha2.uninit();
 		Blake2b.uninit();
+		Blake3.uninit();
 		ShaUtil.uninit();
 		SignUtil.uninit();
 		Ripemd.uninit();
