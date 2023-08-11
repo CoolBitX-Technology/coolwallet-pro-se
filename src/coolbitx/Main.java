@@ -20,7 +20,9 @@ import javacardx.apdu.ExtendedLength;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
-	private static final short ver = 332;
+
+	private static final short ver = 333;
+
 	private static boolean isInit = false;
 
 	private byte[] longBuf;
@@ -574,8 +576,34 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				processLength = ScriptInterpreter.signSegmentData(buf,
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
 						pathLength, buf, dataOffset, shouldUpdateTransaction);
-				// If OFFSET_P1 equals to OFFSET_P2 means we reach the last
-				// chunk. Should return a sign transaction.
+				if (processLength != 0) {
+					if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
+						NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO,
+								(short) 32);
+						CardInfo.set(CardInfo.SIGN_AESKEY_VALID, true);
+					}
+					resultLength = EcdhUtil.encryptAES(buf, dataOffset,
+							processLength, destBuf, destOffset,
+							KeyUtil.getAesKey(signAesKey, Common.OFFSET_ZERO));
+				}
+				break;
+			}
+			case (byte) 0xAA: {
+				// txPrepUTXOSegmentData
+				Check.checkState(Common.STATE_PREPARE);
+				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+				dataLength -= 92;
+				// Only update transaction when first chunk is reaching.
+				boolean shouldUpdateTransaction = buf[ISO7816.OFFSET_P1] == 0;
+				short pathLength = buf[dataOffset];
+				Util.arrayCopyNonAtomic(buf, dataOffset, path,
+						Common.OFFSET_ZERO, (short) (pathLength + 1));
+				dataOffset = (short) (dataOffset + 1 + pathLength);
+				dataLength = (short) (dataLength - 1 - pathLength);
+				
+				processLength = ScriptInterpreter.signSegmentData(buf,
+						dataOffset, dataLength, path, Common.OFFSET_ONE,
+						pathLength, buf, dataOffset, shouldUpdateTransaction);
 				if (processLength != 0) {
 					if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 						NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO,

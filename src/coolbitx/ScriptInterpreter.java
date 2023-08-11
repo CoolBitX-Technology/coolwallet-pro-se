@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 6;
+	public static final byte scriptVersion = 7;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -41,6 +41,7 @@ public class ScriptInterpreter {
 
 	private static boolean isExecuted = false;
 	private static byte hashType, signType, remainDataType, argType;
+	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
 	private static final byte type_bcd = (byte) 0x01;
@@ -96,6 +97,7 @@ public class ScriptInterpreter {
 		isExecuted = false;
 		hashType = signType = remainDataType = argType = 0;
 		detailIcon = (byte) 0xFF;
+		isUTXOtx = false;
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
@@ -724,6 +726,10 @@ public class ScriptInterpreter {
 					placeholderOffset += destLength;
 					addDestOffset(destBuf, destLength);
 					WorkCenter.release(WorkCenter.WORK, dataLength);
+				} else if (argInt0 == 2) { // utxo
+					isUTXOtx = true;
+				} else if (argInt0 == 3) {
+					// do nothing, only for test
 				}
 				break;
 			}
@@ -797,6 +803,9 @@ public class ScriptInterpreter {
 	public static short signTransaction(byte[] path, short pathOffset,
 			short pathLength, byte[] destBuf, short destOffset) {
 		short ret = 0;
+		if (isUTXOtx) {
+			return ret;
+		}
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		// If hashType is zero means transaction does not need to hash.
@@ -829,15 +838,22 @@ public class ScriptInterpreter {
 		}
 		// Hashing data
 		getUpdateHash(data, offset, length, hashType);
-		placeholderLength -= length;
-		if (placeholderLength != 0)
+		if (isUTXOtx) {
+			placeholderLength = 0;
+		} else {
+			placeholderLength -= length;
+		}
+		if (placeholderLength != 0) {
 			return ret;
+		}
 		short remainLength = (short) (ti - placeholderOffset);
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+
 		getHash(transaction, placeholderOffset, remainLength, workspace,
 				workspaceOffset, hashType);
+
 		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
 				destOffset);
@@ -962,7 +978,7 @@ public class ScriptInterpreter {
 			boolean isRBF = type == 0x15;
 
 			byte[] utxo = isRBF ? utxoRBFConstant : utxoConstant;
-			ShaUtil.DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
+			ShaUtil.S_DoubleSHA256(transaction, (short) 1, (short) (ti - 1),
 					workspace, workspaceOffset);
 
 			ShaUtil.m_sha_256.update(utxo, (short) 0, (short) 4);
@@ -1114,6 +1130,7 @@ public class ScriptInterpreter {
 			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
+		case 0xD: // double sha-256, should hash again later
 			ShaUtil.m_s_sha_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 6:

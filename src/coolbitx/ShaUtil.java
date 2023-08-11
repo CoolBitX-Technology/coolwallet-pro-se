@@ -18,7 +18,7 @@ public final class ShaUtil {
 	static MessageDigest m_sha_256;
 	static MessageDigest m_sha_512;
 	static MessageDigest m_sha_512_256;
-	static MessageDigest m_s_sha_256;
+	static MessageDigest m_s_sha_256; // only for script
 	static MessageDigest m_blake2b_256;
 	static MessageDigest m_blake2b_512;
 	static MessageDigest m_blake3_256;
@@ -77,6 +77,13 @@ public final class ShaUtil {
 			short length, byte[] destbuf, short destOffset) {
 		short len = m_sha_256.doFinal(buf, offset, length, destbuf, destOffset);
 		len = m_sha_256.doFinal(destbuf, destOffset, len, destbuf, destOffset);
+		return len;
+	}
+	
+	public final static short S_DoubleSHA256(byte[] buf, short offset,
+			short length, byte[] destbuf, short destOffset) {
+		short len = m_s_sha_256.doFinal(buf, offset, length, destbuf, destOffset);
+		len = m_s_sha_256.doFinal(destbuf, destOffset, len, destbuf, destOffset);
 		return len;
 	}
 
