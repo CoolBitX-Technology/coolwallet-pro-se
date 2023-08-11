@@ -21,6 +21,7 @@ public final class ShaUtil {
 	static MessageDigest m_s_sha_256; // only for script
 	static MessageDigest m_blake2b_256;
 	static MessageDigest m_blake2b_512;
+	static MessageDigest m_blake3_256;
 	static MessageDigest m_sha3_256;
 	static MessageDigest m_sha3_512;
 	static MessageDigest m_keccak_256;
@@ -35,6 +36,7 @@ public final class ShaUtil {
 		m_sha_512_256 = Sha2.getInstance(Sha2.ALG_SHA_512_256);
 		m_blake2b_256 = Blake2b.getInstance(Blake2b.ALG_BLAKE2B, (byte) 32);
 		m_blake2b_512 = Blake2b.getInstance(Blake2b.ALG_BLAKE2B, (byte) 64);
+		m_blake3_256 = Blake3.getInstance(Blake3.ALG_BLAKE3, (byte) 32);
 		m_sha3_256 = Sha3.getInstance(Sha3.ALG_SHA3_256);
 		m_sha3_512 = Sha3.getInstance(Sha3.ALG_SHA3_512);
 		m_keccak_256 = Sha3.getInstance(Sha3.ALG_KECCAK_256);
@@ -49,6 +51,7 @@ public final class ShaUtil {
 		m_s_sha_256 = null;
 		m_blake2b_256 = null;
 		m_blake2b_512 = null;
+		m_blake3_256 = null;
 		m_sha3_256 = null;
 		m_sha3_512 = null;
 		m_keccak_256 = null;
@@ -206,6 +209,11 @@ public final class ShaUtil {
 	public final static short Blake2b512(byte[] buf, short offset,
 			short length, byte[] destbuf, short destOffset) {
 		return m_blake2b_512.doFinal(buf, offset, length, destbuf, destOffset);
+	}
+
+	public final static short Blake3256(byte[] buf, short offset, short length,
+			byte[] destbuf, short destOffset) {
+		return m_blake3_256.doFinal(buf, offset, length, destbuf, destOffset);
 	}
 
 	private static final byte[] GENERATOR = { (byte) 0x98, (byte) 0xf2,

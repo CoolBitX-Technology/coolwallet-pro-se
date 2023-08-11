@@ -18,6 +18,7 @@ mv.sh
 ## private field
 src/coolbitx/Bip32Ed25519.java
 src/coolbitx/Blake2b.java
+src/coolbitx/Blake3.java
 src/coolbitx/Ed25519.java
 src/coolbitx/Secp256k1.java
 src/coolbitx/Sha2.java

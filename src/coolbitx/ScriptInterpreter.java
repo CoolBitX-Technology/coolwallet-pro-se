@@ -728,6 +728,8 @@ public class ScriptInterpreter {
 					WorkCenter.release(WorkCenter.WORK, dataLength);
 				} else if (argInt0 == 2) { // utxo
 					isUTXOtx = true;
+				} else if (argInt0 == 3) {
+					// do nothing, only for test
 				}
 				break;
 			}
@@ -817,7 +819,7 @@ public class ScriptInterpreter {
 			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
-			WorkCenter.release(WorkCenter.WORK, workLength);
+			WorkCenter.release(WorkCenter.WORK1, workLength);
 		} else {
 			ret = KeyManager.signByDerivedKey(transaction, (short) 0, ti, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
@@ -1134,6 +1136,9 @@ public class ScriptInterpreter {
 		case 6:
 			ShaUtil.m_keccak_256.update(dataBuf, dataOffset, dataLength);
 			break;
+		case 0x11:
+			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
+			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
 		}
@@ -1185,9 +1190,9 @@ public class ScriptInterpreter {
 			Ripemd.hash160(destBuf, destOffset, destBuf, destOffset);
 			length = 20;
 			break;
-		case 0xD:
-			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
-					destBuf, destOffset);
+		case 0xA:
+			length = ShaUtil.CRC16(dataBuf, dataOffset, dataLength, destBuf,
+					destOffset);
 			break;
 		case 0xB:
 			length = ShaUtil.bech32_polyMod(dataBuf, dataOffset, dataLength,
@@ -1197,9 +1202,9 @@ public class ScriptInterpreter {
 			length = ShaUtil.polyMod(dataBuf, dataOffset, dataLength, destBuf,
 					destOffset);
 			break;
-		case 0xA:
-			length = ShaUtil.CRC16(dataBuf, dataOffset, dataLength, destBuf,
-					destOffset);
+		case 0xD:
+			length = ShaUtil.DoubleSHA256(dataBuf, dataOffset, dataLength,
+					destBuf, destOffset);
 			break;
 		case 0xE:
 			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
@@ -1211,6 +1216,10 @@ public class ScriptInterpreter {
 			break;
 		case 0x10:
 			length = ShaUtil.SHA512256(dataBuf, dataOffset, dataLength,
+					destBuf, destOffset);
+			break;
+		case 0x11:
+			length = ShaUtil.Blake3256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
 		default:
