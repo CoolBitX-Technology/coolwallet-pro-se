@@ -1203,7 +1203,7 @@ public class ScriptInterpreter {
 					destOffset);
 			break;
 		case 0xD:
-			length = ShaUtil.DoubleSHA256(dataBuf, dataOffset, dataLength,
+			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
 		case 0xE:
