@@ -26,3 +26,4 @@ src/coolbitx/Sha3.java
 src/coolbitx/HmacDrbg.java
 src/coolbitx/HmacSha.java
 src/coolbitx/Ripemd.java
+src/coolbitx/BIP340.java
