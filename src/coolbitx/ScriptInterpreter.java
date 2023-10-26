@@ -767,6 +767,22 @@ public class ScriptInterpreter {
 				}
 				break;
 			}
+			case (byte) 0xae:
+				// tagged hash, for now only use SHA-256
+				if (argInt0 == 0) { // BIP340/challenge
+					BIP340.taggedHash(BIP340.challenge, dataBuf, dataOffset,
+							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+				} else if (argInt0 == 1) { // BIP340/aux
+					BIP340.taggedHash(BIP340.aux, dataBuf, dataOffset,
+							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+				} else if (argInt0 == 2) { // BIP340/nonce
+					BIP340.taggedHash(BIP340.nonce, dataBuf, dataOffset,
+							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+				} else if (argInt0 == 3) {// TapTweak
+					BIP340.taggedHash(BIP340.TapTweak, dataBuf, dataOffset,
+							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+				}
+				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
 				break;
