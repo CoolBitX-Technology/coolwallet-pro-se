@@ -27,4 +27,5 @@ src/coolbitx/HmacDrbg.java
 src/coolbitx/HmacSha.java
 src/coolbitx/Ripemd.java
 src/coolbitx/Schnorr.java
-src/coolbitx/BIP340.java
+src/coolbitx/Bip340.java
+
