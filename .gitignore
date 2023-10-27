@@ -10,7 +10,9 @@
 **/node_modules/
 /jcardsim
 **/tomcat.*/
-/bin
+/bin/
+/bin-debug/
+/bin-release/
 .settings/
 mv.sh
 .gradle/

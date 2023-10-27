@@ -117,6 +117,7 @@ public class Bip32 {
 		switch (keyType) {
 		case KeyManager.BIP32:
 		case KeyManager.BIP32EDDSA:
+		case KeyManager.BIP340:
 			HmacSha.HMAC(masterSecretKey, Common.OFFSET_ZERO,
 					(short) masterSecretKey.length, seed, seedOffset,
 					(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
@@ -150,6 +151,8 @@ public class Bip32 {
 			getDerivedKeyByPath(path, pathOffset, pathLength, trans,
 					transOffset);
 		switch (keyType) {
+		case KeyManager.BIP340:
+			Bip86.tweakKey(trans, transOffset);
 		case KeyManager.BIP32: // ECDSA secp256k1
 			KeyUtil.privToPubKey(trans, transOffset, destBuf, destOffset);
 			ret = 33;
@@ -212,6 +215,10 @@ public class Bip32 {
 					length, rnd, rndOffset, trans, transOffset);
 			WorkCenter.release(WorkCenter.WORK1, Common.LENGTH_SHA512);
 			ret = 64;
+			break;
+		case KeyManager.SIGN_SCHNORR:
+			ret = Schnorr.sign(buf, offset, length, trans, transOffset,
+					destBuf, destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6AC3);
