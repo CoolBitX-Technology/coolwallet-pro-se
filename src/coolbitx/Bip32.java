@@ -152,7 +152,6 @@ public class Bip32 {
 					transOffset);
 		switch (keyType) {
 		case KeyManager.BIP340:
-			Bip86.tweakKey(trans, transOffset);
 		case KeyManager.BIP32: // ECDSA secp256k1
 			KeyUtil.privToPubKey(trans, transOffset, destBuf, destOffset);
 			ret = 33;
@@ -217,6 +216,7 @@ public class Bip32 {
 			ret = 64;
 			break;
 		case KeyManager.SIGN_SCHNORR:
+			Bip86.tweakKey(trans, transOffset);
 			ret = Schnorr.sign(buf, offset, length, trans, transOffset,
 					destBuf, destOffset);
 			break;

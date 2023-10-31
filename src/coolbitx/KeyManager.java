@@ -61,6 +61,7 @@ public class KeyManager {
 		case SLIP0010: // EdDSA Ed25519
 		case CURVE25519:
 		case BIP32EDDSA:
+		case BIP340:
 			ret = Bip32.getDerivedPublicKey(path, pathOffset, pathLength,
 					needChainCode, destBuf, destOffset);
 			break;
