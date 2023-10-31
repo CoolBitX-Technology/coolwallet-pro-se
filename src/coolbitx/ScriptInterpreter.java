@@ -951,7 +951,7 @@ public class ScriptInterpreter {
 			if ((path[(short) (pathOffset + 5)] & 0x7F) != coinType[0]
 					|| Util.arrayCompare(path, (short) (pathOffset + 6),
 							coinType, (short) 1, (short) 3) != 0) {
-				ISOException.throwIt((short) 0x6A0C);
+				ISOException.throwIt((short) 0x6A00);
 			}
 		}
 		short workLength = 32;
