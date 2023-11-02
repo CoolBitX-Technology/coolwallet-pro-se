@@ -12,11 +12,13 @@ public class KeyManager {
 	public static final byte BIP32EDDSA = 0x42;
 	public static final byte BIP32ED25519 = 0x17;
 	public static final byte CURVE25519 = 0x19;
+	public static final byte BIP340 = 0x34;
 
 	public static final byte SIGN_SECP256K1 = 0x01;
 	public static final byte SIGN_ED25519 = 0x02;
 	public static final byte SIGN_BIP32ED25519 = 0x03;
 	public static final byte SIGN_CURVE25519 = 0x04;
+	public static final byte SIGN_SCHNORR = 0x05;
 
 	public static void init() {
 		Bip32.init();
@@ -59,6 +61,7 @@ public class KeyManager {
 		case SLIP0010: // EdDSA Ed25519
 		case CURVE25519:
 		case BIP32EDDSA:
+		case BIP340:
 			ret = Bip32.getDerivedPublicKey(path, pathOffset, pathLength,
 					needChainCode, destBuf, destOffset);
 			break;
@@ -81,6 +84,7 @@ public class KeyManager {
 		case SIGN_SECP256K1: // ECDSA secp256k1
 		case SIGN_ED25519: // EdDSA Ed25519
 		case SIGN_CURVE25519:
+		case SIGN_SCHNORR:
 			ret = Bip32.signByDerivedKey(buf, offset, length, path, pathOffset,
 					pathLength, signType, destBuf, destOffset);
 			break;

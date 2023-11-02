@@ -3,7 +3,6 @@
  */
 package coolbitx;
 
-import javacard.framework.JCSystem;
 import javacard.framework.Util;
 
 /**

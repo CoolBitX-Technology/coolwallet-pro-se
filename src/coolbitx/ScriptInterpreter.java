@@ -770,16 +770,16 @@ public class ScriptInterpreter {
 			case (byte) 0xae:
 				// tagged hash, for now only use SHA-256
 				if (argInt0 == 0) { // BIP340/challenge
-					BIP340.taggedHash(BIP340.challenge, dataBuf, dataOffset,
+					Bip340.taggedHash(Bip340.challenge, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
 				} else if (argInt0 == 1) { // BIP340/aux
-					BIP340.taggedHash(BIP340.aux, dataBuf, dataOffset,
+					Bip340.taggedHash(Bip340.aux, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
 				} else if (argInt0 == 2) { // BIP340/nonce
-					BIP340.taggedHash(BIP340.nonce, dataBuf, dataOffset,
+					Bip340.taggedHash(Bip340.nonce, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
 				} else if (argInt0 == 3) {// TapTweak
-					BIP340.taggedHash(BIP340.TapTweak, dataBuf, dataOffset,
+					Bip340.taggedHash(Bip340.TapTweak, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
 				}
 				break;
@@ -951,7 +951,7 @@ public class ScriptInterpreter {
 			if ((path[(short) (pathOffset + 5)] & 0x7F) != coinType[0]
 					|| Util.arrayCompare(path, (short) (pathOffset + 6),
 							coinType, (short) 1, (short) 3) != 0) {
-				ISOException.throwIt((short) 0x6A0C);
+				ISOException.throwIt((short) 0x6A00);
 			}
 		}
 		short workLength = 32;
