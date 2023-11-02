@@ -10,11 +10,12 @@ public class Bip86 {
 	public static void tweakKey(byte[] privateKey, short privateKeyOffset) {
 		modifyPrivateKey(privateKey, privateKeyOffset);
 		byte[] publicKey = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
-		short publicKeyOffset = WorkCenter.getWorkspaceOffset((short) 33);
+		short publicKeyOffset = WorkCenter
+				.getWorkspaceOffset(Common.LENGTH_COMPRESS_PUBLICKEY);
 		KeyUtil.privToPubKey(privateKey, privateKeyOffset, publicKey,
 				publicKeyOffset);
 		byte[] tweak = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
-		short tweakOffset = WorkCenter.getWorkspaceOffset((short) 33);
+		short tweakOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_SHA256);
 		Bip340.taggedHash(Bip340.TapTweak, publicKey,
 				(short) (publicKeyOffset + 1), (short) 32, tweak, tweakOffset,
 				ShaUtil.m_sha_256);
@@ -23,7 +24,10 @@ public class Bip86 {
 		Math.modularAdd(privateKey, privateKeyOffset, (short) 32, tweak,
 				tweakOffset, (short) 32, Secp256k1.R, Common.OFFSET_ZERO,
 				(short) 32);
-		WorkCenter.release(WorkCenter.WORK1, (short) (33 + 33));
+		WorkCenter
+				.release(
+						WorkCenter.WORK1,
+						(short) (Common.LENGTH_COMPRESS_PUBLICKEY + Common.LENGTH_SHA256));
 	}
 
 	public static void modifyPrivateKey(byte[] privateKey,
