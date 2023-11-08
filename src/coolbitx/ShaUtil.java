@@ -79,11 +79,13 @@ public final class ShaUtil {
 		len = m_sha_256.doFinal(destbuf, destOffset, len, destbuf, destOffset);
 		return len;
 	}
-	
+
 	public final static short S_DoubleSHA256(byte[] buf, short offset,
 			short length, byte[] destbuf, short destOffset) {
-		short len = m_s_sha_256.doFinal(buf, offset, length, destbuf, destOffset);
-		len = m_s_sha_256.doFinal(destbuf, destOffset, len, destbuf, destOffset);
+		short len = m_s_sha_256.doFinal(buf, offset, length, destbuf,
+				destOffset);
+		len = m_s_sha_256
+				.doFinal(destbuf, destOffset, len, destbuf, destOffset);
 		return len;
 	}
 
@@ -157,6 +159,23 @@ public final class ShaUtil {
 		return (short) 5;
 	}
 
+	public static short bech32m_checksum(byte[] buf, short offset,
+			short length, byte[] destBuf, short destOffset) {
+		bech32_polyMod(buf, offset, length, destBuf, destOffset);
+		destBuf[destOffset] ^= (byte) 0x2b;
+		destBuf[destOffset + 1] ^= (byte) 0xc8;
+		destBuf[destOffset + 2] ^= (byte) 0x30;
+		destBuf[destOffset + 3] ^= (byte) 0xa3;
+		return (short) 4;
+	}
+
+	public static short bech32_checksum(byte[] buf, short offset, short length,
+			byte[] destBuf, short destOffset) {
+		bech32_polyMod(buf, offset, length, destBuf, destOffset);
+		destBuf[destOffset + 3] ^= 1;
+		return (short) 4;
+	}
+
 	public static short bech32_polyMod(byte[] buf, short offset, short length,
 			byte[] destBuf, short destOffset) {
 		byte[] apdu = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
@@ -194,7 +213,7 @@ public final class ShaUtil {
 			}
 		}
 		apdu[(short) (workOffset + 1)] &= 0x3f;
-		apdu[(short) (workOffset + 4)] ^= 1;
+		// apdu[(short) (workOffset + 4)] ^= 1;
 		Util.arrayCopyNonAtomic(apdu, (short) (workOffset + 1), destBuf,
 				destOffset, (short) 4);
 		WorkCenter.release(WorkCenter.WORK, (short) 5);
