@@ -1211,7 +1211,7 @@ public class ScriptInterpreter {
 					destOffset);
 			break;
 		case 0xB:
-			length = ShaUtil.bech32_polyMod(dataBuf, dataOffset, dataLength,
+			length = ShaUtil.bech32_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
 		case 0xC:
@@ -1238,6 +1238,9 @@ public class ScriptInterpreter {
 			length = ShaUtil.Blake3256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
+		case 0x12:
+			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
+					destBuf, destOffset);
 		default:
 			ISOException.throwIt((short) 0x6A0A);
 		}
