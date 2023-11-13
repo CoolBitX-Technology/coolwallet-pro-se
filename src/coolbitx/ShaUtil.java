@@ -163,16 +163,16 @@ public final class ShaUtil {
 			short length, byte[] destBuf, short destOffset) {
 		bech32_polyMod(buf, offset, length, destBuf, destOffset);
 		destBuf[destOffset] ^= (byte) 0x2b;
-		destBuf[destOffset + 1] ^= (byte) 0xc8;
-		destBuf[destOffset + 2] ^= (byte) 0x30;
-		destBuf[destOffset + 3] ^= (byte) 0xa3;
+		destBuf[(short) (destOffset + 1)] ^= (byte) 0xc8;
+		destBuf[(short) (destOffset + 2)] ^= (byte) 0x30;
+		destBuf[(short) (destOffset + 3)] ^= (byte) 0xa3;
 		return (short) 4;
 	}
 
 	public static short bech32_checksum(byte[] buf, short offset, short length,
 			byte[] destBuf, short destOffset) {
 		bech32_polyMod(buf, offset, length, destBuf, destOffset);
-		destBuf[destOffset + 3] ^= 1;
+		destBuf[(short) (destOffset + 3)] ^= 1;
 		return (short) 4;
 	}
 

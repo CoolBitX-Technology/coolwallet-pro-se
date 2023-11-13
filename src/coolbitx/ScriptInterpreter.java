@@ -1241,6 +1241,7 @@ public class ScriptInterpreter {
 		case 0x12:
 			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
+			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
 		}

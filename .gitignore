@@ -31,3 +31,4 @@ src/coolbitx/Ripemd.java
 src/coolbitx/Schnorr.java
 src/coolbitx/Bip340.java
 
+/bin-debug/
