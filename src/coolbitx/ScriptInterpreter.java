@@ -769,18 +769,29 @@ public class ScriptInterpreter {
 			}
 			case (byte) 0xae:
 				// tagged hash, for now only use SHA-256
-				if (argInt0 == 0) { // BIP340/challenge
+				switch (argInt0) {
+				case 0:
 					Bip340.taggedHash(Bip340.challenge, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
-				} else if (argInt0 == 1) { // BIP340/aux
+					break;
+				case 1:
 					Bip340.taggedHash(Bip340.aux, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
-				} else if (argInt0 == 2) { // BIP340/nonce
+					break;
+				case 2:
 					Bip340.taggedHash(Bip340.nonce, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
-				} else if (argInt0 == 3) {// TapTweak
+					break;
+				case 3:
 					Bip340.taggedHash(Bip340.TapTweak, dataBuf, dataOffset,
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+					break;
+				case 4:
+					Bip340.taggedHash(Bip340.TapSighash, dataBuf, dataOffset,
+							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
+					break;
+				default:
+					ISOException.throwIt((short) 0x6A01);
 				}
 				break;
 			default:
