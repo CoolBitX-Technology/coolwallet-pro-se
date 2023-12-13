@@ -135,6 +135,9 @@ public class Bip32 {
 					(short) (pathOffset + derivedPathLength),
 					path[pathOffset] == 0x10, destBuf, destOffset);
 		}
+		if ((pathLength == 21) && (keyType == KeyManager.BIP340)) {
+			Bip86.tweakKey(destBuf, destOffset);
+		}
 		WorkCenter.release(WorkCenter.WORK1, Common.LENGTH_SEED);
 	}
 
@@ -154,9 +157,6 @@ public class Bip32 {
 		switch (keyType) {
 		case KeyManager.BIP340:
 		case KeyManager.BIP32: // ECDSA secp256k1
-			if ((pathLength == 21) && (keyType == KeyManager.BIP32)) {
-				Bip86.tweakKey(trans, transOffset);
-			}
 			KeyUtil.privToPubKey(trans, transOffset, destBuf, destOffset);
 			ret = 33;
 			if (needChainCode) {
@@ -221,7 +221,6 @@ public class Bip32 {
 			ret = 64;
 			break;
 		case KeyManager.SIGN_SCHNORR:
-			Bip86.tweakKey(trans, transOffset);
 			ret = Schnorr.sign(buf, offset, length, trans, transOffset,
 					destBuf, destOffset);
 			break;
