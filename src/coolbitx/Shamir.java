@@ -113,16 +113,17 @@ public class Shamir {
 		short workLength = (short) (((length / padLength) + 1) * padLength);
 		byte[] workBuf = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short workOffset = WorkCenter.getWorkspaceOffset(workLength);
-		// pad zero
-		short p = Util.arrayFillNonAtomic(workBuf, workOffset,
-				(short) (workLength - length - 1), (byte) 0);
-		workBuf[p++] = 1;
-		Util.arrayCopyNonAtomic(secret, offset, workBuf, p, length);
-		MathUtil.reverse(workBuf, p, workLength);
-		sperateSecret(workBuf, workOffset, workLength, totalShares,
-				requireShares, destBuf, destOffset);
 
-		return 0;
+		short p = Util.arrayCopyNonAtomic(secret, offset, workBuf, workOffset,
+				length);
+		MathUtil.reverse(workBuf, workOffset, length);
+		workBuf[p++] = 1;
+		// pad zero
+		Util.arrayFillNonAtomic(workBuf, p, (short) (workLength - length - 1),
+				(byte) 0);
+
+		return sperateSecret(workBuf, workOffset, workLength, totalShares,
+				requireShares, destBuf, destOffset);
 	}
 
 	private static short sperateSecret(byte[] secret, short secretOffset,
@@ -138,17 +139,16 @@ public class Shamir {
 		for (short i = 0; i < secretLength; i++) {
 			calculateRandomizedShares(secret[i], totalShares, requiredShares,
 					subShare, subShareOffset);
-			for (int j = 1; j <= totalShares; j++) {
-				y[yOffset + (j * secretLength) - i - 1] = subShare[j - 1];
+			for (short j = 1; j <= totalShares; j++) {
+				y[(short) (yOffset + (j * secretLength) - i - 1)] = subShare[(short) (j - 1)];
 			}
 		}
-		// int[] result = new int[totalShares * (1 + secretLength)];
 
 		for (short i = 0; i < totalShares; i++) {
-			int p = i * (secretLength + 1);
-			destBuf[destOffset + p++] = (byte) (i + 1);
+			short p = (short) (i * (secretLength + 1));
+			destBuf[(short) (destOffset + p++)] = (byte) (i + 1);
 			Util.arrayCopyNonAtomic(y, (short) (yOffset + i * secretLength),
-					destBuf, destOffset, secretLength);
+					destBuf, p, secretLength);
 		}
 
 		return (short) (totalShares * (secretLength + 1));
@@ -159,45 +159,46 @@ public class Shamir {
 			short destOffset) {
 		byte[] y = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short yOffset = WorkCenter.getWorkspaceOffset(totalShares);
-		// int[] y = new int[totalShares];
+
 		byte[] coefficients = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short coefficientsOffset = WorkCenter
 				.getWorkspaceOffset(requiredShares);
-		// int[] coefficients = new int[requiredShares];
+
 		coefficients[coefficientsOffset] = secret;
 
 		// Pick random coefficients for our polynomial function
 		for (short i = 1; i < requiredShares; i++) {
-			coefficients[coefficientsOffset + i] = 55;
-			NonceUtil.randomNonce(coefficients,
-					(short) (coefficientsOffset + i), (short) 1);
-			// coefficients[i] = (int) (Math.random() * 256);
+			coefficients[(short) (coefficientsOffset + i)] = 55;
+			// NonceUtil.randomNonce(coefficients,
+			// (short) (coefficientsOffset + i), (short) 1);
 		}
 
 		// Calculate the y value of each share based on f(x) when using our new
 		// random polynomial function
 		for (short i = 1, len = (short) (totalShares + 1); i < len; i++) {
-			y[i - 1] = calculateFofX(i, coefficients);
+			y[(short) (i - 1)] = calculateFofX(i, coefficients,
+					coefficientsOffset, requiredShares);
 		}
 		Util.arrayCopyNonAtomic(y, yOffset, destBuf, destOffset, totalShares);
 
 		return totalShares;
 	}
 
-	private static byte calculateFofX(int x, byte[] coefficients) {
+	private static byte calculateFofX(short x, byte[] data, short dataOffset,
+			short dataLength) {
 		byte logX = calculatedLogarithms[x];
 		byte fx = 0;
 
-		for (int i = coefficients.length - 1; i >= 0; i--) {
+		for (short i = (short) (dataLength - 1); i >= 0; i--) {
 			if (fx != 0) {
 				fx = (byte) (calculatedExponents[(logX + calculatedLogarithms[fx])
-						% maxShares] ^ coefficients[i]);
+						% maxShares] ^ data[i]);
 			} else {
 				// if f(0) then we just return the coefficient as it's just
 				// equivalent to the Y offset. Using the exponent table would
 				// result
 				// in an incorrect answer
-				fx = coefficients[i];
+				fx = data[i];
 			}
 		}
 		return fx;

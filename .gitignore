@@ -32,3 +32,4 @@ src/coolbitx/Schnorr.java
 src/coolbitx/Bip340.java
 
 /bin-debug/
+/bin
