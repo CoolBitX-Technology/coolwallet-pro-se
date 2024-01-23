@@ -140,7 +140,8 @@ public class Shamir {
 			calculateRandomizedShares(secret[i], totalShares, requiredShares,
 					subShare, subShareOffset);
 			for (short j = 1; j <= totalShares; j++) {
-				y[(short) (yOffset + (j * secretLength) - i - 1)] = subShare[(short) (j - 1)];
+				y[(short) (yOffset + (j * secretLength) - i - 1)] = subShare[(short) (subShareOffset
+						+ j - 1)];
 			}
 		}
 
@@ -168,15 +169,14 @@ public class Shamir {
 
 		// Pick random coefficients for our polynomial function
 		for (short i = 1; i < requiredShares; i++) {
-			coefficients[(short) (coefficientsOffset + i)] = 55;
-			// NonceUtil.randomNonce(coefficients,
-			// (short) (coefficientsOffset + i), (short) 1);
+			NonceUtil.randomNonce(coefficients,
+					(short) (coefficientsOffset + i), (short) 1);
 		}
 
 		// Calculate the y value of each share based on f(x) when using our new
 		// random polynomial function
 		for (short i = 1, len = (short) (totalShares + 1); i < len; i++) {
-			y[(short) (i - 1)] = calculateFofX(i, coefficients,
+			y[(short) (yOffset + i - 1)] = calculateFofX(i, coefficients,
 					coefficientsOffset, requiredShares);
 		}
 		Util.arrayCopyNonAtomic(y, yOffset, destBuf, destOffset, totalShares);
@@ -191,14 +191,14 @@ public class Shamir {
 
 		for (short i = (short) (dataLength - 1); i >= 0; i--) {
 			if (fx != 0) {
-				fx = (byte) (calculatedExponents[(logX + calculatedLogarithms[fx])
-						% maxShares] ^ data[i]);
+				fx = (byte) (calculatedExponents[(logX + calculatedLogarithms[(short) (fx & 0xff)])
+						% maxShares] ^ data[(short) (dataOffset + i)]);
 			} else {
 				// if f(0) then we just return the coefficient as it's just
 				// equivalent to the Y offset. Using the exponent table would
 				// result
 				// in an incorrect answer
-				fx = data[i];
+				fx = data[(short) (dataOffset + i)];
 			}
 		}
 		return fx;
