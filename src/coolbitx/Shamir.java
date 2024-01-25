@@ -4,7 +4,7 @@ import javacard.framework.Util;
 
 public class Shamir {
 	private static byte padLength = 16;
-	private static final byte maxShares = (byte) 255; // 2^8 - 1
+	private static final short maxShares = (short) 255; // 2^8 - 1
 	private static final byte[] calculatedLogarithms = { (byte) 0, (byte) 255,
 			(byte) 1, (byte) 25, (byte) 2, (byte) 50, (byte) 26, (byte) 198,
 			(byte) 3, (byte) 223, (byte) 51, (byte) 238, (byte) 27, (byte) 104,
@@ -107,6 +107,71 @@ public class Shamir {
 			(byte) 27, (byte) 54, (byte) 108, (byte) 216, (byte) 173,
 			(byte) 71, (byte) 142, (byte) 1 };
 
+	public static void derive(byte[] shares, short sharesOffset,
+			short sharesLength, short requiredShares, byte[] destBuf,
+			short destOffset) {
+		byte[] x = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short xOffset = WorkCenter.getWorkspaceOffset(requiredShares);
+		byte[] y = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short yOffset = WorkCenter
+				.getWorkspaceOffset((short) (requiredShares * sharesLength));
+
+		byte[] res = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short resOffset = WorkCenter.getWorkspaceOffset((short) (sharesLength));
+
+		for (short i = 0; i < requiredShares; i++) {
+			x[i] = shares[sharesOffset + i * (sharesLength + 1)];
+		}
+
+		for (short i = 0; i < sharesLength; i++) {
+			for (short j = 0; j < requiredShares; j++) {
+				y[yOffset + (i * requiredShares) + j] = shares[sharesOffset
+						+ (j + 1) * (sharesLength + 1) - i - 1];
+			}
+		}
+		boolean findFirstOne = false;
+		short destLength = sharesLength;
+		for (short i = 0; i < sharesLength; i++) {
+			byte value = lagrange(x, xOffset, requiredShares, y,
+					(short) (yOffset + i * requiredShares));
+			res[resOffset + sharesLength - 1 - i] = value;
+
+			if (!findFirstOne) {
+				destLength--;
+				if (value == 1) {
+					findFirstOne = true;
+				}
+			}
+		}
+
+		Util.arrayCopyNonAtomic(res, resOffset, destBuf, destOffset, destLength);
+		MathUtil.reverse(destBuf, destOffset, destLength);
+	}
+
+	private static byte lagrange(byte[] x, short xOffset, short xLength,
+			byte[] y, short yOffset) {
+		short sum = 0;
+		for (short i = 0; i < xLength; i++) {
+			short yI = (short) (y[yOffset + i] & 0x00ff);
+			if (yI != 0) {
+				short product = (short) (calculatedLogarithms[yI] & 0x00ff);
+				for (short j = 0; j < xLength; j++) {
+					if (i != j) {
+						short xI = (short) (x[xOffset + i] & 0x00ff);
+						short xJ = (short) (x[xOffset + j] & 0x00ff);
+						short calculatedLogarithmsA = (short) (calculatedLogarithms[0 ^ xJ] & 0x00ff);
+						short calculatedLogarithmsB = (short) (calculatedLogarithms[xI
+								^ xJ] & 0x00ff);
+						product = (short) ((product + calculatedLogarithmsA
+								- calculatedLogarithmsB + maxShares) % maxShares);
+					}
+				}
+				sum = (short) (sum ^ (short) (calculatedExponents[product] & 0x00ff));
+			}
+		}
+		return (byte) (sum & 0x00ff);
+	}
+
 	public static short sperate(byte[] secret, short offset, short length,
 			short totalShares, short requireShares, byte[] destBuf,
 			short destOffset) {
@@ -184,23 +249,24 @@ public class Shamir {
 		return totalShares;
 	}
 
-	private static byte calculateFofX(short x, byte[] data, short dataOffset,
-			short dataLength) {
-		byte logX = calculatedLogarithms[x];
-		byte fx = 0;
-
-		for (short i = (short) (dataLength - 1); i >= 0; i--) {
+	private static byte calculateFofX(short x, byte[] coefficients,
+			short coefficientsOffset, short coefficientsLength) {
+		short logX = (short) (calculatedLogarithms[x] & 0x00ff);
+		short fx = 0;
+		for (short i = (short) (coefficientsLength - 1); i >= 0; i--) {
 			if (fx != 0) {
-				fx = (byte) (calculatedExponents[(logX + calculatedLogarithms[(short) (fx & 0xff)])
-						% maxShares] ^ data[(short) (dataOffset + i)]);
+				short calculatedLogarithm = (short) (calculatedLogarithms[(short) (fx & 0x00ff)] & 0x00ff);
+				short coefficient = (short) (coefficients[(short) (coefficientsOffset + i)] & 0x00ff);
+				short calculatedExponent = (short) ((calculatedExponents[(short) ((logX + calculatedLogarithm) % maxShares)]) & 0x00ff);
+				fx = (short) (calculatedExponent ^ coefficient);
 			} else {
 				// if f(0) then we just return the coefficient as it's just
 				// equivalent to the Y offset. Using the exponent table would
 				// result
 				// in an incorrect answer
-				fx = data[(short) (dataOffset + i)];
+				fx = (short) ((coefficients[(short) (coefficientsOffset + i)]) & 0x00ff);
 			}
 		}
-		return fx;
+		return (byte) (fx & 0x00ff);
 	}
 }
