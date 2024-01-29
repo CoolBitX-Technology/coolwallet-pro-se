@@ -107,7 +107,7 @@ public class Shamir {
 			(byte) 27, (byte) 54, (byte) 108, (byte) 216, (byte) 173,
 			(byte) 71, (byte) 142, (byte) 1 };
 
-	public static void derive(byte[] shares, short sharesOffset,
+	public static short derive(byte[] shares, short sharesOffset,
 			short sharesLength, short requiredShares, byte[] destBuf,
 			short destOffset) {
 		byte[] x = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
@@ -146,6 +146,7 @@ public class Shamir {
 
 		Util.arrayCopyNonAtomic(res, resOffset, destBuf, destOffset, destLength);
 		MathUtil.reverse(destBuf, destOffset, destLength);
+		return destLength;
 	}
 
 	private static byte lagrange(byte[] x, short xOffset, short xLength,
@@ -172,7 +173,7 @@ public class Shamir {
 		return (byte) (sum & 0x00ff);
 	}
 
-	public static short sperate(byte[] secret, short offset, short length,
+	public static short separate(byte[] secret, short offset, short length,
 			short totalShares, short requireShares, byte[] destBuf,
 			short destOffset) {
 		short workLength = (short) (((length / padLength) + 1) * padLength);
@@ -187,11 +188,11 @@ public class Shamir {
 		Util.arrayFillNonAtomic(workBuf, p, (short) (workLength - length - 1),
 				(byte) 0);
 
-		return sperateSecret(workBuf, workOffset, workLength, totalShares,
+		return separateSecret(workBuf, workOffset, workLength, totalShares,
 				requireShares, destBuf, destOffset);
 	}
 
-	private static short sperateSecret(byte[] secret, short secretOffset,
+	private static short separateSecret(byte[] secret, short secretOffset,
 			short secretLength, short totalShares, short requiredShares,
 			byte[] destBuf, short destOffset) {
 		byte[] y = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
