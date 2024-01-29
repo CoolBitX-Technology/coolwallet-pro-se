@@ -120,13 +120,13 @@ public class Shamir {
 		short resOffset = WorkCenter.getWorkspaceOffset((short) (sharesLength));
 
 		for (short i = 0; i < requiredShares; i++) {
-			x[i] = shares[sharesOffset + i * (sharesLength + 1)];
+			x[i] = shares[(short) (sharesOffset + i * (sharesLength + 1))];
 		}
 
 		for (short i = 0; i < sharesLength; i++) {
 			for (short j = 0; j < requiredShares; j++) {
-				y[yOffset + (i * requiredShares) + j] = shares[sharesOffset
-						+ (j + 1) * (sharesLength + 1) - i - 1];
+				y[(short) (yOffset + (i * requiredShares) + j)] = shares[(short) (sharesOffset
+						+ (j + 1) * (sharesLength + 1) - i - 1)];
 			}
 		}
 		boolean findFirstOne = false;
@@ -134,7 +134,7 @@ public class Shamir {
 		for (short i = 0; i < sharesLength; i++) {
 			byte value = lagrange(x, xOffset, requiredShares, y,
 					(short) (yOffset + i * requiredShares));
-			res[resOffset + sharesLength - 1 - i] = value;
+			res[(short) (resOffset + sharesLength - 1 - i)] = value;
 
 			if (!findFirstOne) {
 				destLength--;
@@ -152,13 +152,13 @@ public class Shamir {
 			byte[] y, short yOffset) {
 		short sum = 0;
 		for (short i = 0; i < xLength; i++) {
-			short yI = (short) (y[yOffset + i] & 0x00ff);
+			short yI = (short) (y[(short) (yOffset + i)] & 0x00ff);
 			if (yI != 0) {
 				short product = (short) (calculatedLogarithms[yI] & 0x00ff);
 				for (short j = 0; j < xLength; j++) {
 					if (i != j) {
-						short xI = (short) (x[xOffset + i] & 0x00ff);
-						short xJ = (short) (x[xOffset + j] & 0x00ff);
+						short xI = (short) (x[(short) (xOffset + i)] & 0x00ff);
+						short xJ = (short) (x[(short) (xOffset + j)] & 0x00ff);
 						short calculatedLogarithmsA = (short) (calculatedLogarithms[0 ^ xJ] & 0x00ff);
 						short calculatedLogarithmsB = (short) (calculatedLogarithms[xI
 								^ xJ] & 0x00ff);
