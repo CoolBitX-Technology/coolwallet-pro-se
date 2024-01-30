@@ -110,39 +110,36 @@ public class Shamir {
 	public static short derive(byte[] shares, short sharesOffset,
 			short sharesLength, short requiredShares, byte[] destBuf,
 			short destOffset) {
+		short secretLength = (short) ((sharesLength / requiredShares) - 1);
 		byte[] x = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short xOffset = WorkCenter.getWorkspaceOffset(requiredShares);
 		byte[] y = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short yOffset = WorkCenter
-				.getWorkspaceOffset((short) (requiredShares * sharesLength));
+				.getWorkspaceOffset((short) (requiredShares * secretLength));
 
 		byte[] res = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
-		short resOffset = WorkCenter.getWorkspaceOffset((short) (sharesLength));
+		short resOffset = WorkCenter.getWorkspaceOffset((short) (secretLength));
 
 		for (short i = 0; i < requiredShares; i++) {
-			x[i] = shares[(short) (sharesOffset + i * (sharesLength + 1))];
+			x[i] = shares[(short) (sharesOffset + i * (secretLength + 1))];
 		}
 
-		for (short i = 0; i < sharesLength; i++) {
+		for (short i = 0; i < secretLength; i++) {
 			for (short j = 0; j < requiredShares; j++) {
 				y[(short) (yOffset + (i * requiredShares) + j)] = shares[(short) (sharesOffset
-						+ (j + 1) * (sharesLength + 1) - i - 1)];
+						+ (j + 1) * (secretLength + 1) - i - 1)];
 			}
 		}
-		boolean findFirstOne = false;
-		short destLength = sharesLength;
-		for (short i = 0; i < sharesLength; i++) {
+		short lastOneOffset = destOffset;
+		for (short i = 0; i < secretLength; i++) {
 			byte value = lagrange(x, xOffset, requiredShares, y,
 					(short) (yOffset + i * requiredShares));
-			res[(short) (resOffset + sharesLength - 1 - i)] = value;
-
-			if (!findFirstOne) {
-				destLength--;
-				if (value == 1) {
-					findFirstOne = true;
-				}
+			res[(short) (resOffset + i)] = value;
+			if (value == 1) {
+				lastOneOffset = (short) (destOffset + i);
 			}
 		}
+		short destLength = (short) (lastOneOffset - destOffset);
 
 		Util.arrayCopyNonAtomic(res, resOffset, destBuf, destOffset, destLength);
 		MathUtil.reverse(destBuf, destOffset, destLength);
@@ -188,8 +185,12 @@ public class Shamir {
 		Util.arrayFillNonAtomic(workBuf, p, (short) (workLength - length - 1),
 				(byte) 0);
 
-		return separateSecret(workBuf, workOffset, workLength, totalShares,
-				requireShares, destBuf, destOffset);
+		short resultLength = separateSecret(workBuf, workOffset, workLength,
+				totalShares, requireShares, destBuf, destOffset);
+
+		WorkCenter.release(WorkCenter.WORK, workLength);
+
+		return resultLength;
 	}
 
 	private static short separateSecret(byte[] secret, short secretOffset,
@@ -217,6 +218,9 @@ public class Shamir {
 			Util.arrayCopyNonAtomic(y, (short) (yOffset + i * secretLength),
 					destBuf, p, secretLength);
 		}
+		WorkCenter.release(WorkCenter.WORK, totalShares);
+		WorkCenter.release(WorkCenter.WORK,
+				(short) (totalShares * secretLength));
 
 		return (short) (totalShares * (secretLength + 1));
 	}
@@ -246,6 +250,8 @@ public class Shamir {
 					coefficientsOffset, requiredShares);
 		}
 		Util.arrayCopyNonAtomic(y, yOffset, destBuf, destOffset, totalShares);
+		WorkCenter.release(WorkCenter.WORK, requiredShares);
+		WorkCenter.release(WorkCenter.WORK, totalShares);
 
 		return totalShares;
 	}
