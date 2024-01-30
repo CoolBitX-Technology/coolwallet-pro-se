@@ -623,10 +623,12 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 						destBuf, destOffset, resultLength);
 				break;
 			case (byte) 0xE0: {
+				short secretLength = Util.getShort(buf, dataOffset);
 				short requireShares = (short) (buf[ISO7816.OFFSET_P1] & 0x00ff);
 				short totalShares = (short) (buf[ISO7816.OFFSET_P2] & 0x00ff);
-				resultLength = Shamir.separate(buf, dataOffset, dataLength,
-						totalShares, requireShares, destBuf, destOffset);
+				resultLength = Shamir.separate(buf, (short) (dataOffset + 2),
+						secretLength, totalShares, requireShares, destBuf,
+						destOffset);
 				break;
 			}
 			case (byte) 0xE2: {
