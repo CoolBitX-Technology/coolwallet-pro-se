@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 334;
+	private static final short ver = 335;
 
 	private static boolean isInit = false;
 
@@ -600,7 +600,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 						Common.OFFSET_ZERO, (short) (pathLength + 1));
 				dataOffset = (short) (dataOffset + 1 + pathLength);
 				dataLength = (short) (dataLength - 1 - pathLength);
-				
+
 				processLength = ScriptInterpreter.signSegmentData(buf,
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
 						pathLength, buf, dataOffset, shouldUpdateTransaction);
@@ -622,6 +622,21 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				Util.arrayCopyNonAtomic(APDU.getCurrentAPDUBuffer(), (short) 0,
 						destBuf, destOffset, resultLength);
 				break;
+			case (byte) 0xE0: {
+				short secretLength = Util.getShort(buf, dataOffset);
+				short requireShares = (short) (buf[ISO7816.OFFSET_P1] & 0x00ff);
+				short totalShares = (short) (buf[ISO7816.OFFSET_P2] & 0x00ff);
+				resultLength = Shamir.separate(buf, (short) (dataOffset + 2),
+						secretLength, totalShares, requireShares, destBuf,
+						destOffset);
+				break;
+			}
+			case (byte) 0xE2: {
+				short requireShares = (short) (buf[ISO7816.OFFSET_P1] & 0x00ff);
+				resultLength = Shamir.derive(buf, dataOffset, dataLength,
+						requireShares, destBuf, destOffset);
+				break;
+			}
 			case (byte) 0xFF:
 				JCSystem.requestObjectDeletion();
 				break;
