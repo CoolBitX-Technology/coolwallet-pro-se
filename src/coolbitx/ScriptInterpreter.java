@@ -353,7 +353,13 @@ public class ScriptInterpreter {
 				break;
 			case (byte) 0xB5:
 				// set bufferInt to data[]
-				bufferInt = dataBuf[dataOffset];
+				if (dataLength == 1) {
+					bufferInt = dataBuf[dataOffset];
+				} else if (dataLength == 2) {
+					bufferInt = Util.getShort(dataBuf, dataOffset);
+				} else {
+					ISOException.throwIt((short) 0x6A76);
+				}
 				break;
 			case (byte) 0xB1:
 				// set bufferInt to dataLength
@@ -392,10 +398,10 @@ public class ScriptInterpreter {
 				// destOffset,
 				// (short) 33);
 				// WorkCenter.release(WorkCenter.WORK1, workLength);
-				KeyManager.getDerivedPublicKey(dataBuf, dataOffset, dataLength,
-						false, destBuf, destOffset);
+				short len = KeyManager.getDerivedPublicKey(dataBuf, dataOffset,
+						dataLength, false, destBuf, destOffset);
+				addDestOffset(destBuf, len);
 			}
-				addDestOffset(destBuf, (short) 33);
 				break;
 			case (byte) 0x15:
 				// skip incoming script
