@@ -1,3 +1,22 @@
+## [336] - 2024-02-20
+
+- `Main` add 80E0 Shamir separate and 80E2 Shamir derive
+- `ScriptInterpreter` fix setBufferInt and getDerivedPublicKey bug.
+- `Shamir` support Shamir separate and derive.
+
+
+## [334] - 2023-12-15
+
+- `Bip86` add tweak key.
+- `ScriptInterpreter` add tagged hash.
+- `ShaUtil` add bech32m checksum.
+- `Schnorr` support Schnorr signature.
+
+## [333] - 2023-08-11
+
+- `ScriptInterpreter` add place holder parameter for utxo.
+- `Main` add 80AA for new utxo sign flow.
+
 ## [332] - 2023-08-10
 
 - `Blake3` support Blake3.
