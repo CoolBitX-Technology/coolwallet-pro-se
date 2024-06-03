@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 7;
+	public static final byte scriptVersion = 8;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -797,8 +797,24 @@ public class ScriptInterpreter {
 							dataLength, destBuf, destOffset, ShaUtil.m_sha_256);
 					break;
 				default:
-					ISOException.throwIt((short) 0x6A01);
+					ISOException.throwIt((short) 0x6A04);
 				}
+				break;
+			// ================ script verion 8 ================
+			case (byte) 0xbb:
+				// bit array to byte array
+				if ((dataLength % 8) != 0) {
+					ISOException.throwIt((short) 0x6A05);
+				}
+				destLength = (short) (dataLength / 8);
+				for (short i = 0; i < destLength; i++) {
+					byte result = 0;
+					for (byte j = 0; j < 8; j++) {
+						result |= (dataBuf[dataOffset++] & 0x01) << (7 - j);
+					}
+					destBuf[(short) (destOffset + i)] = result;
+				}
+				addDestOffset(destBuf, destLength);
 				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
