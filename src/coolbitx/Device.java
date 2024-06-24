@@ -199,6 +199,12 @@ public class Device {
 	}
 
 	public static short getPassword(byte[] destBuf, short destOffset) {
+		if (!paired) {
+			ISOException.throwIt((short) 0x6B0C);
+		}
+		if (freezed) {
+			ISOException.throwIt((short) 0x6B0D);
+		}
 		NonceUtil.randomRange(password, Common.OFFSET_ZERO,
 				Common.LENGTH_PASSWORD, NonceUtil.PWD_MAX, NonceUtil.PWD_MIN);
 		NumberUtil.baseConvert(password, Common.OFFSET_ZERO,
