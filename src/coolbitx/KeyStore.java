@@ -9,20 +9,25 @@ import javacard.security.ECPrivateKey;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class KeyStore {
-	public static final short KEY_SE = 0;
+	public static final byte KEY_SE_ENC = 0;
+	public static final byte KEY_SE_TRANS = 1;
 
-	public static ECPrivateKey getPrivKey(short index) {
+	public static ECPrivateKey getPrivKey(byte index) {
 		switch (index) {
-		case KEY_SE:
-			return KeyUtil.getPrivKey(SEPriKey, Common.OFFSET_ZERO);
+		case KEY_SE_ENC:
+			return KeyUtil.getPrivKey(SEEncKey, Common.OFFSET_ZERO);
+		case KEY_SE_TRANS:
+			return KeyUtil.getPrivKey(SETransKey, Common.OFFSET_ZERO);
 		}
 		return null;
 	}
 
-	public static AESKey getAESKey(short index) {
+	public static AESKey getAESKey(byte index) {
 		switch (index) {
-		case KEY_SE:
-			return KeyUtil.getAesKey(SEPriKey, Common.OFFSET_ZERO);
+		case KEY_SE_ENC:
+			return KeyUtil.getAesKey(SEEncKey, Common.OFFSET_ZERO);
+		case KEY_SE_TRANS:
+			return KeyUtil.getAesKey(SETransKey, Common.OFFSET_ZERO);
 		}
 		return null;
 	}
@@ -38,11 +43,15 @@ public class KeyStore {
 
 		Main.storeInterface.getKey(apdu, (short) 0);
 		Bip32.deriveChildKey(apdu, (short) 0, work, workOffset, false,
-				SEPriKey, (short) 0);
+				SEEncKey, Common.OFFSET_ZERO);
 		WorkCenter.release(WorkCenter.WORK, (short) 32);
+
+		KeyGenerate.derive(KeyGenerate.CARD_PRO, KEY_SE_TRANS, SETransKey,
+				Common.OFFSET_ZERO);
 	}
 
-	private static final byte[] SEPriKey = new byte[64];
+	private static final byte[] SEEncKey = new byte[64];
+	private static final byte[] SETransKey = new byte[64];
 
 	public static final byte[] DFUPubKey = { (byte) 0x04, (byte) 0xad,
 			(byte) 0x36, (byte) 0xd1, (byte) 0x0a, (byte) 0x93, (byte) 0x19,
