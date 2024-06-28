@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 337;
+	private static final short ver = 338;
 
 	private static boolean isInit = false;
 
@@ -163,6 +163,11 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 
 		try {
 			switch (buf[ISO7816.OFFSET_INS]) {
+			case (byte) 0x00: // getCardId
+				resultLength = storeInterface.getCardId(apduBuf, (short) 0);
+				Util.arrayCopyNonAtomic(apduBuf, (short) 0, destBuf,
+						destOffset, resultLength);
+				break;
 			case (byte) 0x08:// verifyDfuSig
 				ShaUtil.SHA256(buf, dataOffset, Common.LENGTH_SHA256, destBuf,
 						destOffset);
@@ -177,7 +182,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				if (buf[(short) (ISO7816.OFFSET_P1)] == 1) {
 					dataLength = EcdhUtil.decrypt(buf, dataOffset, dataLength,
 							buf, dataOffset,
-							KeyStore.getPrivKey(KeyStore.KEY_SE));
+							KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
 				}
 				if (dataLength != 99) {
 					ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
@@ -279,7 +284,8 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				dataLength -= 92;
 				dataLength = EcdhUtil.decrypt(buf, dataOffset, dataLength,
 						destBuf, destOffset,
-						KeyStore.getPrivKey(KeyStore.KEY_SE));// decrypt seed
+						KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));// decrypt
+																	// seed
 
 				KeyManager.setSeed(destBuf, destOffset, dataLength);
 				CardInfo.setWalletStatus(Common.WALLET_CREATED);
@@ -441,7 +447,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				}
 				short length = BackupController.backup(buf, dataOffset);
 				length = EcdhUtil.encryptAES(buf, dataOffset, length, buf,
-						dataOffset, KeyStore.getAESKey(KeyStore.KEY_SE));
+						dataOffset, KeyStore.getAESKey(KeyStore.KEY_SE_ENC));
 				// add checksum
 				length += ShaUtil.SHA256(buf, dataOffset, length, buf,
 						(short) (dataOffset + length));
@@ -482,7 +488,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					}
 					resultLength = EcdhUtil.decryptAES(buf, dataOffset,
 							totalLen, buf, dataOffset,
-							KeyStore.getAESKey(KeyStore.KEY_SE));
+							KeyStore.getAESKey(KeyStore.KEY_SE_ENC));
 					BackupController.recover(buf, dataOffset, resultLength);
 					storeInterface.reset();
 				} else {
