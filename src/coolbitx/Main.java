@@ -163,11 +163,6 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 
 		try {
 			switch (buf[ISO7816.OFFSET_INS]) {
-			case (byte) 0x00: // getCardId
-				resultLength = storeInterface.getCardId(apduBuf, (short) 0);
-				Util.arrayCopyNonAtomic(apduBuf, (short) 0, destBuf,
-						destOffset, resultLength);
-				break;
 			case (byte) 0x08:// verifyDfuSig
 				ShaUtil.SHA256(buf, dataOffset, Common.LENGTH_SHA256, destBuf,
 						destOffset);

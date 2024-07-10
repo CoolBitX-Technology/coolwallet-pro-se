@@ -26,6 +26,8 @@ public class Device {
 	public static byte[] appPublicKeyList;
 	private static byte[] appIdList;
 	private static byte[] nameList;
+	private static byte[] defaultPassword = { (byte) 0xff, (byte) 0xff,
+			(byte) 0xff, (byte) 0xff };
 
 	public static short backupData(byte[] destBuf, short destOffset) {
 		short initOffset = destOffset;
@@ -69,7 +71,10 @@ public class Device {
 		Util.arrayCopyNonAtomic(buf, offset, nameList, Common.OFFSET_ZERO,
 				(short) nameList.length);
 		offset += nameList.length;
-		offset++; // ignore retryTime
+		for (byte i = buf[offset++]; i < Common.PWD_TRY; i++) {
+			pin.check(defaultPassword, Common.OFFSET_ZERO,
+					Common.LENGTH_PASSWORD);
+		}
 		return offset;
 	}
 

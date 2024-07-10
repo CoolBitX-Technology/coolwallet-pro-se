@@ -15,9 +15,9 @@ import javacard.security.RandomData;
 public final class NonceUtil {
 	private static RandomData random;
 	public static byte[] PWD_MAX = { (byte) 0x05, (byte) 0xF5, (byte) 0xE0,
-			(byte) 0xFF };
+			(byte) 0xFF }; // 99999999
 	public static byte[] PWD_MIN = { (byte) 0x00, (byte) 0x01, (byte) 0x86,
-			(byte) 0xA0 };
+			(byte) 0xA0 }; // 100000
 
 	public static byte[] INDEX_MAX = { (byte) 0x7f, (byte) 0xff, (byte) 0xff,
 			(byte) 0xff };
