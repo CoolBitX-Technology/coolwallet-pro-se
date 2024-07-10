@@ -212,10 +212,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				dataLength -= 92;
 				processLength = Device.getPassword(destBuf, destOffset);
 				resultLength = EcdhUtil.encrypt(destBuf, destOffset,
-						processLength, destBuf, destOffset,
-						Device.appPublicKeyList, Device
-								.getAppPublicKeyByte(CardInfo
-										.get(CardInfo.DEVICE)));
+						processLength, destBuf, destOffset);
 				break;
 			case (byte) 0x1C: {
 				// removeOtherSeDevices
@@ -234,7 +231,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			case (byte) 0x1E:// renameOwnSeDevice
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
-				Device.setName(buf, dataOffset, CardInfo.get(CardInfo.DEVICE));
+				Device.setName(buf, dataOffset);
 				break;
 			case (byte) 0x24:// createWallet
 				CardInfo.checkWalletStatusNotEqual(Common.WALLET_CREATED);
@@ -299,9 +296,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 						dataLength, true, buf, dataOffset);
 				// encrypt account extended public key to buf
 				resultLength = EcdhUtil.encrypt(buf, dataOffset, processLength,
-						destBuf, destOffset, Device.appPublicKeyList, Device
-								.getAppPublicKeyByte(CardInfo
-										.get(CardInfo.DEVICE)));
+						destBuf, destOffset);
 				break;
 			case (byte) 0x30:// clearTx
 				CardInfo.set(CardInfo.AUTH_TX, false);

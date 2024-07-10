@@ -70,17 +70,19 @@ public class Check {
 		short signOffset = (short) (dataOffset + dataLength - 72);
 		short appIdOffset = (short) (signOffset - 20);
 		dataLength -= 92;
-		short appIndex = Device.isRegistered(buf, appIdOffset);
-		if (appIndex == 0) {
+		byte currentDevice = Device.isRegistered(buf, appIdOffset);
+		if (currentDevice == 0) {
 			ISOException.throwIt((short) 0x609D);
 		}
 		CardInfo.set(CardInfo.NONCE_ACTI, false);
 		ShaUtil.m_sha_256.update(buf, apduOffset, (short) 4);
 		ShaUtil.m_sha_256.update(buf, dataOffset, dataLength);
-		if (!SignUtil.isVerifiedFixedLength(Main.nonce, (short) 0, (short) 8,
-				buf, signOffset, Device.getAppPublicKey(appIndex))) {
+		boolean isVerified = SignUtil
+				.isVerifiedFixedLength(Main.nonce, (short) 0, (short) 8, buf,
+						signOffset, Device.getAppPublicKey());
+		Common.clearArray(Main.nonce);
+		if (!isVerified) {
 			ISOException.throwIt((short) 0x609E);
 		}
-		CardInfo.set(CardInfo.DEVICE, (byte) appIndex);
 	}
 }

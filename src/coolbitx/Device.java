@@ -7,6 +7,7 @@ package coolbitx;
 
 import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
+import javacard.framework.JCSystem;
 import javacard.framework.OwnerPIN;
 import javacard.framework.Util;
 import javacard.security.ECPublicKey;
@@ -23,9 +24,13 @@ public class Device {
 	private static byte[] password;
 	private static final byte DEVICE_NUM = 3;
 	private static boolean[] pairedList;
-	public static byte[] appPublicKeyList;
+	private static byte[] appPublicKeyList;
 	private static byte[] appIdList;
 	private static byte[] nameList;
+	private static byte[] state;
+	private static final short STATE_LENGTH = 1;
+	private static final short CURRENT_DEVICE = 0;
+
 	private static byte[] defaultPassword = { (byte) 0xff, (byte) 0xff,
 			(byte) 0xff, (byte) 0xff };
 
@@ -85,6 +90,8 @@ public class Device {
 		appPublicKeyList = new byte[(short) (DEVICE_NUM * Common.LENGTH_PUBLICKEY)];
 		appIdList = new byte[(short) (DEVICE_NUM * Common.LENGTH_APP_ID)];
 		nameList = new byte[(short) (DEVICE_NUM * Common.LENGTH_NAME)];
+		state = JCSystem.makeTransientByteArray(STATE_LENGTH,
+				JCSystem.CLEAR_ON_DESELECT);
 	}
 
 	public static void uninit() {
@@ -94,6 +101,7 @@ public class Device {
 		appPublicKeyList = null;
 		appIdList = null;
 		nameList = null;
+		state = null;
 	}
 
 	public static void reset() {
@@ -101,6 +109,7 @@ public class Device {
 		paired = false;
 		freezed = false;
 		pin.resetAndUnblock();
+		Common.clearArray(state);
 	}
 
 	public static short getCardInfo(byte[] buf, short offset) {
@@ -120,16 +129,16 @@ public class Device {
 	}
 
 	public static byte isRegistered(byte[] buf, short offset) {
-		byte regIndex = 0;
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (isPaired(index)
 					&& Util.arrayCompare(buf, offset, appIdList,
 							getAppId(index), Common.LENGTH_APP_ID) == 0) {
-				regIndex = index;
-				break;
+				state[CURRENT_DEVICE] = index;
+				return state[CURRENT_DEVICE];
 			}
 		}
-		return regIndex;
+		state[CURRENT_DEVICE] = 0;
+		return state[CURRENT_DEVICE];
 	}
 
 	public static short getDeviceList(byte[] destBuf, short destOffset) {
@@ -169,9 +178,10 @@ public class Device {
 		}
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (!isPaired(index)) {
-				setAppPublicKey(buf, keyOffset, index);
-				setAppId(destBuf, destOffset, index);
-				setName(buf, nameOffset, index);
+				state[CURRENT_DEVICE] = index;
+				setAppPublicKey(buf, keyOffset);
+				setAppId(destBuf, destOffset);
+				setName(buf, nameOffset);
 				registerDevice(index);
 				paired = true;
 				break;
@@ -234,37 +244,57 @@ public class Device {
 		pin.update(buf, offset, Common.LENGTH_PASSWORD);
 	}
 
-	public static short getAppPublicKeyByte(short index) {
-		return (short) ((index - 1) * Common.LENGTH_PUBLICKEY);
+	public static void getAppPublicKeyAsByteArray(byte[] destBuf,
+			short destOffset) {
+		byte index = getCurrentDevice();
+		Util.arrayCopyNonAtomic(appPublicKeyList,
+				(short) ((index - 1) * Common.LENGTH_PUBLICKEY), destBuf,
+				destOffset, Common.LENGTH_PUBLICKEY);
 	}
 
-	public static ECPublicKey getAppPublicKey(short index) {
+	public static ECPublicKey getAppPublicKey() {
+		byte index = getCurrentDevice();
 		return KeyUtil.getPubKey(appPublicKeyList,
 				(short) ((index - 1) * Common.LENGTH_PUBLICKEY));
 	}
 
-	public static void setAppPublicKey(byte[] buf, short offset, short index) {
+	public static void setAppPublicKey(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, appPublicKeyList,
 				(short) ((index - 1) * Common.LENGTH_PUBLICKEY),
 				Common.LENGTH_PUBLICKEY);
 	}
 
-	public static short getAppId(short index) {
+	private static short getAppId(byte index) {
 		return (short) ((index - 1) * Common.LENGTH_APP_ID);
 	}
 
-	public static void setAppId(byte[] buf, short offset, short index) {
+	public static void setAppId(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, appIdList,
 				(short) ((index - 1) * Common.LENGTH_APP_ID),
 				Common.LENGTH_APP_ID);
 	}
 
-	public short getName(short index) {
+	public short getName() {
+		byte index = getCurrentDevice();
 		return (short) ((index - 1) * Common.LENGTH_NAME);
 	}
 
-	public static void setName(byte[] buf, short offset, short index) {
+	public static void setName(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, nameList,
 				(short) ((index - 1) * Common.LENGTH_NAME), Common.LENGTH_NAME);
+	}
+
+	public static byte getCurrentDevice() {
+		if (state[CURRENT_DEVICE] == 0) {
+			ISOException.throwIt(ErrorMessage.NOT_RECOGNIZED_DEVICE);
+		}
+		return state[CURRENT_DEVICE];
+	}
+
+	public static void setCurrentDevice(byte currentDevice) {
+		state[CURRENT_DEVICE] = currentDevice;
 	}
 }
