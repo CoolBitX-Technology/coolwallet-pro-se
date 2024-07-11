@@ -136,7 +136,7 @@ public class Device {
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (isPaired(index)
 					&& Util.arrayCompare(buf, offset, appIdList,
-							getAppId(index), Common.LENGTH_APP_ID) == 0) {
+							getAppIdOffset(index), Common.LENGTH_APP_ID) == 0) {
 				state[CURRENT_DEVICE] = index;
 				return state[CURRENT_DEVICE];
 			}
@@ -269,7 +269,7 @@ public class Device {
 				Common.LENGTH_PUBLICKEY);
 	}
 
-	private static short getAppId(byte index) {
+	private static short getAppIdOffset(byte index) {
 		return (short) ((index - 1) * Common.LENGTH_APP_ID);
 	}
 
