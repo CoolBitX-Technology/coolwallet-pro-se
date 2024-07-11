@@ -33,7 +33,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 	private byte[] signAesKey;
 
 	static byte[] nonce;
-	static byte[] workspace;
+	// static byte[] workspace;
 	private byte[] path;
 
 	public static boolean factoryMode = false;
@@ -76,8 +76,6 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		destBuf = new byte[destBufLength];
 		nonce = JCSystem.makeTransientByteArray(Common.LENGTH_NONCE,
 				JCSystem.CLEAR_ON_DESELECT);
-		workspace = JCSystem.makeTransientByteArray((short) 250,
-				JCSystem.CLEAR_ON_DESELECT);
 		signAesKey = JCSystem.makeTransientByteArray((short) 32,
 				JCSystem.CLEAR_ON_DESELECT);
 		path = new byte[102];
@@ -88,7 +86,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		EcdhUtil.init();
 		KeyUtil.init();
 		Ripemd.init();
-		CardInfo.init();
+		CardInfo.init(true);
 		FlowCounter.init();
 		ScriptInterpreter.init();
 		CardInfo.defaultSettings();
@@ -104,8 +102,8 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				Blake3.init();
 				ShaUtil.init();
 				KeyManager.init(); // must after ShaUtil
-				Device.init();
-				KeyStore.derive();
+				Device.init(true);
+				KeyStore.derive(KeyGenerate.CARD_PRO);
 				isInit = true;
 			}
 			return;
@@ -170,7 +168,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				short signLength = (short) (dataLength - Common.LENGTH_SHA256);
 				SignUtil.verifyData(destBuf, destOffset, Common.LENGTH_SHA256,
 						buf, signOffset, signLength, KeyUtil.getPubKey(
-								KeyStore.DFUPubKey, Common.OFFSET_ZERO));
+								UniqueImplement.DFUPubKey, Common.OFFSET_ZERO));
 				FlowCounter.checkValue((short) 2);
 				break;
 			case (byte) 0x10:// register
@@ -222,7 +220,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				if (removeDevice == -1) {
 					ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
 				}
-				if (CardInfo.get(CardInfo.DEVICE) == removeDevice) {
+				if (Device.getCurrentDevice() == removeDevice) {
 					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 				}
 				Device.removeDevice(removeDevice);
@@ -300,27 +298,25 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				break;
 			case (byte) 0x30:// clearTx
 				CardInfo.set(CardInfo.AUTH_TX, false);
-				CardInfo.set(CardInfo.EX_ADDR_EXIST, false);
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_NONE);
 				break;
 			case (byte) 0x34:// finishPrepare
-				Check.checkState(Common.STATE_PREPARE);
-				CardInfo.set(CardInfo.SIGN_AESKEY_VALID, false);
+				UniqueImplement.checkState(Common.STATE_PREPARE);
 				CardInfo.set(CardInfo.TRANSCATION_STATE,
 						Common.STATE_WAITING_AUTH);
 				break;
 			case (byte) 0x46:// getNewTxDetail
-				Check.checkState(Common.STATE_WAITING_AUTH);
+				UniqueImplement.checkState(Common.STATE_WAITING_AUTH);
 				resultLength = ScriptInterpreter.getTxDetail(destBuf,
 						destOffset);
 				break;
 			case (byte) 0x38:// authorizeTx
-				Check.checkState(Common.STATE_WAITING_AUTH);
+				UniqueImplement.checkState(Common.STATE_WAITING_AUTH);
 				CardInfo.set(CardInfo.AUTH_TX, true);
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_TX);
 				break;
 			case (byte) 0x3A:// getTxKey
-				Check.checkState(Common.STATE_TX);
+				UniqueImplement.checkState(Common.STATE_TX);
 				if (!CardInfo.is(CardInfo.AUTH_TX)) {
 					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 				}
@@ -500,11 +496,12 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				resultLength = 1;
 				break;
 			case (byte) 0xAC:// setScript
+				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
 				ScriptInterpreter.setScript(buf, dataOffset, dataLength);
+				CardInfo.set(CardInfo.SIGN_AESKEY_VALID, false);
 				break;
 			case (byte) 0xA2:// txPrepScript
-				// Check.checkState(Common.STATE_PREPARE);
-				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
+				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				if (buf[ISO7816.OFFSET_P1] == 0) {
@@ -538,7 +535,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				break;
 			case (byte) 0xA4:// txPrepUTXO
 			{
-				Check.checkState(Common.STATE_PREPARE);
+				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				short pathLength = buf[dataOffset];
@@ -563,7 +560,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				break;
 			case (byte) 0xA8: {
 				// txPrepSegmentData
-				Check.checkState(Common.STATE_PREPARE);
+				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				// Only update transaction when first chunk is reaching.
@@ -586,7 +583,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			}
 			case (byte) 0xAA: {
 				// txPrepUTXOSegmentData
-				Check.checkState(Common.STATE_PREPARE);
+				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				// Only update transaction when first chunk is reaching.
@@ -675,7 +672,6 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		longBuf = null;
 		destBuf = null;
 		nonce = null;
-		workspace = null;
 		signAesKey = null;
 		path = null;
 		storeAppAid = null;

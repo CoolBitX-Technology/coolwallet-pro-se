@@ -75,25 +75,27 @@ public class Bip32 {
 	public static void deriveChildKey(byte[] buf, short offset, byte[] index,
 			short indexOffset, boolean isEd25519, byte[] destBuf,
 			short destOffset) {
+		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short workspaceOffset = WorkCenter.getWorkspaceOffset((short) 37);
 		if ((index[indexOffset] & (byte) 0x80) != 0) {
 			// put 00 || private key
-			Main.workspace[(short) (0)] = (byte) 0x00;
-			Util.arrayCopyNonAtomic(buf, offset, Main.workspace,
-					Common.OFFSET_ONE, Common.LENGTH_PRIVATEKEY);
+			workspace[workspaceOffset] = (byte) 0x00;
+			Util.arrayCopyNonAtomic(buf, offset, workspace,
+					(short) (workspaceOffset + 1), Common.LENGTH_PRIVATEKEY);
 		} else {
 			if (isEd25519) {
 				ISOException.throwIt((short) 0x6D6C);
 			}
 			// put compress public key
-			KeyUtil.privToPubKey(buf, offset, Main.workspace,
-					Common.OFFSET_ZERO);
+			KeyUtil.privToPubKey(buf, offset, workspace, workspaceOffset);
 		}
-		Util.arrayCopyNonAtomic(index, indexOffset, Main.workspace,
-				(short) (33), (short) 4);
+		Util.arrayCopyNonAtomic(index, indexOffset, workspace,
+				(short) (workspaceOffset + 33), (short) 4);
 		byte[] trans = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short transOffset = WorkCenter.getWorkspaceOffset(LENGTH_EXTENDKEY);
+
 		HmacSha.HMAC(buf, (short) (offset + Common.LENGTH_PRIVATEKEY),
-				Common.LENGTH_CHAINCODE, Main.workspace, Common.OFFSET_ZERO,
+				Common.LENGTH_CHAINCODE, workspace, workspaceOffset,
 				Common.LENGTH_MESSAGE, trans, transOffset, ShaUtil.m_sha_512);
 		if (!isEd25519) {
 			MathUtil.addm(buf, offset, (short) 32, trans, transOffset, trans,
@@ -102,6 +104,7 @@ public class Bip32 {
 		Util.arrayCopy(trans, transOffset, destBuf, destOffset,
 				LENGTH_EXTENDKEY);
 		WorkCenter.release(WorkCenter.WORK1, LENGTH_EXTENDKEY);
+		WorkCenter.release(WorkCenter.WORK, (short) 37);
 	}
 
 	private static void getDerivedKeyByPath(byte[] path, short pathOffset,

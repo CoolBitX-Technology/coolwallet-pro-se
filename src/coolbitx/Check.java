@@ -1,6 +1,5 @@
 package coolbitx;
 
-import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.Util;
 
@@ -50,12 +49,6 @@ public class Check {
 			ISOException.throwIt((short) 0x6205);
 		}
 	}
-
-	public static void checkState(short expected) {
-		if (CardInfo.get(CardInfo.TRANSCATION_STATE) != expected) {
-			ISOException.throwIt(ISO7816.SW_COMMAND_CHAINING_NOT_SUPPORTED);
-		}
-	}
 	
 	public static void verifyCommand(byte[] buf, short apduOffset,
 			short dataOffset, short dataLength) {
@@ -74,6 +67,7 @@ public class Check {
 		if (currentDevice == 0) {
 			ISOException.throwIt((short) 0x609D);
 		}
+
 		CardInfo.set(CardInfo.NONCE_ACTI, false);
 		ShaUtil.m_sha_256.update(buf, apduOffset, (short) 4);
 		ShaUtil.m_sha_256.update(buf, dataOffset, dataLength);

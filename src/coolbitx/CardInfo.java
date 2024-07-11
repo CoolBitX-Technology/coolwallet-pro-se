@@ -25,14 +25,11 @@ public class CardInfo {
 	private static byte[] indexId;
 
 	private static byte[] stateArray;
-	private static final short A_LENGTH = 4;
-	public static final short DEVICE = 0;
-	public static final short TRANSCATION_STATE = 1;
-	public static final short MESSAGE_TYPE = 2;
-	public static final short EXPECT_READ_TYPE = 3;
+	private static final short ARRAY_LENGTH = 1;
+	public static final short TRANSCATION_STATE = 0;
 
 	public static void set(short type, byte status) {
-		if (type > A_LENGTH || type < 0) {
+		if (type > ARRAY_LENGTH || type < 0) {
 			ISOException.throwIt(ISO7816.SW_DATA_INVALID);
 		} else {
 			stateArray[(short) (type)] = status;
@@ -41,7 +38,7 @@ public class CardInfo {
 
 	public static byte get(short type) {
 		byte status = 0;
-		if (type > B_LENGTH) {
+		if (type > ARRAY_LENGTH) {
 			ISOException.throwIt(ISO7816.SW_DATA_INVALID);
 		} else {
 			status = stateArray[(short) (type)];
@@ -50,23 +47,14 @@ public class CardInfo {
 	}
 
 	private static short[] stateBoolean;
-	private static final short B_LENGTH = 13;
+	private static final short BOOLEAN_LENGTH = 4;
 	public static final short NONCE_ACTI = 0;
 	public static final short AUTH_GET_KEY = 1;
 	public static final short AUTH_TX = 2;
 	public static final short SIGN_AESKEY_VALID = 3;
-	public static final short EX_ADDR_EXIST = 4;
-	public static final short SELFBUILD = 5;
-	// public static final short TESTNET = 6;
-	public static final short SECOND_TOKEN = 7;
-	public static final short FULL_DATA = 8;
-	public static final short OMNI_TX = 9;
-	public static final short ACTIVE_READTYPE = 10;
-	public static final short SELFBUILD_2 = 11;
-	public static final short IS_BNB_TOKEN = 12;
 
 	public static void set(short type, boolean status) {
-		if (type > B_LENGTH || type < 0) {
+		if (type > BOOLEAN_LENGTH || type < 0) {
 			ISOException.throwIt(ISO7816.SW_DATA_INVALID);
 		}
 		if (status) {
@@ -77,7 +65,7 @@ public class CardInfo {
 	}
 
 	public static boolean is(short type) {
-		if (type > B_LENGTH) {
+		if (type > BOOLEAN_LENGTH) {
 			ISOException.throwIt(ISO7816.SW_DATA_INVALID);
 		}
 		boolean result = false;
@@ -91,17 +79,23 @@ public class CardInfo {
 		return result;
 	}
 
-	public static void init() {
+	public static void init(boolean initWithRam) {
 		balance = new byte[(short) (balanceLength)];
 		indexId = new byte[(short) (totalIndexIdLength)];
-		stateBoolean = JCSystem.makeTransientShortArray(B_LENGTH,
-				JCSystem.CLEAR_ON_DESELECT);
-		stateArray = JCSystem.makeTransientByteArray(A_LENGTH,
-				JCSystem.CLEAR_ON_DESELECT);
+		if (initWithRam) {
+			stateBoolean = JCSystem.makeTransientShortArray(BOOLEAN_LENGTH,
+					JCSystem.CLEAR_ON_DESELECT);
+
+			stateArray = JCSystem.makeTransientByteArray(ARRAY_LENGTH,
+					JCSystem.CLEAR_ON_DESELECT);
+		} else {
+			stateBoolean = new short[BOOLEAN_LENGTH];
+			stateArray = new byte[ARRAY_LENGTH];
+		}
 	}
 
 	public static void reset() {
-		for (byte i = 0; i < B_LENGTH; i++) {
+		for (byte i = 0; i < BOOLEAN_LENGTH; i++) {
 			if (stateBoolean[i] == 0) {
 				stateBoolean[i] = ConstantX.FALSE16;
 			}

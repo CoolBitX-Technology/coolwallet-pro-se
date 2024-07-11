@@ -83,15 +83,19 @@ public class Device {
 		return offset;
 	}
 
-	public static void init() {
+	public static void init(boolean initWithRam) {
 		pin = new OwnerPIN(Common.PWD_TRY, Common.LENGTH_PASSWORD);
 		password = new byte[Common.LENGTH_PASSWORD];
 		pairedList = new boolean[DEVICE_NUM];
 		appPublicKeyList = new byte[(short) (DEVICE_NUM * Common.LENGTH_PUBLICKEY)];
 		appIdList = new byte[(short) (DEVICE_NUM * Common.LENGTH_APP_ID)];
 		nameList = new byte[(short) (DEVICE_NUM * Common.LENGTH_NAME)];
-		state = JCSystem.makeTransientByteArray(STATE_LENGTH,
-				JCSystem.CLEAR_ON_DESELECT);
+		if (initWithRam) {
+			state = JCSystem.makeTransientByteArray(STATE_LENGTH,
+					JCSystem.CLEAR_ON_DESELECT);
+		} else {
+			state = new byte[STATE_LENGTH];
+		}
 	}
 
 	public static void uninit() {
