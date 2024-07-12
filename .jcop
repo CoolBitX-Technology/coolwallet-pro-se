@@ -1,1 +1,69 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><jcop.project build_configurations="false" debug_comp="2" eclipsecoreplugin_version="5.20.1.4" version="2"><package build_configurations="false" debug_comp="0" exportmap="false" jcop.id=""><aid jcop.id="package"/><version jcop.id="package">1.0</version></package><package build_configurations="false" debug_comp="0" exportmap="false" jcop.id="coolbitx"><aid jcop.id="package">|CoolWallet</aid><version jcop.id="package">1.0</version><cunit jcop.id="Ripemd.java"/><cunit jcop.id="Bip39.java"/><cunit jcop.id="KeyGenerate.java"/><cunit jcop.id="NumberUtil.java"/><cunit jcop.id="FlowCounter.java"/><cunit jcop.id="Schnorr.java"/><cunit jcop.id="EcdhUtil.java"/><cunit jcop.id="HmacDrbg.java"/><cunit jcop.id="Bip86.java"/><cunit jcop.id="Bip32Ed25519.java"/><cunit jcop.id="Main.java"><applet jcop.id="Main"><aid jcop.id="applet">|CoolWalletPRO</aid></applet></cunit><cunit jcop.id="ErrorMessage.java"/><cunit jcop.id="CardInfo.java"/><cunit jcop.id="Blake2b.java"/><cunit jcop.id="Sha2.java"/><cunit jcop.id="KeyManager.java"/><cunit jcop.id="UniqueImplement.java"/><cunit jcop.id="Blake3.java"/><cunit jcop.id="WorkCenter.java"/><cunit jcop.id="Common.java"/><cunit jcop.id="Check.java"/><cunit jcop.id="Device.java"/><cunit jcop.id="HmacSha.java"/><cunit jcop.id="Bip340.java"/><cunit jcop.id="MathUtil.java"/><cunit jcop.id="Bip32.java"/><cunit jcop.id="BackupController.java"/><cunit jcop.id="NonceUtil.java"/><cunit jcop.id="ShaUtil.java"/><cunit jcop.id="Sha3.java"/><cunit jcop.id="SignUtil.java"/><cunit jcop.id="KeyStore.java"/><cunit jcop.id="ScriptInterpreter.java"/><cunit jcop.id="RlpDecoder.java"/><cunit jcop.id="Secp256k1.java"/><cunit jcop.id="Shamir.java"/><cunit jcop.id="Ed25519.java"/><cunit jcop.id="KeyUtil.java"/></package><package build_configurations="false" debug_comp="0" exportmap="false" jcop.id="coolbitx.sio"><aid jcop.id="package">|Backup</aid><version jcop.id="package">1.0</version><cunit jcop.id="StoreApplet.java"><applet jcop.id="StoreApplet"><aid jcop.id="applet">|BackupApplet</aid></applet></cunit><cunit jcop.id="StoreObject.java"/><cunit jcop.id="StoreInterface.java"/><cunit jcop.id="GenuineKey.java"/><cunit jcop.id="Secp256k1.java"/><cunit jcop.id="Parameter.java"/><cunit jcop.id="GenuineKeyI.java"/></package></jcop.project>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jcop.project build_configurations="false" debug_comp="2" eclipsecoreplugin_version="5.20.1.4"
+  version="2">
+  <package build_configurations="false" debug_comp="0" exportmap="false" jcop.id="">
+    <aid jcop.id="package" />
+    <version jcop.id="package">1.0</version>
+  </package>
+  <package build_configurations="false" debug_comp="0" exportmap="false" jcop.id="coolbitx">
+    <aid jcop.id="package">|CoolWallet</aid>
+    <version jcop.id="package">1.0</version>
+    <cunit jcop.id="Ripemd.java" />
+    <cunit jcop.id="Bip39.java" />
+    <cunit jcop.id="KeyGenerate.java" />
+    <cunit jcop.id="NumberUtil.java" />
+    <cunit jcop.id="FlowCounter.java" />
+    <cunit jcop.id="Schnorr.java" />
+    <cunit jcop.id="EcdhUtil.java" />
+    <cunit jcop.id="HmacDrbg.java" />
+    <cunit jcop.id="Bip86.java" />
+    <cunit jcop.id="Bip32Ed25519.java" />
+    <cunit jcop.id="Main.java">
+      <applet jcop.id="Main">
+        <aid jcop.id="applet">|CoolWalletPRO</aid>
+      </applet>
+    </cunit>
+    <cunit jcop.id="ErrorMessage.java" />
+    <cunit jcop.id="CardInfo.java" />
+    <cunit jcop.id="Blake2b.java" />
+    <cunit jcop.id="Sha2.java" />
+    <cunit jcop.id="KeyManager.java" />
+    <cunit jcop.id="UniqueImplement.java" />
+    <cunit jcop.id="Blake3.java" />
+    <cunit jcop.id="WorkCenter.java" />
+    <cunit jcop.id="Common.java" />
+    <cunit jcop.id="Check.java" />
+    <cunit jcop.id="Device.java" />
+    <cunit jcop.id="HmacSha.java" />
+    <cunit jcop.id="Bip340.java" />
+    <cunit jcop.id="MathUtil.java" />
+    <cunit jcop.id="Bip32.java" />
+    <cunit jcop.id="BackupController.java" />
+    <cunit jcop.id="NonceUtil.java" />
+    <cunit jcop.id="ShaUtil.java" />
+    <cunit jcop.id="Sha3.java" />
+    <cunit jcop.id="SignUtil.java" />
+    <cunit jcop.id="KeyStore.java" />
+    <cunit jcop.id="ScriptInterpreter.java" />
+    <cunit jcop.id="RlpDecoder.java" />
+    <cunit jcop.id="Secp256k1.java" />
+    <cunit jcop.id="Shamir.java" />
+    <cunit jcop.id="Ed25519.java" />
+    <cunit jcop.id="KeyUtil.java" />
+  </package>
+  <package build_configurations="false" debug_comp="0" exportmap="false" jcop.id="coolbitx.sio">
+    <aid jcop.id="package">|Backup</aid>
+    <version jcop.id="package">1.0</version>
+    <cunit jcop.id="StoreApplet.java">
+      <applet jcop.id="StoreApplet">
+        <aid jcop.id="applet">|BackupApplet</aid>
+      </applet>
+    </cunit>
+    <cunit jcop.id="StoreObject.java" />
+    <cunit jcop.id="StoreInterface.java" />
+    <cunit jcop.id="GenuineKey.java" />
+    <cunit jcop.id="Secp256k1.java" />
+    <cunit jcop.id="Parameter.java" />
+    <cunit jcop.id="GenuineKeyI.java" />
+  </package>
+</jcop.project>
