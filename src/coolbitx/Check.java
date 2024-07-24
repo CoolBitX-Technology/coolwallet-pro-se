@@ -67,7 +67,7 @@ public class Check {
 		if (currentDevice == 0) {
 			ISOException.throwIt((short) 0x609D);
 		}
-
+		Device.setCurrentDevice(currentDevice);
 		CardInfo.set(CardInfo.NONCE_ACTI, false);
 		ShaUtil.m_sha_256.update(buf, apduOffset, (short) 4);
 		ShaUtil.m_sha_256.update(buf, dataOffset, dataLength);

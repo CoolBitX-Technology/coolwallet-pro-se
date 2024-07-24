@@ -133,16 +133,15 @@ public class Device {
 	}
 
 	public static byte isRegistered(byte[] buf, short offset) {
+		byte regIndex = 0;
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (isPaired(index)
 					&& Util.arrayCompare(buf, offset, appIdList,
 							getAppIdOffset(index), Common.LENGTH_APP_ID) == 0) {
-				state[CURRENT_DEVICE] = index;
-				return state[CURRENT_DEVICE];
+				regIndex = index;
 			}
 		}
-		state[CURRENT_DEVICE] = 0;
-		return state[CURRENT_DEVICE];
+		return regIndex;
 	}
 
 	public static short getDeviceList(byte[] destBuf, short destOffset) {
