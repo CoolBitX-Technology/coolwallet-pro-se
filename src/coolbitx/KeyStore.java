@@ -9,25 +9,30 @@ import javacard.security.ECPrivateKey;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class KeyStore {
-	public static final short KEY_SE = 0;
+	public static final byte KEY_SE_ENC = 0;
+	public static final byte KEY_SE_TRANS = 1;
 
-	public static ECPrivateKey getPrivKey(short index) {
+	public static ECPrivateKey getPrivKey(byte index) {
 		switch (index) {
-		case KEY_SE:
-			return KeyUtil.getPrivKey(SEPriKey, Common.OFFSET_ZERO);
+		case KEY_SE_ENC:
+			return KeyUtil.getPrivKey(SEEncKey, Common.OFFSET_ZERO);
+		case KEY_SE_TRANS:
+			return KeyUtil.getPrivKey(SETransKey, Common.OFFSET_ZERO);
 		}
 		return null;
 	}
 
-	public static AESKey getAESKey(short index) {
+	public static AESKey getAESKey(byte index) {
 		switch (index) {
-		case KEY_SE:
-			return KeyUtil.getAesKey(SEPriKey, Common.OFFSET_ZERO);
+		case KEY_SE_ENC:
+			return KeyUtil.getAesKey(SEEncKey, Common.OFFSET_ZERO);
+		case KEY_SE_TRANS:
+			return KeyUtil.getAesKey(SETransKey, Common.OFFSET_ZERO);
 		}
 		return null;
 	}
 
-	public static void derive() {
+	public static void derive(byte cardType) {
 		byte[] apdu = APDU.getCurrentAPDUBuffer();
 		// derive key with index: (hash256(card id) & 7fffffff)
 		short cardIdLen = Main.storeInterface.getCardId(apdu, (short) 0);
@@ -38,26 +43,15 @@ public class KeyStore {
 
 		Main.storeInterface.getKey(apdu, (short) 0);
 		Bip32.deriveChildKey(apdu, (short) 0, work, workOffset, false,
-				SEPriKey, (short) 0);
+				SEEncKey, Common.OFFSET_ZERO);
 		WorkCenter.release(WorkCenter.WORK, (short) 32);
+
+		KeyGenerate.derive(cardType, KEY_SE_TRANS, SETransKey,
+				Common.OFFSET_ZERO);
 	}
 
-	private static final byte[] SEPriKey = new byte[64];
-
-	public static final byte[] DFUPubKey = { (byte) 0x04, (byte) 0xad,
-			(byte) 0x36, (byte) 0xd1, (byte) 0x0a, (byte) 0x93, (byte) 0x19,
-			(byte) 0xef, (byte) 0xc7, (byte) 0xed, (byte) 0x06, (byte) 0xfe,
-			(byte) 0xcf, (byte) 0x0c, (byte) 0x8c, (byte) 0x81, (byte) 0xba,
-			(byte) 0x31, (byte) 0x00, (byte) 0x72, (byte) 0x06, (byte) 0x5b,
-			(byte) 0x36, (byte) 0x05, (byte) 0x95, (byte) 0x22, (byte) 0x0a,
-			(byte) 0x5d, (byte) 0xba, (byte) 0xb5, (byte) 0xf8, (byte) 0x4a,
-			(byte) 0x19, (byte) 0x7a, (byte) 0x22, (byte) 0xcb, (byte) 0x74,
-			(byte) 0x33, (byte) 0x8c, (byte) 0x99, (byte) 0xc9, (byte) 0x86,
-			(byte) 0x08, (byte) 0x79, (byte) 0x49, (byte) 0xe3, (byte) 0x81,
-			(byte) 0x99, (byte) 0x7d, (byte) 0x1e, (byte) 0x89, (byte) 0xc3,
-			(byte) 0xcc, (byte) 0x9e, (byte) 0xa2, (byte) 0x48, (byte) 0xad,
-			(byte) 0xc8, (byte) 0x46, (byte) 0x89, (byte) 0x26, (byte) 0xe4,
-			(byte) 0x6e, (byte) 0x56, (byte) 0x68 };
+	private static final byte[] SEEncKey = new byte[64];
+	private static final byte[] SETransKey = new byte[64];
 
 	public static final byte[] CBPubKey = { (byte) 0x04, (byte) 0x04,
 			(byte) 0x73, (byte) 0xf7, (byte) 0x20, (byte) 0x19, (byte) 0x54,

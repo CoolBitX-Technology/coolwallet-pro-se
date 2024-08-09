@@ -103,7 +103,8 @@ public class EcdhUtil {
 	}
 
 	public static short encrypt(byte[] buf, short offset, short length,
-			byte[] destBuf, short destOff, byte[] appPublicKey, short keyOffset) {
+			byte[] destBuf, short destOff) {
+		// ==== 1st get workspace ====
 		byte[] inBuf = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short inBufOffset = WorkCenter.getWorkspaceOffset(length);
 		Util.arrayCopyNonAtomic(buf, offset, inBuf, inBufOffset, length);
@@ -113,27 +114,39 @@ public class EcdhUtil {
 		short ephemPublicKeyLength = ephemPublicKey.getW(destBuf, destOff);
 		short MacOff = (short) (destOff + ephemPublicKeyLength);
 
-		// Create shared secret and store in workspace
+		// Create shared secret
+		// ==== 2nd get workspace ====
+		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short workspaceOffset = WorkCenter
+				.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+		// ==== 3rd get workspace ====
+		byte[] appPublicKey = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short appPublicKeyOffset = WorkCenter
+				.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+		Device.getAppPublicKeyAsByteArray(appPublicKey, appPublicKeyOffset);
 		KeyUtil.sharedSecret((ECPrivateKey) ephemkeyPair.getPrivate(),
-				appPublicKey, keyOffset, Main.workspace, Common.OFFSET_ZERO);
+				appPublicKey, appPublicKeyOffset, workspace, workspaceOffset);
+		// ==== release 3rd workspace ====
+		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
 
-		// Key derivation function
-		// temp store final key(enc key||mac key) in workspace
-		short keyLength = ShaUtil.SHA512(Main.workspace, Common.OFFSET_ONE,
-				(short) 32, Main.workspace, Common.OFFSET_ZERO);
+		// Derivation final key(enc key||mac key) in workspace
+		short keyLength = ShaUtil.SHA512(workspace,
+				(short) (workspaceOffset + 1), (short) 32, workspace,
+				workspaceOffset);
 		// encrypt data
 		short encryptDataOff = (short) (MacOff + Common.LENGTH_MAC);
 		// take the first half of fianl key as cipher key
-		cipher.init(KeyUtil.getAesKey(Main.workspace, Common.OFFSET_ZERO),
+		cipher.init(KeyUtil.getAesKey(workspace, workspaceOffset),
 				Cipher.MODE_ENCRYPT);
 		// short updateLength = cipher.update(inBuf, inBufOffset, length,
 		// destBuf,
 		// encryptDataOff);
 		short encryptLength = cipher.doFinal(inBuf, inBufOffset, length,
 				destBuf, encryptDataOff);
-		WorkCenter.release(WorkCenter.WORK1, length);
+
 		// Calculate MAC
 		// short macDataLength = Common.OFFSET_ZERO;
+		// ==== 4th get workspace ====
 		byte[] macData = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short macDataOffset = WorkCenter
 				.getWorkspaceOffset((short) (16 + 65 + encryptLength));
@@ -145,10 +158,16 @@ public class EcdhUtil {
 				encryptLength);
 		// take the second half of fianl key as mac key
 		// store MAC after final key in destBuff
-		short macLength = HmacSha.HMAC(Main.workspace, (short) (keyLength / 2),
+		short macLength = HmacSha.HMAC(workspace,
+				(short) (workspaceOffset + (keyLength / 2)),
 				(short) (keyLength / 2), macData, macDataOffset,
 				(short) (p - macDataOffset), destBuf, MacOff, ShaUtil.m_sha_1);
+		// ==== release 4th workspace ====
 		WorkCenter.release(WorkCenter.WORK, (short) (16 + 65 + encryptLength));
+		// ==== release 2nd workspace ====
+		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
+		// ==== release 1st workspace ====
+		WorkCenter.release(WorkCenter.WORK1, length);
 
 		return (short) (ephemPublicKeyLength + macLength + encryptLength);
 	}

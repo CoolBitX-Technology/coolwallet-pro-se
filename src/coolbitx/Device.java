@@ -7,6 +7,7 @@ package coolbitx;
 
 import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
+import javacard.framework.JCSystem;
 import javacard.framework.OwnerPIN;
 import javacard.framework.Util;
 import javacard.security.ECPublicKey;
@@ -23,9 +24,15 @@ public class Device {
 	private static byte[] password;
 	private static final byte DEVICE_NUM = 3;
 	private static boolean[] pairedList;
-	public static byte[] appPublicKeyList;
+	private static byte[] appPublicKeyList;
 	private static byte[] appIdList;
 	private static byte[] nameList;
+	private static byte[] state;
+	private static final short STATE_LENGTH = 1;
+	private static final short CURRENT_DEVICE = 0;
+
+	private static byte[] defaultPassword = { (byte) 0xff, (byte) 0xff,
+			(byte) 0xff, (byte) 0xff };
 
 	public static short backupData(byte[] destBuf, short destOffset) {
 		short initOffset = destOffset;
@@ -69,17 +76,26 @@ public class Device {
 		Util.arrayCopyNonAtomic(buf, offset, nameList, Common.OFFSET_ZERO,
 				(short) nameList.length);
 		offset += nameList.length;
-		offset++; // ignore retryTime
+		for (byte i = buf[offset++]; i < Common.PWD_TRY; i++) {
+			pin.check(defaultPassword, Common.OFFSET_ZERO,
+					Common.LENGTH_PASSWORD);
+		}
 		return offset;
 	}
 
-	public static void init() {
+	public static void init(boolean initWithRam) {
 		pin = new OwnerPIN(Common.PWD_TRY, Common.LENGTH_PASSWORD);
 		password = new byte[Common.LENGTH_PASSWORD];
 		pairedList = new boolean[DEVICE_NUM];
 		appPublicKeyList = new byte[(short) (DEVICE_NUM * Common.LENGTH_PUBLICKEY)];
 		appIdList = new byte[(short) (DEVICE_NUM * Common.LENGTH_APP_ID)];
 		nameList = new byte[(short) (DEVICE_NUM * Common.LENGTH_NAME)];
+		if (initWithRam) {
+			state = JCSystem.makeTransientByteArray(STATE_LENGTH,
+					JCSystem.CLEAR_ON_DESELECT);
+		} else {
+			state = new byte[STATE_LENGTH];
+		}
 	}
 
 	public static void uninit() {
@@ -89,6 +105,7 @@ public class Device {
 		appPublicKeyList = null;
 		appIdList = null;
 		nameList = null;
+		state = null;
 	}
 
 	public static void reset() {
@@ -96,6 +113,7 @@ public class Device {
 		paired = false;
 		freezed = false;
 		pin.resetAndUnblock();
+		Common.clearArray(state);
 	}
 
 	public static short getCardInfo(byte[] buf, short offset) {
@@ -119,9 +137,8 @@ public class Device {
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (isPaired(index)
 					&& Util.arrayCompare(buf, offset, appIdList,
-							getAppId(index), Common.LENGTH_APP_ID) == 0) {
+							getAppIdOffset(index), Common.LENGTH_APP_ID) == 0) {
 				regIndex = index;
-				break;
 			}
 		}
 		return regIndex;
@@ -164,9 +181,10 @@ public class Device {
 		}
 		for (byte index = 1; index <= DEVICE_NUM; index++) {
 			if (!isPaired(index)) {
-				setAppPublicKey(buf, keyOffset, index);
-				setAppId(destBuf, destOffset, index);
-				setName(buf, nameOffset, index);
+				state[CURRENT_DEVICE] = index;
+				setAppPublicKey(buf, keyOffset);
+				setAppId(destBuf, destOffset);
+				setName(buf, nameOffset);
 				registerDevice(index);
 				paired = true;
 				break;
@@ -199,6 +217,12 @@ public class Device {
 	}
 
 	public static short getPassword(byte[] destBuf, short destOffset) {
+		if (!paired) {
+			ISOException.throwIt((short) 0x6B0C);
+		}
+		if (freezed) {
+			ISOException.throwIt((short) 0x6B0D);
+		}
 		NonceUtil.randomRange(password, Common.OFFSET_ZERO,
 				Common.LENGTH_PASSWORD, NonceUtil.PWD_MAX, NonceUtil.PWD_MIN);
 		NumberUtil.baseConvert(password, Common.OFFSET_ZERO,
@@ -223,37 +247,57 @@ public class Device {
 		pin.update(buf, offset, Common.LENGTH_PASSWORD);
 	}
 
-	public static short getAppPublicKeyByte(short index) {
-		return (short) ((index - 1) * Common.LENGTH_PUBLICKEY);
+	public static void getAppPublicKeyAsByteArray(byte[] destBuf,
+			short destOffset) {
+		byte index = getCurrentDevice();
+		Util.arrayCopyNonAtomic(appPublicKeyList,
+				(short) ((index - 1) * Common.LENGTH_PUBLICKEY), destBuf,
+				destOffset, Common.LENGTH_PUBLICKEY);
 	}
 
-	public static ECPublicKey getAppPublicKey(short index) {
+	public static ECPublicKey getAppPublicKey() {
+		byte index = getCurrentDevice();
 		return KeyUtil.getPubKey(appPublicKeyList,
 				(short) ((index - 1) * Common.LENGTH_PUBLICKEY));
 	}
 
-	public static void setAppPublicKey(byte[] buf, short offset, short index) {
+	public static void setAppPublicKey(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, appPublicKeyList,
 				(short) ((index - 1) * Common.LENGTH_PUBLICKEY),
 				Common.LENGTH_PUBLICKEY);
 	}
 
-	public static short getAppId(short index) {
+	private static short getAppIdOffset(byte index) {
 		return (short) ((index - 1) * Common.LENGTH_APP_ID);
 	}
 
-	public static void setAppId(byte[] buf, short offset, short index) {
+	public static void setAppId(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, appIdList,
 				(short) ((index - 1) * Common.LENGTH_APP_ID),
 				Common.LENGTH_APP_ID);
 	}
 
-	public short getName(short index) {
+	public short getName() {
+		byte index = getCurrentDevice();
 		return (short) ((index - 1) * Common.LENGTH_NAME);
 	}
 
-	public static void setName(byte[] buf, short offset, short index) {
+	public static void setName(byte[] buf, short offset) {
+		byte index = getCurrentDevice();
 		Util.arrayCopyNonAtomic(buf, offset, nameList,
 				(short) ((index - 1) * Common.LENGTH_NAME), Common.LENGTH_NAME);
+	}
+
+	public static byte getCurrentDevice() {
+		if (state[CURRENT_DEVICE] == 0) {
+			ISOException.throwIt(ErrorMessage.NOT_RECOGNIZED_DEVICE);
+		}
+		return state[CURRENT_DEVICE];
+	}
+
+	public static void setCurrentDevice(byte currentDevice) {
+		state[CURRENT_DEVICE] = currentDevice;
 	}
 }

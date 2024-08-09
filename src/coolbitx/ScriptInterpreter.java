@@ -61,7 +61,6 @@ public class ScriptInterpreter {
 		rlpArgs = new byte[rlpMax];
 		rlpArgsLengths = new short[rlpLengthMax];
 		coinType = new byte[coinTypeMax];
-		CardInfo.set(CardInfo.SIGN_AESKEY_VALID, false);
 		reset();
 	}
 

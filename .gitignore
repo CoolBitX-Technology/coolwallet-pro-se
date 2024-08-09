@@ -30,6 +30,7 @@ src/coolbitx/HmacSha.java
 src/coolbitx/Ripemd.java
 src/coolbitx/Schnorr.java
 src/coolbitx/Bip340.java
+src/coolbitx/KeyGenerate.java
 
 /bin-debug/
 /bin
