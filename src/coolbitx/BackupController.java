@@ -25,7 +25,7 @@ public class BackupController {
 		destBuf[destOffset++] = VERSION;
 		short backupLength = Bip32.backupData(destBuf, destOffset);
 		destOffset = formatBackupData(destBuf, destOffset, backupLength, BIP32);
-		backupLength = Device.backupData(destBuf, destOffset);
+		backupLength = DeviceManager.backupData(destBuf, destOffset);
 		destOffset = formatBackupData(destBuf, destOffset, backupLength, DEVICE);
 		destBuf[destOffset] = CardInfo.getWalletStatus();
 		destOffset = formatBackupData(destBuf, destOffset, (short) 1,
@@ -56,7 +56,7 @@ public class BackupController {
 		switch (version) {
 		case (byte) 0x00:
 			offset = Bip32.recoverData(buf, offset);
-			offset = Device.recoverData(buf, offset);
+			offset = DeviceManager.recoverData(buf, offset);
 			CardInfo.setWalletStatus(buf[offset++]);
 			CardInfo.setDisplayType(buf[offset++], true);
 			break;
@@ -70,7 +70,7 @@ public class BackupController {
 					Bip32.recoverData(buf, offset);
 					break;
 				case DEVICE:
-					Device.recoverData(buf, offset);
+					DeviceManager.recoverData(buf, offset);
 					break;
 				case WALLET_STATUS:
 					CardInfo.setWalletStatus(buf[offset]);
