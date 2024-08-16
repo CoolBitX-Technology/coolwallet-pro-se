@@ -103,7 +103,8 @@ public class EcdhUtil {
 	}
 
 	public static short encrypt(byte[] buf, short offset, short length,
-			byte[] destBuf, short destOff) {
+			byte[] targetPubKey, short targetKeyOffset, byte[] destBuf,
+			short destOff) {
 		// ==== 1st get workspace ====
 		byte[] inBuf = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short inBufOffset = WorkCenter.getWorkspaceOffset(length);
@@ -119,15 +120,8 @@ public class EcdhUtil {
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short workspaceOffset = WorkCenter
 				.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
-		// ==== 3rd get workspace ====
-		byte[] appPublicKey = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
-		short appPublicKeyOffset = WorkCenter
-				.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
-		Device.getAppPublicKeyAsByteArray(appPublicKey, appPublicKeyOffset);
 		KeyUtil.sharedSecret((ECPrivateKey) ephemkeyPair.getPrivate(),
-				appPublicKey, appPublicKeyOffset, workspace, workspaceOffset);
-		// ==== release 3rd workspace ====
-		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
+				targetPubKey, targetKeyOffset, workspace, workspaceOffset);
 
 		// Derivation final key(enc key||mac key) in workspace
 		short keyLength = ShaUtil.SHA512(workspace,
@@ -146,7 +140,7 @@ public class EcdhUtil {
 
 		// Calculate MAC
 		// short macDataLength = Common.OFFSET_ZERO;
-		// ==== 4th get workspace ====
+		// ==== 3rd get workspace ====
 		byte[] macData = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short macDataOffset = WorkCenter
 				.getWorkspaceOffset((short) (16 + 65 + encryptLength));
@@ -162,7 +156,7 @@ public class EcdhUtil {
 				(short) (workspaceOffset + (keyLength / 2)),
 				(short) (keyLength / 2), macData, macDataOffset,
 				(short) (p - macDataOffset), destBuf, MacOff, ShaUtil.m_sha_1);
-		// ==== release 4th workspace ====
+		// ==== release 3rd workspace ====
 		WorkCenter.release(WorkCenter.WORK, (short) (16 + 65 + encryptLength));
 		// ==== release 2nd workspace ====
 		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);

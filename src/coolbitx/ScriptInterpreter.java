@@ -397,7 +397,7 @@ public class ScriptInterpreter {
 				// destOffset,
 				// (short) 33);
 				// WorkCenter.release(WorkCenter.WORK1, workLength);
-				short len = KeyManager.getDerivedPublicKey(dataBuf, dataOffset,
+				short len = KeyManager.getDerivedPublicKeyByPath(dataBuf, dataOffset,
 						dataLength, false, destBuf, destOffset);
 				addDestOffset(destBuf, len);
 			}
@@ -864,12 +864,12 @@ public class ScriptInterpreter {
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
 					hashType);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
 			WorkCenter.release(WorkCenter.WORK1, workLength);
 		} else {
-			ret = KeyManager.signByDerivedKey(transaction, (short) 0, ti, path,
+			ret = KeyManager.deriveKeyAndSign(transaction, (short) 0, ti, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
 		}
 		return ret;
@@ -902,7 +902,7 @@ public class ScriptInterpreter {
 		getHash(transaction, placeholderOffset, remainLength, workspace,
 				workspaceOffset, hashType);
 
-		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+		ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
 				destOffset);
 		WorkCenter.release(WorkCenter.WORK1, workLength);
@@ -1011,7 +1011,7 @@ public class ScriptInterpreter {
 					workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
@@ -1044,7 +1044,7 @@ public class ScriptInterpreter {
 					(short) 8, workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
@@ -1055,7 +1055,7 @@ public class ScriptInterpreter {
 			}
 			ShaUtil.Keccak256(cache2, (short) 0, c2i, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
