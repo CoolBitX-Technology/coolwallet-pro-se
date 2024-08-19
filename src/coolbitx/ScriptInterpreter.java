@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 8;
+	public static final byte scriptVersion = 9;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -383,7 +383,7 @@ public class ScriptInterpreter {
 				// hash
 				// (data,offset,length,dest,-,hashType)
 				getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
-						(byte) (argInt0 | (argInt1 << 4)));
+						(byte) (argInt0 | (argInt1 << 4)), (short) 0, (short) 0);
 				break;
 			case (byte) 0x6C:
 			// derive ECDSA publicKey with
@@ -815,6 +815,21 @@ public class ScriptInterpreter {
 				}
 				addDestOffset(destBuf, destLength);
 				break;
+			// ================ script verion 9 ================
+			case (byte) 0x5b: {
+				// new hash
+				// data: hash type(1 byte) + hash length(2 bytes) + hash data +
+				// key length(2 bytes) + key data
+				byte hashType = dataBuf[dataOffset++];
+				short hashDataLength = Util.getShort(dataBuf, dataOffset);
+				short hashDataOffset = (short) (dataOffset + 2);
+				short keyLength = Util.getShort(dataBuf,
+						(short) (hashDataOffset + hashDataLength));
+				short keyOffset = (short) (hashDataOffset + hashDataLength + 2);
+				getHash(dataBuf, hashDataOffset, hashDataLength, destBuf,
+						destOffset, hashType, keyOffset, keyLength);
+			}
+				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
 				break;
@@ -863,7 +878,7 @@ public class ScriptInterpreter {
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
-					hashType);
+					hashType, (short) 0, (short) 0);
 			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
@@ -900,7 +915,7 @@ public class ScriptInterpreter {
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 		getHash(transaction, placeholderOffset, remainLength, workspace,
-				workspaceOffset, hashType);
+				workspaceOffset, hashType, (short) 0, (short) 0);
 
 		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
@@ -1193,7 +1208,8 @@ public class ScriptInterpreter {
 	}
 
 	private static void getHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte[] destBuf, short destOffset, byte hashType) {
+			short dataLength, byte[] destBuf, short destOffset, byte hashType,
+			short keyOffset, short keyLength) {
 		short length = 0;
 		switch (hashType) {
 		case 0:
@@ -1273,6 +1289,12 @@ public class ScriptInterpreter {
 		case 0x12:
 			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
+			break;
+		case 0x13:
+			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength, dataBuf, keyOffset, (byte)keyLength, destBuf, destOffset);
+			break;
+		case 0x14:
+			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength, dataBuf, keyOffset, (byte)keyLength, destBuf, destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);

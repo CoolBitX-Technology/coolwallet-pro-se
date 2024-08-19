@@ -236,6 +236,13 @@ public final class ShaUtil {
 			short length, byte[] destbuf, short destOffset) {
 		return m_blake2b_512.doFinal(buf, offset, length, destbuf, destOffset);
 	}
+	
+	public final static short Blake2b512(byte[] buf, short offset,
+			short length, byte[] key, short keyOffset, byte keyLength,
+			byte[] destbuf, short destOffset) {
+		return m_blake2b_512.doFinal(buf, offset, length, key, keyOffset,
+				keyLength, destbuf, destOffset);
+	}
 
 	public final static short Blake3256(byte[] buf, short offset, short length,
 			byte[] destbuf, short destOffset) {
