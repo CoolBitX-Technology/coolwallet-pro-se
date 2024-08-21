@@ -383,7 +383,8 @@ public class ScriptInterpreter {
 				// hash
 				// (data,offset,length,dest,-,hashType)
 				getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
-						(byte) (argInt0 | (argInt1 << 4)), (short) 0, (short) 0);
+						(byte) (argInt0 | (argInt1 << 4)), null, (short) 0,
+						(short) 0);
 				break;
 			case (byte) 0x6C:
 			// derive ECDSA publicKey with
@@ -827,7 +828,7 @@ public class ScriptInterpreter {
 						(short) (hashDataOffset + hashDataLength));
 				short keyOffset = (short) (hashDataOffset + hashDataLength + 2);
 				getHash(dataBuf, hashDataOffset, hashDataLength, destBuf,
-						destOffset, hashType, keyOffset, keyLength);
+						destOffset, hashType, dataBuf, keyOffset, keyLength);
 			}
 				break;
 			default:
@@ -878,7 +879,7 @@ public class ScriptInterpreter {
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
-					hashType, (short) 0, (short) 0);
+					hashType, null, (short) 0, (short) 0);
 			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
@@ -892,12 +893,14 @@ public class ScriptInterpreter {
 
 	public static short signSegmentData(byte[] data, short offset,
 			short length, byte[] path, short pathOffset, short pathLength,
-			byte[] destBuf, short destOffset, boolean shouldUpdateTransaction) {
+			byte[] key, short keyOffset, short keyLength, byte[] destBuf,
+			short destOffset, boolean shouldUpdateTransaction) {
 		short ret = 0;
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		if (shouldUpdateTransaction) {
-			getUpdateHash(transaction, (short) 0, placeholderOffset, hashType);
+			getUpdateHash(transaction, (short) 0, placeholderOffset, hashType,
+					key, keyOffset, keyLength);
 		}
 		// Hashing data
 		getUpdateHash(data, offset, length, hashType);
@@ -913,10 +916,8 @@ public class ScriptInterpreter {
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
-
 		getHash(transaction, placeholderOffset, remainLength, workspace,
-				workspaceOffset, hashType, (short) 0, (short) 0);
-
+				workspaceOffset, hashType, null, (short) 0, (short) 0);
 		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
 				destOffset);
@@ -1190,6 +1191,23 @@ public class ScriptInterpreter {
 	}
 
 	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
+			short keyLength) {
+		switch (hashType) {
+		case 0x13:
+			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength);
+			break;
+		case 0x14:
+			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength);
+			break;
+		default:
+			ISOException.throwIt((short) 0x6A0A);
+		}
+	}
+
+	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
 			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
@@ -1202,6 +1220,12 @@ public class ScriptInterpreter {
 		case 0x11:
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
+		case 0x13:
+			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x14:
+			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength);
+			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
 		}
@@ -1209,7 +1233,7 @@ public class ScriptInterpreter {
 
 	private static void getHash(byte[] dataBuf, short dataOffset,
 			short dataLength, byte[] destBuf, short destOffset, byte hashType,
-			short keyOffset, short keyLength) {
+			byte[] keyBuf, short keyOffset, short keyLength) {
 		short length = 0;
 		switch (hashType) {
 		case 0:
@@ -1291,10 +1315,12 @@ public class ScriptInterpreter {
 					destBuf, destOffset);
 			break;
 		case 0x13:
-			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength, dataBuf, keyOffset, (byte)keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
 			break;
 		case 0x14:
-			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength, dataBuf, keyOffset, (byte)keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
