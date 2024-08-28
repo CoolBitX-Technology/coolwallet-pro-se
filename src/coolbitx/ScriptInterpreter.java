@@ -903,7 +903,8 @@ public class ScriptInterpreter {
 					key, keyOffset, keyLength);
 		}
 		// Hashing data
-		getUpdateHash(data, offset, length, hashType);
+		// Key only update once
+		getUpdateHash(data, offset, length, hashType, key, keyOffset, (short) 0);
 		if (isUTXOtx) {
 			placeholderLength = 0;
 		} else {
@@ -1194,22 +1195,6 @@ public class ScriptInterpreter {
 			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
 			short keyLength) {
 		switch (hashType) {
-		case 0x13:
-			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
-			break;
-		case 0x14:
-			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
-			break;
-		default:
-			ISOException.throwIt((short) 0x6A0A);
-		}
-	}
-
-	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte hashType) {
-		switch (hashType) {
 		case 2:
 		case 0xD: // double sha-256, should hash again later
 			ShaUtil.m_s_sha_256.update(dataBuf, dataOffset, dataLength);
@@ -1221,10 +1206,12 @@ public class ScriptInterpreter {
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x13:
-			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength);
+			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength);
 			break;
 		case 0x14:
-			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength);
+			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, (byte) keyLength);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
