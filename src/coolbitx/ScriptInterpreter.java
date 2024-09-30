@@ -917,7 +917,6 @@ public class ScriptInterpreter {
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
-
 		getHash(transaction, placeholderOffset, remainLength, workspace,
 				workspaceOffset, hashType, null, (short) 0, (short) 0);
 

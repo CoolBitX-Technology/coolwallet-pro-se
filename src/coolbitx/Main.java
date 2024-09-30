@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 340;
+	private static final short ver = 342;
 
 	private static boolean isInit = false;
 
@@ -590,6 +590,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				dataLength = (short) (dataLength - keyLength);
 				short keyOffset = (short) (dataOffset + dataLength);
 				short pathLength = path[Common.OFFSET_ZERO];
+
 				processLength = ScriptInterpreter.signSegmentData(buf,
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
 						pathLength, buf, keyOffset, keyLength, buf, dataOffset,
@@ -619,6 +620,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				short pathLength = buf[dataOffset];
 				Util.arrayCopyNonAtomic(buf, dataOffset, path,
 						Common.OFFSET_ZERO, (short) (pathLength + 1));
+
 				dataOffset = (short) (dataOffset + 1 + pathLength);
 				dataLength = (short) (dataLength - 1 - pathLength - keyLength);
 				short keyOffset = (short) (dataOffset + dataLength);
@@ -633,6 +635,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 								(short) 32);
 						CardInfo.set(CardInfo.SIGN_AESKEY_VALID, true);
 					}
+
 					resultLength = EcdhUtil.encryptAES(buf, dataOffset,
 							processLength, destBuf, destOffset,
 							KeyUtil.getAesKey(signAesKey, Common.OFFSET_ZERO));
