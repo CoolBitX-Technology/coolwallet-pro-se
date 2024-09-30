@@ -19,8 +19,8 @@ public final class ShaUtil {
 	static MessageDigest m_sha_512;
 	static MessageDigest m_sha_512_256;
 	static MessageDigest m_s_sha_256; // only for script
-	static MessageDigest m_blake2b_256;
-	static MessageDigest m_blake2b_512;
+	static Blake2b m_blake2b_256;
+	static Blake2b m_blake2b_512;
 	static MessageDigest m_blake3_256;
 	static MessageDigest m_sha3_256;
 	static MessageDigest m_sha3_512;
@@ -225,9 +225,23 @@ public final class ShaUtil {
 		return m_blake2b_256.doFinal(buf, offset, length, destbuf, destOffset);
 	}
 
+	public final static short Blake2b256(byte[] buf, short offset,
+			short length, byte[] key, short keyOffset, byte keyLength,
+			byte[] destbuf, short destOffset) {
+		return m_blake2b_256.doFinal(buf, offset, length, key, keyOffset,
+				keyLength, destbuf, destOffset);
+	}
+
 	public final static short Blake2b512(byte[] buf, short offset,
 			short length, byte[] destbuf, short destOffset) {
 		return m_blake2b_512.doFinal(buf, offset, length, destbuf, destOffset);
+	}
+	
+	public final static short Blake2b512(byte[] buf, short offset,
+			short length, byte[] key, short keyOffset, byte keyLength,
+			byte[] destbuf, short destOffset) {
+		return m_blake2b_512.doFinal(buf, offset, length, key, keyOffset,
+				keyLength, destbuf, destOffset);
 	}
 
 	public final static short Blake3256(byte[] buf, short offset, short length,

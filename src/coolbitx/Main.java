@@ -579,15 +579,21 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				break;
 			case (byte) 0xA8: {
 				// txPrepSegmentData
+				// data: [sign data][key]
+				// P2: key length
 				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				// Only update transaction when first chunk is reaching.
 				boolean shouldUpdateTransaction = buf[ISO7816.OFFSET_P1] == 0;
+				byte keyLength = buf[ISO7816.OFFSET_P2];
+				dataLength = (short) (dataLength - keyLength);
+				short keyOffset = (short) (dataOffset + dataLength);
 				short pathLength = path[Common.OFFSET_ZERO];
 				processLength = ScriptInterpreter.signSegmentData(buf,
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
-						pathLength, buf, dataOffset, shouldUpdateTransaction);
+						pathLength, buf, keyOffset, keyLength, buf, dataOffset,
+						shouldUpdateTransaction);
 				if (processLength != 0) {
 					if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 						NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO,
@@ -602,20 +608,25 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			}
 			case (byte) 0xAA: {
 				// txPrepUTXOSegmentData
+				// data: [pathLength][path][sign data][key]
+				// P2: key length
 				UniqueImplement.checkState(Common.STATE_PREPARE);
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				// Only update transaction when first chunk is reaching.
 				boolean shouldUpdateTransaction = buf[ISO7816.OFFSET_P1] == 0;
+				byte keyLength = buf[ISO7816.OFFSET_P2];
 				short pathLength = buf[dataOffset];
 				Util.arrayCopyNonAtomic(buf, dataOffset, path,
 						Common.OFFSET_ZERO, (short) (pathLength + 1));
 				dataOffset = (short) (dataOffset + 1 + pathLength);
-				dataLength = (short) (dataLength - 1 - pathLength);
+				dataLength = (short) (dataLength - 1 - pathLength - keyLength);
+				short keyOffset = (short) (dataOffset + dataLength);
 
 				processLength = ScriptInterpreter.signSegmentData(buf,
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
-						pathLength, buf, dataOffset, shouldUpdateTransaction);
+						pathLength, buf, keyOffset, keyLength, buf, dataOffset,
+						shouldUpdateTransaction);
 				if (processLength != 0) {
 					if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 						NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO,

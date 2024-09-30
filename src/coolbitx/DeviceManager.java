@@ -383,6 +383,28 @@ public class DeviceManager {
 		getDevice(index).remove();
 	}
 
+	/**
+	 * removeOrderedDevice remove device with the given position and reorder
+	 * the device array
+	 */
+	public static void removeOrderedDevice(byte position) {
+		if (state[CURRENT_DEVICE] == position) {
+			ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+		}
+
+		getDevice(position).remove();
+
+		// Remove last device doesn't need reorder
+		if (position ==  DEVICE_NUM) return;
+		// Reorder device
+		for (byte i = position; i < DEVICE_NUM; i++) {
+			Device prevDevice = devices[i - 1];
+			Device nextDevice = devices[i];
+			prevDevice.replace(nextDevice);
+			nextDevice.remove();
+		}
+	}
+
 	public static short getPassword(byte[] destBuf, short destOffset) {
 		if (!isPaired()) {
 			ISOException.throwIt((short) 0x6B0C);

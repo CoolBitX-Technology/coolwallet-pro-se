@@ -1,6 +1,6 @@
 package coolbitx;
 
-import javacard.framework.APDU;
+import javacard.framework.Util;
 import javacard.security.AESKey;
 import javacard.security.ECPrivateKey;
 
@@ -12,6 +12,8 @@ public class KeyStore {
 	public static final byte KEY_SE_ENC = 0;
 	public static final byte KEY_SE_TRANS = 1;
 	public static final byte KEY_SE_BACKUP = 2;
+
+	private static final byte KEY_LENGTH = 64;
 
 	public static ECPrivateKey getPrivKey(byte index) {
 		switch (index) {
@@ -36,28 +38,29 @@ public class KeyStore {
 	}
 
 	public static void derive(byte cardType) {
-		byte[] apdu = APDU.getCurrentAPDUBuffer();
-		// derive key with index: (hash256(card id) & 7fffffff)
-		short cardIdLen = Main.storeInterface.getCardId(apdu, (short) 0);
-		byte[] work = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
-		short workOffset = WorkCenter.getWorkspaceOffset((short) 32);
-		ShaUtil.m_sha_256.doFinal(apdu, (short) 0, cardIdLen, work, workOffset);
-		work[workOffset] &= 0x7f;
-
-		Main.storeInterface.getKey(apdu, (short) 0);
-		Bip32.deriveChildKeyFromPrivate(apdu, (short) 0, work, workOffset,
-				false, SEEncKey, Common.OFFSET_ZERO);
-		WorkCenter.release(WorkCenter.WORK, (short) 32);
-
+		KeyGenerate.derive(cardType, KEY_SE_ENC, SEEncKey, Common.OFFSET_ZERO);
 		KeyGenerate.derive(cardType, KEY_SE_TRANS, SETransKey,
-				Common.OFFSET_ZERO);
-		KeyGenerate.derive(cardType, KEY_SE_BACKUP, SEBackupKey,
 				Common.OFFSET_ZERO);
 	}
 
-	private static final byte[] SEEncKey = new byte[64];
-	private static final byte[] SETransKey = new byte[64];
-	private static final byte[] SEBackupKey = new byte[64];
+	public static void setKey(byte type, byte[] key, short keyOffset) {
+		switch (type) {
+		case KEY_SE_ENC:
+			Util.arrayCopyNonAtomic(key, keyOffset, SEEncKey, (short) 0,
+					KEY_LENGTH);
+		case KEY_SE_TRANS:
+			Util.arrayCopyNonAtomic(key, keyOffset, SETransKey, (short) 0,
+					KEY_LENGTH);
+		case KEY_SE_BACKUP:
+			Util.arrayCopyNonAtomic(key, keyOffset, SEBackupKey, (short) 0,
+					KEY_LENGTH);
+		}
+
+	}
+
+	private static final byte[] SEEncKey = new byte[KEY_LENGTH];
+	private static final byte[] SETransKey = new byte[KEY_LENGTH];
+	private static final byte[] SEBackupKey = new byte[KEY_LENGTH];
 
 	public static final byte[] SEBackupPubKey = { (byte) 0x04, (byte) 0x2e,
 			(byte) 0x37, (byte) 0x02, (byte) 0x37, (byte) 0x05, (byte) 0x12,

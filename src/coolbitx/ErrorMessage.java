@@ -76,5 +76,9 @@ public class ErrorMessage {
 	 * Invalid cardType parameter; it should be either CARD_PRO or CARD_LITE.
 	 */
 	public static final short _6EA0 = 0x6EA0;
+	/*
+	 * Invalid keyType parameter; it should be either KEY_SE_ENC or KEY_SE_TRANS.
+	 */
+	public static final short _6EA1 = 0x6EA1;
 
 }
