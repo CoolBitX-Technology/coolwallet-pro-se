@@ -1,4 +1,4 @@
-## [341] - 2024--
+## [341] - 2024-08-30
 
 - `Blake2b` fix blake2b with key bug.
 
