@@ -1,9 +1,31 @@
+## [341] - 2024--
+
+- `Blake2b` fix blake2b with key bug.
+
+## [340] - 2024-08-23
+
+- `Main` update utxo transaction to support blake2b with key hash.
+- `ScriptInterpreter` add blake2b with key hash.
+- `ShaUtil` add blake2b with key hash.
+
+## [339] - 2024-08-09
+
+- `Main` remove workspace to increase ram space.
+- `CardInfo` constructor updated to differentiate between Go Card and Pro Card.
+- `Device` constructor updated to differentiate between Go Card and Pro Card.
+- `KeyStore` add trans key derivation
+- `ErrorMessage` - add ErrorMessage to collect error codes.
+- `UniqueImplement` - added UniqueImplement to differentiate method between Go Card and Pro Card.
+
+## [337] - 2024-06-03
+
+- `ScriptInterpreter` add bit to byte array method.
+
 ## [336] - 2024-02-20
 
-- `Main` add 80E0 Shamir separate and 80E2 Shamir derive
+- `Main` add 80E0 Shamir separate and 80E2 Shamir derive.
 - `ScriptInterpreter` fix setBufferInt and getDerivedPublicKey bug.
 - `Shamir` support Shamir separate and derive.
-
 
 ## [334] - 2023-12-15
 
