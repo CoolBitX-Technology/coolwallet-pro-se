@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 342;
+	private static final short ver = 343;
 
 	private static boolean isInit = false;
 
@@ -514,6 +514,40 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				}
 				resultLength = 1;
 				break;
+			case (byte) 0x88: {
+				// backup data to backup card
+				short cardIdOffset = dataOffset;
+				short cardIdLength = Util.makeShort(buf[cardIdOffset++],
+						buf[cardIdOffset++]);
+				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+				byte[] backCardPublicKey = WorkCenter
+						.getWorkspaceArray(WorkCenter.WORK);
+				short backCardPublicKeyOffset = WorkCenter
+						.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+				UniqueImplement.deriveBackupCardKey(buf, cardIdOffset,
+						cardIdLength, backCardPublicKey,
+						backCardPublicKeyOffset);
+				buf = longBuf;
+				Util.arrayFillNonAtomic(longBuf, Common.OFFSET_ZERO,
+						(short) longBuf.length, (byte) 0);
+				resultLength = BackupController.backup(destBuf, destOffset);
+				resultLength = EcdhUtil.encrypt(destBuf, destOffset,
+						resultLength, backCardPublicKey,
+						backCardPublicKeyOffset, destBuf, destOffset);
+				WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
+				break;
+			}
+			case (byte) 0x8A: {
+				// recover data from main card
+				if (DeviceManager.isPaired()) {
+					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				}
+				short processtLength = EcdhUtil.decrypt(buf, dataOffset,
+						dataLength, destBuf, destOffset,
+						KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
+				BackupController.recover(destBuf, destOffset, processtLength);
+				break;
+			}
 			case (byte) 0xAC:// setScript
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
 				ScriptInterpreter.setScript(buf, dataOffset, dataLength);

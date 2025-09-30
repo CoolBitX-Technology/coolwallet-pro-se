@@ -145,10 +145,12 @@ public class DeviceManager {
 
 		public void replace(Device device) {
 			this.hasData = device.hasData;
-			Util.arrayCopyNonAtomic(device.publicKey, Common.OFFSET_ZERO, publicKey, Common.OFFSET_ZERO,
-					Common.LENGTH_PUBLICKEY);
-			Util.arrayCopyNonAtomic(device.id, Common.OFFSET_ZERO, id, Common.OFFSET_ZERO, Common.LENGTH_APP_ID);
-			Util.arrayCopyNonAtomic(device.name, Common.OFFSET_ZERO, name, Common.OFFSET_ZERO, Common.LENGTH_NAME);
+			Util.arrayCopyNonAtomic(device.publicKey, Common.OFFSET_ZERO,
+					publicKey, Common.OFFSET_ZERO, Common.LENGTH_PUBLICKEY);
+			Util.arrayCopyNonAtomic(device.id, Common.OFFSET_ZERO, id,
+					Common.OFFSET_ZERO, Common.LENGTH_APP_ID);
+			Util.arrayCopyNonAtomic(device.name, Common.OFFSET_ZERO, name,
+					Common.OFFSET_ZERO, Common.LENGTH_NAME);
 
 		}
 
@@ -293,7 +295,8 @@ public class DeviceManager {
 		return (short) (listOffset - destOffset);
 	}
 
-	private static void validateRegisterPrecondition(byte[] buf, short offset, byte[] destBuf, short destOffset) {
+	private static void validateRegisterPrecondition(byte[] buf, short offset,
+			byte[] destBuf, short destOffset) {
 		short keyOffset = (short) (offset + Common.LENGTH_PASSWORD);
 		short nameOffset = (short) (keyOffset + Common.LENGTH_PUBLICKEY);
 
@@ -305,7 +308,6 @@ public class DeviceManager {
 			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 		} // password enter correct
 
-
 		ShaUtil.SHA1(buf, keyOffset, Common.LENGTH_PUBLICKEY, destBuf,
 				destOffset);
 		short deviceIndex = isRegistered(destBuf, destOffset);
@@ -314,7 +316,8 @@ public class DeviceManager {
 		}
 	}
 
-	public static void setDevice(byte[] buf, short offset, byte[] destBuf, short destOffset) {
+	public static void setDevice(byte[] buf, short offset, byte[] destBuf,
+			short destOffset) {
 		short keyOffset = (short) (offset + Common.LENGTH_PASSWORD);
 		short nameOffset = (short) (keyOffset + Common.LENGTH_PUBLICKEY);
 
@@ -333,15 +336,16 @@ public class DeviceManager {
 		}
 	}
 
-	public static void addOrReplaceOldestDevice(byte[] buf, short offset, byte[] destBuf,
-			short destOffset) {
+	public static void addOrReplaceOldestDevice(byte[] buf, short offset,
+			byte[] destBuf, short destOffset) {
 		short keyOffset = (short) (offset + Common.LENGTH_PASSWORD);
 		short nameOffset = (short) (keyOffset + Common.LENGTH_PUBLICKEY);
 
 		validateRegisterPrecondition(buf, offset, destBuf, destOffset);
 
 		byte registeredDeviceCount = 0;
-		while (registeredDeviceCount < DEVICE_NUM && devices[registeredDeviceCount].isDataSet()) {
+		while (registeredDeviceCount < DEVICE_NUM
+				&& devices[registeredDeviceCount].isDataSet()) {
 			registeredDeviceCount++;
 		}
 
@@ -384,8 +388,8 @@ public class DeviceManager {
 	}
 
 	/**
-	 * removeOrderedDevice remove device with the given position and reorder
-	 * the device array
+	 * removeOrderedDevice remove device with the given position and reorder the
+	 * device array
 	 */
 	public static void removeOrderedDevice(byte position) {
 		if (state[CURRENT_DEVICE] == position) {
@@ -395,7 +399,8 @@ public class DeviceManager {
 		getDevice(position).remove();
 
 		// Remove last device doesn't need reorder
-		if (position ==  DEVICE_NUM) return;
+		if (position == DEVICE_NUM)
+			return;
 		// Reorder device
 		for (byte i = position; i < DEVICE_NUM; i++) {
 			Device prevDevice = devices[i - 1];

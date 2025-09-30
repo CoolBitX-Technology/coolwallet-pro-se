@@ -15,8 +15,6 @@ public class ScriptInterpreter {
 	public static byte[] detail; // special
 	public static short[] array; // store array start offset
 	public static short[] count; // store object number in array
-	public static byte[] rlpArgs; // store rlp argument
-	public static short[] rlpArgsLengths; // store rlp arguments length
 	public static byte[] coinType; // special
 	private static final short scriptMax = 3000;
 	private static final short argumentMax = 10240;
@@ -25,8 +23,6 @@ public class ScriptInterpreter {
 	private static final short transactionMax = 9216;
 	private static final short detailMax = 200;
 	private static final short arrayMax = 16;
-	private static final short rlpMax = 1024;
-	private static final short rlpLengthMax = 64;
 	private static final short coinTypeMax = 4;
 	private static short scriptLength;
 	private static short argumentLength;
@@ -58,8 +54,6 @@ public class ScriptInterpreter {
 		detail = new byte[detailMax];
 		array = new short[arrayMax];
 		count = new short[arrayMax];
-		rlpArgs = new byte[rlpMax];
-		rlpArgsLengths = new short[rlpLengthMax];
 		coinType = new byte[coinTypeMax];
 		reset();
 	}
@@ -73,8 +67,6 @@ public class ScriptInterpreter {
 		detail = null;
 		array = null;
 		count = null;
-		rlpArgs = null;
-		rlpArgsLengths = null;
 		coinType = null;
 	}
 
@@ -166,54 +158,254 @@ public class ScriptInterpreter {
 		if (headerLength >= 5) {
 			argType = script[si++];
 		}
-		if (argType == 0x1) { // rlp arg type
-			short rlpLength = RlpDecoder.decodeRlpList(argument, (short) 0,
-					rlpArgs, (short) 0, rlpArgsLengths, (short) 0);
-			if (rlpLength != 0) {
-				short remaining = (short) (argumentLength - rlpLength);
-				// Struct the data length and offset for argument
-				Util.arrayCopyNonAtomic(argument, rlpLength, argument,
-						(short) 0, remaining);
-				Util.arrayFillNonAtomic(argument, remaining, argumentLength,
-						(byte) 0x00);
-			}
-		}
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
 			short dataOffset = 0;
 			short dataLength = 0;
-			if (dataBuf != null) {
+			byte[] destBuf = null;
+			short destOffset = 0;
+			short argInt0 = 0;
+			short argInt1 = 0;
+			if (dataBuf == null) {
+				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				si++;
+				// format parameter
+				dataOffset = getInt((byte) dataOffset);
+				dataLength = getInt((byte) dataLength);
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+			} else if (argType == 0x1 && dataBuf == argument) { // rlp arg type
+				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				// format parameter
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+				si++;
+				if (dataBuf != argument) {
+					// non-rlp data issue here.
+				}
+				byte[] rlpList = argument;
+				short rlpListOffset = Common.OFFSET_ZERO;
+				short rlpListLength = argumentLength;
+				// short rlpListLength,
+				byte[] rlpPath = script;
+				short rlpPathLength = script[si++];
+				short rlpPathOffset = si;
+				si += rlpPathLength;
+				short pathIndex = 0; // Index to traverse the rlpPath
+				short listIndex = rlpListOffset; // Current index in the RLP
+													// list
+				// Traverse the RLP path
+				while (pathIndex < rlpPathLength) {
+					byte pathSegment = rlpPath[(short) (rlpPathOffset + pathIndex)];
+					pathIndex++;
+					// Decode current element in the list
+					int prefix = rlpList[listIndex] & 0xFF;
+					if ((prefix & 0xFF) <= 0x7F) {
+						// Single byte value (0x00 - 0x7F)
+						listIndex++;
+					} else if ((prefix & 0xFF) >= 0x80
+							&& (prefix & 0xFF) <= 0xB7) {
+						// Short string (0x80 - 0xB7)
+						int length = prefix - 0x80;
+						listIndex += length + 1;
+					} else if ((prefix & 0xFF) >= 0xB8
+							&& (prefix & 0xFF) <= 0xBF) {
+						// Long string (0xB8 - 0xBF)
+						int lengthOfLength = (prefix & 0xFF) - 0xB7;
+						listIndex++;
+						int length = 0;
+						for (int i = 0; i < lengthOfLength; i++) {
+							length = (length << 8)
+									| (rlpList[listIndex] & 0xFF);
+							listIndex++;
+						}
+						listIndex += length;
+					} else if ((prefix & 0xFF) >= 0xC0
+							&& (prefix & 0xFF) <= 0xF7) {
+						// Short list (0xC0 - 0xF7)
+						listIndex++;
+						// Navigate through list items
+						for (byte i = 0; i < pathSegment; i++) {
+							int childPrefix = rlpList[listIndex] & 0xFF;
+							if ((childPrefix & 0xFF) <= 0x7F) {
+								// Single byte value
+								listIndex++;
+							} else if ((childPrefix & 0xFF) >= 0x80
+									&& (childPrefix & 0xFF) <= 0xB7) {
+								// Short string
+								int childLength = childPrefix - 0x80;
+								listIndex += childLength + 1;
+							} else if ((childPrefix & 0xFF) >= 0xB8
+									&& (childPrefix & 0xFF) <= 0xBF) {
+								// Long string
+								int childLengthOfLength = (childPrefix & 0xFF) - 0xB7;
+								listIndex++;
+								int childLength = 0;
+								for (int j = 0; j < childLengthOfLength; j++) {
+									childLength = (childLength << 8)
+											| (rlpList[listIndex] & 0xFF);
+									listIndex++;
+								}
+								listIndex += childLength;
+							} else if ((childPrefix & 0xFF) >= 0xC0
+									&& (childPrefix & 0xFF) <= 0xF7) {
+								// Short list
+								int childLength = childPrefix - 0xC0;
+								listIndex += childLength + 1;
+							} else if ((childPrefix & 0xFF) >= 0xF8
+									&& (childPrefix & 0xFF) <= 0xFF) {
+								// Long list
+								int childLengthOfLength = (childPrefix & 0xFF) - 0xF7;
+								listIndex++;
+								int childLength = 0;
+								for (int j = 0; j < childLengthOfLength; j++) {
+									childLength = (childLength << 8)
+											| (rlpList[listIndex] & 0xFF);
+									listIndex++;
+								}
+								listIndex += childLength;
+							} else {
+								ISOException.throwIt(ErrorMessage._6EB0);
+							}
+							if (listIndex >= rlpListOffset + rlpListLength) {
+								ISOException.throwIt(ErrorMessage._6EB1);
+							}
+						}
+					} else if ((prefix & 0xFF) >= 0xF8
+							&& (prefix & 0xFF) <= 0xFF) {
+						// Long list (0xF8 - 0xFF)
+						int lengthOfLength = prefix - 0xF7;
+						listIndex++;
+						short length = 0;
+						for (int i = 0; i < lengthOfLength; i++) {
+							length = (short) ((length << 8) | (rlpList[listIndex] & 0xFF));
+							listIndex++;
+						}
+
+						if (listIndex + length > rlpListOffset + rlpListLength) {
+							ISOException.throwIt(ErrorMessage._6EB2);
+						}
+						// Navigate through list items
+						for (byte i = 0; i < pathSegment; i++) {
+							int childPrefix = rlpList[listIndex] & 0xFF;
+							if ((childPrefix & 0xFF) <= 0x7F) {
+								// Single byte value
+								listIndex++;
+							} else if ((childPrefix & 0xFF) >= 0x80
+									&& (childPrefix & 0xFF) <= 0xB7) {
+								// Short string
+								short childLength = (short) (childPrefix - 0x80);
+								listIndex += childLength + 1;
+							} else if ((childPrefix & 0xFF) >= 0xB8
+									&& (childPrefix & 0xFF) <= 0xBF) {
+								// Long string
+								int childLengthOfLength = (childPrefix & 0xFF) - 0xB7;
+								listIndex++;
+								short childLength = 0;
+								for (int j = 0; j < childLengthOfLength; j++) {
+									childLength = (short) ((childLength << 8) | (rlpList[listIndex] & 0xFF));
+									listIndex++;
+								}
+								listIndex += childLength;
+							} else if ((childPrefix & 0xFF) >= 0xC0
+									&& (childPrefix & 0xFF) <= 0xF7) {
+								// Short list
+								int childLength = childPrefix - 0xC0;
+								listIndex += childLength + 1;
+							} else if ((childPrefix & 0xFF) >= 0xF8
+									&& (childPrefix & 0xFF) <= 0xFF) {
+								// Long list
+								int childLengthOfLength = (childPrefix & 0xFF) - 0xF7;
+								listIndex++;
+								int childLength = 0;
+								for (int j = 0; j < childLengthOfLength; j++) {
+									childLength = (childLength << 8)
+											| (rlpList[listIndex] & 0xFF);
+									listIndex++;
+								}
+								listIndex += childLength;
+							} else {
+
+							}
+							if (listIndex >= rlpListOffset + rlpListLength) {
+								ISOException.throwIt(ErrorMessage._6EB4);
+							}
+						}
+					} else {
+						ISOException.throwIt(ErrorMessage._6EB5);
+					}
+				}
+				// Decode the final element at the resolved path
+				int finalPrefix = rlpList[listIndex] & 0xFF;
+				if ((finalPrefix & 0xFF) <= 0x7F) {
+					// Single byte value (0x00 - 0x7F)
+					dataOffset = listIndex;
+					dataLength = 1;
+				} else if ((finalPrefix & 0xFF) >= 0x80
+						&& (finalPrefix & 0xFF) <= 0xB7) {
+					// Short string (0x80 - 0xB7)
+					dataOffset = (short) (listIndex + 1);
+					dataLength = (short) (finalPrefix - 0x80);
+				} else if ((finalPrefix & 0xFF) >= 0xB8
+						&& (finalPrefix & 0xFF) <= 0xBF) {
+					// Long string (0xB8 - 0xBF)
+					int lengthOfLength = (finalPrefix & 0xFF) - 0xB7;
+					listIndex++;
+					int length = 0;
+					for (int i = 0; i < lengthOfLength; i++) {
+						length = (length << 8) | (rlpList[listIndex] & 0xFF);
+						listIndex++;
+					}
+					dataOffset = listIndex;
+					dataLength = (short) length;
+				} else if ((finalPrefix & 0xFF) >= 0xC0
+						&& (finalPrefix & 0xFF) <= 0xF7) {
+					// Short list (0xC0 - 0xF7)
+					dataOffset = listIndex;
+					dataLength = (short) (finalPrefix - 0xC0 + 1);
+				} else if ((finalPrefix & 0xFF) >= 0xF8
+						&& (finalPrefix & 0xFF) <= 0xFF) {
+					// Long list (0xF8 - 0xFF)
+					int lengthOfLength = (finalPrefix & 0xFF) - 0xF7;
+					listIndex++;
+					int length = 0;
+					for (int i = 0; i < lengthOfLength; i++) {
+						length = (length << 8) | (rlpList[listIndex] & 0xFF);
+						listIndex++;
+					}
+					dataOffset = listIndex;
+					dataLength = (short) length;
+				} else {
+					ISOException.throwIt(ErrorMessage._6EB6);
+				}
+			} else { // data concat type
 				dataOffset = (short) (script[si] & 0x0F);
 				si++;
 				dataLength = (short) ((script[si] >> 4) & 0x0F);
-			}
-			byte[] destBuf = getDestBuffer((byte) (script[si] & 0x0F));
-			short destOffset = getDestOffset(destBuf);
-			si++;
-			short argInt0 = (short) ((script[si] >> 4) & 0x0F);
-			short argInt1 = (short) (script[si] & 0x0F);
-			si++;
-			// If dataLength equals to 0xA means it is a rlp argument.
-			if (dataLength == (byte) 0xA) {
-				short rlpOffset = getInt((byte) dataOffset);
-				dataOffset = 0;
-				for (short i = 0; i < rlpOffset; i++) {
-					dataOffset += rlpArgsLengths[i];
-				}
-				dataLength = rlpArgsLengths[rlpOffset];
-			} else {
+				destBuf = getDestBuffer((byte) (script[si] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				si++;
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				si++;
+				// format parameter
 				dataOffset = getInt((byte) dataOffset);
 				dataLength = getInt((byte) dataLength);
-			}
-			argInt0 = getInt((byte) argInt0);
-			argInt1 = getInt((byte) argInt1);
-			// short destLength = 0;
-			if (dataLength < 0) {
-				dataLength *= -1;
-				while (dataBuf[dataOffset] == 0 && dataLength > 0) {
-					dataOffset++;
-					dataLength--;
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+				if (dataLength < 0) {
+					dataLength *= -1;
+					while (dataBuf[dataOffset] == 0 && dataLength > 0) {
+						dataOffset++;
+						dataLength--;
+					}
 				}
 			}
 			short destLength;
@@ -837,8 +1029,6 @@ public class ScriptInterpreter {
 			}
 		}
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
-		Common.clearArray(rlpArgs);
-		Common.clearArray(rlpArgsLengths);
 		argumentLength = 0;
 		isExecuted = true;
 	}
@@ -917,6 +1107,7 @@ public class ScriptInterpreter {
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+
 		getHash(transaction, placeholderOffset, remainLength, workspace,
 				workspaceOffset, hashType, null, (short) 0, (short) 0);
 
@@ -1093,9 +1284,6 @@ public class ScriptInterpreter {
 		case 0xA:
 			maxCache = argumentLength;
 			return argument;
-		case 0xB:
-			maxCache = rlpMax;
-			return rlpArgs;
 		case 0xE:
 			maxCache = c1i;
 			return cache1;

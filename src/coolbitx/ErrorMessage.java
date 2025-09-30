@@ -77,8 +77,18 @@ public class ErrorMessage {
 	 */
 	public static final short _6EA0 = 0x6EA0;
 	/*
-	 * Invalid keyType parameter; it should be either KEY_SE_ENC or KEY_SE_TRANS.
+	 * Invalid keyType parameter; it should be either KEY_SE_ENC or
+	 * KEY_SE_TRANS.
 	 */
 	public static final short _6EA1 = 0x6EA1;
+
+	// ------------ ScriptInterpreter
+	public static final short _6EB0 = 0x6EB0;
+	public static final short _6EB1 = 0x6EB1;
+	public static final short _6EB2 = 0x6EB2;
+	public static final short _6EB3 = 0x6EB3;
+	public static final short _6EB4 = 0x6EB4;
+	public static final short _6EB5 = 0x6EB5;
+	public static final short _6EB6 = 0x6EB6;
 
 }
