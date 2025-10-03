@@ -48,12 +48,15 @@ public class KeyStore {
 		case KEY_SE_ENC:
 			Util.arrayCopyNonAtomic(key, keyOffset, SEEncKey, (short) 0,
 					KEY_LENGTH);
+			break;
 		case KEY_SE_TRANS:
 			Util.arrayCopyNonAtomic(key, keyOffset, SETransKey, (short) 0,
 					KEY_LENGTH);
+			break;
 		case KEY_SE_BACKUP:
 			Util.arrayCopyNonAtomic(key, keyOffset, SEBackupKey, (short) 0,
 					KEY_LENGTH);
+			break;
 		}
 
 	}

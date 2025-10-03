@@ -24,4 +24,21 @@ public class UniqueImplement {
 			ISOException.throwIt(ISO7816.SW_COMMAND_CHAINING_NOT_SUPPORTED);
 		}
 	}
+	
+	public static short deriveBackupCardKey(byte[] cardId, short cardIdOffset,
+			short cardIdLength, byte[] destBuf, short destOffset) {
+
+		byte[] index = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short indexOffset = WorkCenter.getWorkspaceOffset((short) 32);
+		ShaUtil.m_sha_256.doFinal(cardId, cardIdOffset, cardIdLength, index,
+				indexOffset);
+		index[indexOffset] &= 0x7f;
+
+		short resultLength = Bip32.deriveChildKeyFromPublic(
+				KeyStore.SEBackupPubKey, Common.OFFSET_ZERO,
+				Common.LENGTH_PUBLICKEY, KeyStore.SEBackupChainCode,
+				Common.OFFSET_ZERO, index, indexOffset, destBuf, destOffset);
+		WorkCenter.release(WorkCenter.WORK, (short) 32);
+		return resultLength;
+	}
 }
