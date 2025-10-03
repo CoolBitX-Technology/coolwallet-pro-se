@@ -183,10 +183,10 @@ public class ScriptInterpreter {
 				destOffset = getDestOffset(destBuf);
 				argInt0 = (short) ((script[si] >> 4) & 0x0F);
 				argInt1 = (short) (script[si] & 0x0F);
+				si++;
 				// format parameter
 				argInt0 = getInt((byte) argInt0);
 				argInt1 = getInt((byte) argInt1);
-				si++;
 				if (dataBuf != argument) {
 					// non-rlp data issue here.
 				}
