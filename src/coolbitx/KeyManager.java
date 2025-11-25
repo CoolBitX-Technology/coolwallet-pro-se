@@ -57,21 +57,21 @@ public class KeyManager {
 
 		byte keyType = path[pathOffset];
 		switch (keyType) {
-		case BIP32: // ECDSA secp256k1
-		case SLIP0010: // EdDSA Ed25519
-		case CURVE25519:
-		case BIP32EDDSA:
-		case BIP340:
-			ret = Bip32.getDerivedPublicKeyByPath(path, pathOffset, pathLength,
-					needChainCode, destBuf, destOffset);
-			break;
-		case BIP32ED25519:
-			ret = Bip32Ed25519.getDerivedPublicKeyByPath(path, pathOffset,
-					pathLength, needChainCode, destBuf, destOffset);
-			break;
-		default:
-			ISOException.throwIt(ErrorMessage._6D67);
-			break;
+			case BIP32: // ECDSA secp256k1
+			case SLIP0010: // EdDSA Ed25519
+			case CURVE25519:
+			case BIP32EDDSA:
+			case BIP340:
+				ret = Bip32.getDerivedPublicKeyByPath(path, pathOffset, pathLength,
+						needChainCode, destBuf, destOffset);
+				break;
+			case BIP32ED25519:
+				ret = Bip32Ed25519.getDerivedPublicKeyByPath(path, pathOffset,
+						pathLength, needChainCode, destBuf, destOffset);
+				break;
+			default:
+				ISOException.throwIt(ErrorMessage._6D67);
+				break;
 		}
 		return ret;
 	}
@@ -81,21 +81,21 @@ public class KeyManager {
 			byte signType, byte[] destBuf, short destOffset) {
 		short ret;
 		switch (signType) {
-		case SIGN_SECP256K1: // ECDSA secp256k1
-		case SIGN_ED25519: // EdDSA Ed25519
-		case SIGN_CURVE25519:
-		case SIGN_SCHNORR:
-			ret = Bip32.deriveKeyAndSign(buf, offset, length, path, pathOffset,
-					pathLength, signType, destBuf, destOffset);
-			break;
-		case SIGN_BIP32ED25519: // Bip32 Ed25519
-			ret = Bip32Ed25519.deriveKeyAndSign(buf, offset, length, path,
-					pathOffset, pathLength, signType, destBuf, destOffset);
-			break;
-		default:
-			ISOException.throwIt(ErrorMessage._6D68);
-			ret = 0;
-			break;
+			case SIGN_SECP256K1: // ECDSA secp256k1
+			case SIGN_ED25519: // EdDSA Ed25519
+			case SIGN_CURVE25519:
+			case SIGN_SCHNORR:
+				ret = Bip32.deriveKeyAndSign(buf, offset, length, path, pathOffset,
+						pathLength, signType, destBuf, destOffset);
+				break;
+			case SIGN_BIP32ED25519: // Bip32 Ed25519
+				ret = Bip32Ed25519.deriveKeyAndSign(buf, offset, length, path,
+						pathOffset, pathLength, signType, destBuf, destOffset);
+				break;
+			default:
+				ISOException.throwIt(ErrorMessage._6D68);
+				ret = 0;
+				break;
 		}
 
 		return ret;

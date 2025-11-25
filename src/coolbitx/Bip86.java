@@ -2,7 +2,6 @@ package coolbitx;
 
 import com.nxp.id.jcopx.math.Math;
 
-import coolbitx.Common;
 import javacard.framework.Util;
 
 public class Bip86 {

@@ -101,14 +101,29 @@ $ java Installation
 >**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
 
 ## Building the Project
-After executing the `Installation` script, proceed with the following steps in Eclipse:
-1. Click on **Project > Clean**.
-2. Check the box for **Clean projects selected below**.
-3. Select **CoolWalletS_3rd** project.
-4. Check the box for **Start a build immediately**.
-5. Check the box for **Build only the selected projects**.
 
-Upon successful build completion, the `coolbitx.cap` file will be generated in the following location: `\coolwallet-pro-se\bin\coolbitx\javacard`.
+After executing the `Installation` script for the crypto library, you can build the JavaCard project直接用 shell 指令：
+
+### Command-line build (macOS / Linux / WSL)
+
+在專案根目錄執行：
+
+```bash
+# 第一次準備：從 local_lib/NXP_JCOP_Plugin_5.32.0.4.zip 解出 JavaCard / JCOP libs
+chmod +x scripts/setup-libs.sh
+scripts/setup-libs.sh
+
+# 編譯 JavaCard 專案
+chmod +x scripts/build.sh
+scripts/build.sh
+```
+
+`build.sh` 會：
+- 使用 Java 8 編譯 `src/` 底下所有 `.java`
+- 使用 `local_lib/javacard-libs` 裡的 JavaCard / JCOP jar 當作 classpath
+- 輸出 `.class` 到 `bin/` 目錄
+
+> 如需產生 CAP 檔，可再額外呼叫 JCOP / JavaCard converter（可依實際卡片環境自行補充指令）。
 
 ## License
 This project is licensed under the [CoolBitX Limited Use License](LICENSE).

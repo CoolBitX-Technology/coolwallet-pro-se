@@ -1,23 +1,38 @@
-**/nbproject/
-**/bin
-**/dist
-**/build
-**/target
+# Build output directories
+/bin/
+/bin-debug/
+/bin-release/
+**/build/
+**/target/
+**/dist/
+
+# IDE and editor files
+.settings/
 **/.DS_Store
+.gradle/
+**/nbproject/
 **/nbbuild/
 **/nbdist/
 **/.nb-gradle/
 **/node_modules/
-/jcardsim
-**/tomcat.*/
-/bin/
-/bin-debug/
-/bin-release/
-.settings/
-mv.sh
-.gradle/
 
-## private field
+# Temporary and cache files
+**/tomcat.*/
+mv.sh
+
+# JCOP / JavaCard local libs (never commit)
+/local_lib/
+
+# Configuration files that are generated
+/javacard-config.json
+
+# Java class files
+*.class
+
+# JavaCard simulation
+/jcardsim
+
+## Private crypto implementation files
 src/coolbitx/Bip32Ed25519.java
 src/coolbitx/Blake2b.java
 src/coolbitx/Blake3.java
@@ -32,5 +47,5 @@ src/coolbitx/Schnorr.java
 src/coolbitx/Bip340.java
 src/coolbitx/KeyGenerate.java
 
-/bin-debug/
-/bin
+# Additional crypto module
+coolwallet-pro-se-crypto/
