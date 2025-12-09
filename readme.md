@@ -118,12 +118,31 @@ chmod +x scripts/build.sh
 scripts/build.sh
 ```
 
-`build.sh` 會：
+`scripts/build.sh` 會：
 - 使用 Java 8 編譯 `src/` 底下所有 `.java`
 - 使用 `local_lib/javacard-libs` 裡的 JavaCard / JCOP jar 當作 classpath
 - 輸出 `.class` 到 `bin/` 目錄
 
-> 如需產生 CAP 檔，可再額外呼叫 JCOP / JavaCard converter（可依實際卡片環境自行補充指令）。
+### Generate CAP files
+
+在完成編譯後，可以使用下列指令產生 CAP 檔：
+
+```bash
+chmod +x scripts/build-cap.sh
+scripts/build-cap.sh
+```
+
+這個腳本會：
+- 讀取 `bin/` 目錄中的 `.class` 檔
+- 使用 `local_lib/javacard-libs/tools.jar` 中的 JavaCard converter
+- 使用 `local_lib/javacard-libs/api_export_files` 中的 export 檔
+- 產生兩個 CAP package：
+  - 主 applet：`coolbitx`（Main applet，AID 為 `CoolWalletPRO`）
+  - SIO applet：`coolbitx.sio`（StoreApplet，AID 為 `BackupApplet`）
+
+CAP 檔輸出位置：
+- Main package：`bin/coolbitx/javacard/`
+- SIO package：`bin/coolbitx/sio/javacard/`
 
 ## License
 This project is licensed under the [CoolBitX Limited Use License](LICENSE).
