@@ -358,7 +358,7 @@ public class DeviceManager {
 			byte lastIndex = DEVICE_NUM - 1;
 			for (byte i = 0; i < lastIndex; i++) {
 				Device prevDevice = devices[i];
-				Device nextDevice = devices[i + 1];
+				Device nextDevice = devices[(short) (i + 1)];
 				prevDevice.replace(nextDevice);
 			}
 			device = devices[lastIndex];
@@ -403,7 +403,7 @@ public class DeviceManager {
 			return;
 		// Reorder device
 		for (byte i = position; i < DEVICE_NUM; i++) {
-			Device prevDevice = devices[i - 1];
+			Device prevDevice = devices[(short) (i - 1)];
 			Device nextDevice = devices[i];
 			prevDevice.replace(nextDevice);
 			nextDevice.remove();
