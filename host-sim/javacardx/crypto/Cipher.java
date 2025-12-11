@@ -49,7 +49,7 @@ public abstract class Cipher {
         public static final byte ALG_AES_BLOCK_128_ECB_NOPAD = 14;
 
         // 你的目標演算法
-        public static final byte ALG_AES_CBC_PKCS5 = (byte) 110;
+        public static final byte ALG_AES_CBC_PKCS5 = (byte) 24;
 
         protected Cipher() {
         }
@@ -59,23 +59,18 @@ public abstract class Cipher {
          */
         public static Cipher getInstance(byte algorithm, boolean externalAccess)
                         throws CryptoException {
-
                 Cipher instance = null;
-
                 // 1. 非對稱加密
                 if (algorithm == ALG_RSA_PKCS1 ||
                                 algorithm == ALG_RSA_ISO14888 ||
                                 algorithm == ALG_RSA_PKCS1_OAEP ||
                                 algorithm == ALG_RSA_NOPAD) {
-
                         instance = new AsymmetricCipherImpl(algorithm);
 
                 }
                 // 2. 對稱加密 (包含我們的新目標)
                 else {
-                        System.out.println("Cipher getInstance: " + algorithm);
                         instance = new SymmetricCipherImpl(algorithm);
-                        System.out.println("Cipher getInstance: " + instance);
                 }
 
                 return instance;

@@ -45,7 +45,6 @@ public class SymmetricCipherImpl extends Cipher {
 
     public SymmetricCipherImpl(byte algorithm) {
         this.algorithm = algorithm;
-        System.out.println("SymmetricCipherImpl algorithm: " + algorithm);
         switch (algorithm) {
             case Cipher.ALG_DES_CBC_NOPAD:
                 engine = new PaddedBufferedBlockCipher(new CBCBlockCipher(new DESEngine()), new ZeroBytePadding());
@@ -80,9 +79,7 @@ public class SymmetricCipherImpl extends Cipher {
             // AES + CBC + PKCS5
             // =========================================================
             case Cipher.ALG_AES_CBC_PKCS5:
-                System.out.println("SymmetricCipherImpl algorithm: ALG_AES_CBC_PKCS5 Before init");
                 engine = new PaddedBufferedBlockCipher(new CBCBlockCipher(new AESEngine()), new PKCS7Padding());
-                System.out.println("SymmetricCipherImpl algorithm: ALG_AES_CBC_PKCS5 After init");
                 break;
             // =========================================================
 
