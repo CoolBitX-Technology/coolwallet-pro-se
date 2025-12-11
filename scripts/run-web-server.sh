@@ -4,7 +4,7 @@
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SIM_SRC="$PROJECT_ROOT/host-sim/SimHttpServer.java"
+SIM_SRC_DIR="$PROJECT_ROOT/host-sim"
 SIM_BIN="$PROJECT_ROOT/host-sim/bin"
 JC_LIB_DIR="$PROJECT_ROOT/local_lib/javacard-libs"
 
@@ -41,8 +41,9 @@ fi
 
 mkdir -p "$SIM_BIN"
 
-echo "=== Compile SimHttpServer ==="
-"$JAVAC8" -cp "$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" -d "$SIM_BIN" "$SIM_SRC"
+echo "=== Compile host-sim sources (including SymmetricCipherImpl shadow) ==="
+SIM_SOURCES=$(find "$SIM_SRC_DIR" -name '*.java')
+"$JAVAC8" -cp "$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" -d "$SIM_BIN" $SIM_SOURCES
 
 echo "=== Start HTTP server on port 9527 ==="
 echo "Try: curl http://localhost:9527/ping"

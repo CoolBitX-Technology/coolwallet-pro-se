@@ -146,29 +146,27 @@ public class SimHttpServer {
                 System.out.println("Installed BackupStoreApplet in jCardSim successfully.");
             }
 
-            // {
-            // byte[] mainAppletAidBytes =
-            // "CoolWalletPRO".getBytes(StandardCharsets.US_ASCII);
-            // AID mainAppletAid = new AID(mainAppletAidBytes, (short) 0, (byte)
-            // mainAppletAidBytes.length);
-            // short aidLen = (short) mainAppletAidBytes.length;
-            // byte[] installParams = new byte[aidLen + 2];
-            // installParams[0] = (byte) aidLen;
-            // System.arraycopy(mainAppletAidBytes, 0, installParams, 1, aidLen);
-            // installParams[aidLen + 1] = (byte) 0x00;
+            {
+                byte[] mainAppletAidBytes = "CoolWalletPRO".getBytes(StandardCharsets.US_ASCII);
+                AID mainAppletAid = new AID(mainAppletAidBytes, (short) 0, (byte) mainAppletAidBytes.length);
+                short aidLen = (short) mainAppletAidBytes.length;
+                byte[] installParams = new byte[aidLen + 3];
+                installParams[0] = (byte) aidLen;
+                System.arraycopy(mainAppletAidBytes, 0, installParams, 1, aidLen);
+                installParams[aidLen + 1] = (byte) 0x00;
 
-            // // 使用另一個支援傳入 install data 的 installApplet 方法
-            // simulator.installApplet(
-            // mainAppletAid,
-            // coolbitx.Main.class,
-            // installParams, // bArray
-            // (short) 0, // bOffset
-            // (byte) installParams.length // bLength
-            // );
-            // System.out.println("Installed MainApplet in jCardSim successfully.");
-            // simulator.selectApplet(mainAppletAid);
-            // System.out.println("Selected MainApplet in jCardSim successfully.");
-            // }
+                // 使用另一個支援傳入 install data 的 installApplet 方法
+                simulator.installApplet(
+                        mainAppletAid,
+                        coolbitx.Main.class,
+                        installParams, // bArray
+                        (short) 0, // bOffset
+                        (byte) installParams.length // bLength
+                );
+                System.out.println("Installed MainApplet in jCardSim successfully.");
+                simulator.selectApplet(mainAppletAid);
+                System.out.println("Selected MainApplet in jCardSim successfully.");
+            }
 
             return;
         } catch (SystemException se) {
