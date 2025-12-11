@@ -9,7 +9,8 @@
     ],
     // 告訴 Java 擴充套件：這個專案的 source 在哪裡、class 輸出到哪裡
     "java.project.sourcePaths": [
-        "src"
+        "src",
+        "host-sim"
     ],
     "java.project.outputPath": "bin",
     // 讓 IDE 認得 JavaCard / JCOP 的 jar（由 setup-libs.sh 產生）
