@@ -62,8 +62,12 @@ echo "Done. Extracted libraries into:"
 echo "  $OUT_DIR"
 echo
 echo "You can now:"
-echo "  1) Ensure .vscode/settings.json is using local_lib/javacard-libs/**/*.jar"
-echo "  2) Run: scripts/build.sh   # to compile"
+echo "  1) Ensure .vscode/settings.json is using local_lib/javacard-libs/**/*.jar and lib/**/*.jar"
+echo "  2) (Optional) Run: ./gradlew copyHostLibs   # to download bcprov into local_lib/javacard-libs"
+echo "  3) Manually download jcardsim-3.0.5.jar from GitHub and place it under:"
+echo "       $PROJECT_ROOT/lib/"
+echo "     （這個 jar 是公開的，可以一起 commit 到 Git repo）"
+echo "  4) Run: scripts/build.sh   # to compile"
 
 rm -rf "$TEMP_DIR"
 

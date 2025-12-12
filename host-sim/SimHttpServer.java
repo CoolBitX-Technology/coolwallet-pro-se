@@ -144,6 +144,19 @@ public class SimHttpServer {
                         (byte) installParams.length // bLength
                 );
                 System.out.println("Installed BackupStoreApplet in jCardSim successfully.");
+                simulator.selectApplet(backupAppletAid);
+
+                byte[] cardIdBytes = "CWP999999".getBytes(StandardCharsets.US_ASCII);
+                byte cardIdLen = (byte) cardIdBytes.length;
+                byte[] cardIdCommand = new byte[5 + cardIdLen];
+                cardIdCommand[0] = (byte) 0x80;
+                cardIdCommand[1] = (byte) 0x00;
+                cardIdCommand[2] = (byte) 0x00;
+                cardIdCommand[3] = (byte) 0x00;
+                cardIdCommand[4] = cardIdLen;
+                System.arraycopy(cardIdBytes, 0, cardIdCommand, 5, cardIdLen);
+                simulator.transmitCommand(cardIdCommand);
+                System.out.println("BackupStoreApplet set card id in jCardSim successfully.");
             }
 
             {

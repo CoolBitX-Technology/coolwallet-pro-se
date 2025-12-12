@@ -15,7 +15,9 @@
     "java.project.outputPath": "bin",
     // 讓 IDE 認得 JavaCard / JCOP 的 jar（由 setup-libs.sh 產生）
     "java.project.referencedLibraries": [
-        "local_lib/javacard-libs/**/*.jar"
+        "local_lib/javacard-libs/**/*.jar",
+        // 公開可版控的 jar（例如 jcardsim）放在 lib/ 底下
+        "lib/**/*.jar"
     ],
     // 一般編輯偏好
     "java.compile.nullAnalysis.mode": "disabled",

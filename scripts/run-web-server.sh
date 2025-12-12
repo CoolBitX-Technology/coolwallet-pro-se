@@ -6,6 +6,10 @@ set -e
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SIM_SRC_DIR="$PROJECT_ROOT/host-sim"
 SIM_BIN="$PROJECT_ROOT/host-sim/bin"
+
+# Public, version-controlled libs (e.g. jcardsim) live under lib/
+PUBLIC_LIB_DIR="$PROJECT_ROOT/lib"
+# Local, non-versioned JCOP / JavaCard libs live under local_lib/
 JC_LIB_DIR="$PROJECT_ROOT/local_lib/javacard-libs"
 
 # Use Java 8 explicitly (jcardsim 3.x expects Java 8 / URLClassLoader)
@@ -13,8 +17,13 @@ JAVA8_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
 JAVAC8="$JAVA8_HOME/bin/javac"
 JAVA8="$JAVA8_HOME/bin/java"
 
-# Locate jcardsim jar (user keeps it in local_lib/, not in git)
-JCARDSIM_JAR="$(ls "$JC_LIB_DIR"/jcardsim-*.jar 2>/dev/null | head -1 || true)"
+# Locate jcardsim jar:
+# 1) Prefer committed jar under lib/jcardsim-*.jar
+# 2) Fallback to legacy location under local_lib/javacard-libs/jcardsim-*.jar
+JCARDSIM_JAR="$(ls "$PUBLIC_LIB_DIR"/jcardsim-*.jar 2>/dev/null | head -1 || true)"
+if [ -z "$JCARDSIM_JAR" ]; then
+  JCARDSIM_JAR="$(ls "$JC_LIB_DIR"/jcardsim-*.jar 2>/dev/null | head -1 || true)"
+fi
 # Locate BouncyCastle provider jar (for host-side crypto)
 BC_JAR="$JC_LIB_DIR/bcprov-jdk15on-1.70.jar"
 

@@ -13,7 +13,9 @@
 	<classpathentry kind="lib" path="local_lib/javacard-libs/JCOPx_API-R1.1.4.jar"/>
 
 	<!-- Host-side simulator / crypto libraries -->
-	<classpathentry kind="lib" path="local_lib/javacard-libs/jcardsim-3.0.5.jar"/>
+	<!-- jcardsim: public jar, committed under lib/ -->
+	<classpathentry kind="lib" path="lib/jcardsim-3.0.5-20230313.131323-6.jar"/>
+	<!-- bcprov: fetched via Gradle into local_lib (ignored by git) -->
 	<classpathentry kind="lib" path="local_lib/javacard-libs/bcprov-jdk15on-1.70.jar"/>
 
 	<!-- Output folder -->
