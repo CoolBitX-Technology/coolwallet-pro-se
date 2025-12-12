@@ -13,7 +13,28 @@ PUBLIC_LIB_DIR="$PROJECT_ROOT/lib"
 JC_LIB_DIR="$PROJECT_ROOT/local_lib/javacard-libs"
 
 # Use Java 8 explicitly (jcardsim 3.x expects Java 8 / URLClassLoader)
-JAVA8_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
+# Load Java 8 home from javacard.config or environment
+CONFIG_FILE="$PROJECT_ROOT/javacard.config"
+
+# Read from config if variable is not set
+if [ -z "${JAVA8_HOME:-}" ]; then
+  if [ -f "$CONFIG_FILE" ]; then
+    # Read line starting with JAVA8_HOME=...
+    # cut -d'=' -f2- handles values containing '='
+    JAVA8_HOME_CFG=$(grep "^JAVA8_HOME=" "$CONFIG_FILE" | head -1 | cut -d'=' -f2-)
+    if [ -n "$JAVA8_HOME_CFG" ]; then
+      JAVA8_HOME="$JAVA8_HOME_CFG"
+    fi
+  fi
+fi
+
+if [ -z "${JAVA8_HOME:-}" ]; then
+  echo "ERROR: JAVA8_HOME is not set."
+  echo "Please set it in '$CONFIG_FILE' (e.g., JAVA8_HOME=/path/to/jdk8)"
+  echo "or export JAVA8_HOME in your environment."
+  exit 1
+fi
+
 JAVAC8="$JAVA8_HOME/bin/javac"
 JAVA8="$JAVA8_HOME/bin/java"
 

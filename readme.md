@@ -102,47 +102,105 @@ $ java Installation
 
 ## Building the Project
 
-After executing the `Installation` script for the crypto library, you can build the JavaCard project直接用 shell 指令：
+After executing the `Installation` script for the crypto library, you can build the JavaCard project directly from the shell:
 
 ### Command-line build (macOS / Linux / WSL)
 
-在專案根目錄執行：
+Before building, please create a `javacard.config` file in the project root to specify your Java 8 path.
+
+Create `javacard.config`:
+```properties
+# Path to your Java 8 installation
+JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+```
+
+### VS Code Configuration
+
+If you are using VS Code, you also need to configure the Java runtime path in `.vscode/settings.json`:
+
+```json
+{
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-1.8",
+            "path": "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home", // Set your Java 8 path here
+            "default": true
+        }
+    ]
+}
+```
+
+Then from the project root directory, run:
+
+### 1. Initial Setup (One-time)
+
+Before running the setup script, you must obtain the **NXP JCOP Plugin** (version 5.32.0.4) and place it in the `local_lib` directory.
+
+1.  Obtain `NXP_JCOP_Plugin_5.32.0.4.zip`.
+2.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
+
+Run the setup script to extract dependencies:
 
 ```bash
-# 第一次準備：從 local_lib/NXP_JCOP_Plugin_5.32.0.4.zip 解出 JavaCard / JCOP libs
 chmod +x scripts/setup-libs.sh
 scripts/setup-libs.sh
+```
 
-# 編譯 JavaCard 專案
+Then, use Gradle to download and copy the host-side simulator dependencies (BouncyCastle, jCardSim):
+
+```bash
+gradle copyHostLibs
+```
+
+### 2. Build the Project
+
+To compile the JavaCard applet:
+
+```bash
 chmod +x scripts/build.sh
 scripts/build.sh
 ```
 
-`scripts/build.sh` 會：
-- 使用 Java 8 編譯 `src/` 底下所有 `.java`
-- 使用 `local_lib/javacard-libs` 裡的 JavaCard / JCOP jar 當作 classpath
-- 輸出 `.class` 到 `bin/` 目錄
+`scripts/build.sh` will:
+- Compile all `.java` files under `src/` using Java 8
+- Use the JavaCard / JCOP jars in `local_lib/javacard-libs` as the classpath
+- Output `.class` files into the `bin/` directory
 
-### Generate CAP files
+### 3. Run the Simulator (Web Service)
 
-在完成編譯後，可以使用下列指令產生 CAP 檔：
+To start the APDU simulation web service on port 9527 (requires `javacard.config` to be set):
+
+```bash
+chmod +x scripts/run-web-server.sh
+scripts/run-web-server.sh
+```
+
+This service allows you to send APDUs via HTTP POST to `http://localhost:9527/apdu`.
+Example:
+```bash
+curl -X POST http://localhost:9527/apdu -d '00A4040008A000000003000000'
+```
+
+### 4. Generate CAP files
+
+After compilation, you can generate CAP files with the following commands:
 
 ```bash
 chmod +x scripts/build-cap.sh
 scripts/build-cap.sh
 ```
 
-這個腳本會：
-- 讀取 `bin/` 目錄中的 `.class` 檔
-- 使用 `local_lib/javacard-libs/tools.jar` 中的 JavaCard converter
-- 使用 `local_lib/javacard-libs/api_export_files` 中的 export 檔
-- 產生兩個 CAP package：
-  - 主 applet：`coolbitx`（Main applet，AID 為 `CoolWalletPRO`）
-  - SIO applet：`coolbitx.sio`（StoreApplet，AID 為 `BackupApplet`）
+This script will:
+- Read `.class` files from the `bin/` directory
+- Use the JavaCard converter in `local_lib/javacard-libs/tools.jar`
+- Use export files in `local_lib/javacard-libs/api_export_files`
+- Produce two CAP packages:
+  - Main applet: `coolbitx` (main applet, AID `CoolWalletPRO`)
+  - SIO applet: `coolbitx.sio` (StoreApplet, AID `BackupApplet`)
 
-CAP 檔輸出位置：
-- Main package：`bin/coolbitx/javacard/`
-- SIO package：`bin/coolbitx/sio/javacard/`
+CAP output locations:
+- Main package: `bin/coolbitx/javacard/`
+- SIO package: `bin/coolbitx/sio/javacard/`
 
 ## License
 This project is licensed under the [CoolBitX Limited Use License](LICENSE).
