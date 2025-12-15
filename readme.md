@@ -31,9 +31,44 @@ The CoolWallet Pro Firmware prioritizes security and privacy to protect users' d
 - Curve25519
 - Bip32-Ed25519 (Cardano Signature)
 
+## Project Installation (Common)
+
+To install the project, please follow the steps below:
+### Step 1: Cloning the Repository
+Clone the repository by running the following command in your terminal or command prompt:
+
+```bash
+git clone git@github.com:CoolBitX-Technology/coolwallet-pro-se.git
+```
+
+### Step 2: Initialize and Update Submodule
+Initialize and update the submodule by running the following commands:
+```shell
+$ git submodule init
+$ git submodule update
+```
+
+### Step 3: Run the Installation Script
+Run the installation script by executing the following command:
+```shell
+$ cd coolwallet-pro-se-crypto
+$ javac Installation.java
+$ java Installation
+```
+
+>**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
+
 ## Environment Setup
 
-To successfully build and set up the development environment for this project on **Windows**, please follow the instructions below:
+This project supports two development workflows:
+1.  **Windows (Eclipse)**: Official NXP JCOP Tools workflow for CAP file generation.
+2.  **Cross-Platform (CLI / VS Code)**: Script-based workflow for macOS, Linux, and Windows (WSL), supporting local simulation.
+
+---
+
+## 1. Windows Environment Setup (Eclipse)
+
+To successfully build and set up the development environment for this project on **Windows** using Eclipse, please follow the instructions below:
 
 ### Prerequisites
 - [JDK 8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) (64-bit)
@@ -74,47 +109,32 @@ To ensure a smooth compilation process, it is recommended to have the following 
    - Create a Java Card project.
    - Select the licensed JCOP: JCOP_Tools_activation_workspace.
 
-## Installation
-To install the project, please follow the steps below:
-### Step 1: Cloning the Repository
-Clone the repository by running the following command in your terminal or command prompt:
+---
 
-```bash
-git clone git@github.com:CoolBitX-Technology/coolwallet-pro-se.git
-```
+## 2. Cross-Platform Environment Setup (CLI / VS Code)
 
-### Step 2: Initialize and Update Submodule
-Initialize and update the submodule by running the following commands:
-```shell
-$ git submodule init
-$ git submodule update
-```
+This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WSL)** who prefer using command-line tools or VS Code/Cursor. It supports compiling, simulating (without a physical card), and generating CAP files.
 
-### Step 3: Run the Installation Script
-Run the installation script by executing the following command:
-```shell
-$ cd coolwallet-pro-se-crypto
-$ javac Installation.java
-$ java Installation
-```
+### Prerequisites
+- JDK 8 (Must be accessible via `JAVA8_HOME`)
+- Gradle (for downloading simulator dependencies)
 
->**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
+### Configuration
 
-## Building the Project
-
-After executing the `Installation` script for the crypto library, you can build the JavaCard project directly from the shell:
-
-### Command-line build (macOS / Linux / WSL)
+#### 1. Configure Java 8 Path (Required)
 
 Before building, please create a `javacard.config` file in the project root to specify your Java 8 path.
 
-Create `javacard.config`:
-```properties
+Run the following command to create `javacard.config` (adjust the path if necessary):
+
+```bash
+cat > javacard.config <<EOF
 # Path to your Java 8 installation
 JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+EOF
 ```
 
-### VS Code Configuration
+#### 2. VS Code Configuration (Optional)
 
 If you are using VS Code, you also need to configure the Java runtime path in `.vscode/settings.json`:
 
@@ -130,9 +150,9 @@ If you are using VS Code, you also need to configure the Java runtime path in `.
 }
 ```
 
-Then from the project root directory, run:
+### Workflow
 
-### 1. Initial Setup (One-time)
+#### Step 1: Initial Setup (One-time)
 
 Before running the setup script, you must obtain the **NXP JCOP Plugin** (version 5.32.0.4) and place it in the `local_lib` directory.
 
@@ -152,7 +172,7 @@ Then, use Gradle to download and copy the host-side simulator dependencies (Boun
 gradle copyHostLibs
 ```
 
-### 2. Build the Project
+#### Step 2: Build the Project
 
 To compile the JavaCard applet:
 
@@ -166,7 +186,7 @@ scripts/build.sh
 - Use the JavaCard / JCOP jars in `local_lib/javacard-libs` as the classpath
 - Output `.class` files into the `bin/` directory
 
-### 3. Run the Simulator (Web Service)
+#### Step 3: Run the Simulator (Web Service)
 
 To start the APDU simulation web service on port 9527 (requires `javacard.config` to be set):
 
@@ -181,7 +201,7 @@ Example:
 curl -X POST http://localhost:9527/apdu -d '00A4040008A000000003000000'
 ```
 
-### 4. Generate CAP files
+#### Step 4: Generate CAP files
 
 After compilation, you can generate CAP files with the following commands:
 
@@ -201,6 +221,9 @@ This script will:
 CAP output locations:
 - Main package: `bin/coolbitx/javacard/`
 - SIO package: `bin/coolbitx/sio/javacard/`
+
+---
+
 
 ## License
 This project is licensed under the [CoolBitX Limited Use License](LICENSE).
