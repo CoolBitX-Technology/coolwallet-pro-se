@@ -19,8 +19,7 @@ public final class ShaUtil {
 	static MessageDigest m_sha_512;
 	static MessageDigest m_sha_512_256;
 	static MessageDigest m_s_sha_256; // only for script
-	static Blake2b m_blake2b_256;
-	static Blake2b m_blake2b_512;
+	static Blake2b m_blake2b;
 	static MessageDigest m_blake3_256;
 	static MessageDigest m_sha3_256;
 	static MessageDigest m_sha3_512;
@@ -34,8 +33,7 @@ public final class ShaUtil {
 				false);
 		m_sha_512 = MessageDigest.getInstance(MessageDigest.ALG_SHA_512, false);
 		m_sha_512_256 = Sha2.getInstance(Sha2.ALG_SHA_512_256);
-		m_blake2b_256 = Blake2b.getInstance(Blake2b.ALG_BLAKE2B, (byte) 32);
-		m_blake2b_512 = Blake2b.getInstance(Blake2b.ALG_BLAKE2B, (byte) 64);
+		m_blake2b = Blake2b.getInstance(Blake2b.ALG_BLAKE2B);
 		m_blake3_256 = Blake3.getInstance(Blake3.ALG_BLAKE3, (byte) 32);
 		m_sha3_256 = Sha3.getInstance(Sha3.ALG_SHA3_256);
 		m_sha3_512 = Sha3.getInstance(Sha3.ALG_SHA3_512);
@@ -49,8 +47,7 @@ public final class ShaUtil {
 		m_sha_512 = null;
 		m_sha_512_256 = null;
 		m_s_sha_256 = null;
-		m_blake2b_256 = null;
-		m_blake2b_512 = null;
+		m_blake2b = null;
 		m_blake3_256 = null;
 		m_sha3_256 = null;
 		m_sha3_512 = null;
@@ -222,26 +219,38 @@ public final class ShaUtil {
 
 	public final static short Blake2b256(byte[] buf, short offset,
 			short length, byte[] destbuf, short destOffset) {
-		return m_blake2b_256.doFinal(buf, offset, length, destbuf, destOffset);
+		return m_blake2b.setDigestLength((byte) 32).doFinal(buf, offset,
+				length, destbuf, destOffset);
 	}
 
-	public final static short Blake2b256(byte[] buf, short offset,
-			short length, byte[] key, short keyOffset, byte keyLength,
+	public final static short Blake2b256WithKey(byte[] buf, short offset,
+			short length, byte[] key, short keyOffset, short keyLength,
 			byte[] destbuf, short destOffset) {
-		return m_blake2b_256.doFinal(buf, offset, length, key, keyOffset,
-				keyLength, destbuf, destOffset);
+		return m_blake2b.setDigestLength((byte) 32)
+				.setKey(key, keyOffset, keyLength)
+				.doFinal(buf, offset, length, destbuf, destOffset);
+	}
+
+	public final static short Blake2b256WithPersonal(byte[] buf, short offset,
+			short length, byte[] personal, short personalOffset,
+			short personalLength, byte[] destbuf, short destOffset) {
+		return m_blake2b.setDigestLength((byte) 32)
+				.setPersonal(personal, personalOffset, personalLength)
+				.doFinal(buf, offset, length, destbuf, destOffset);
 	}
 
 	public final static short Blake2b512(byte[] buf, short offset,
 			short length, byte[] destbuf, short destOffset) {
-		return m_blake2b_512.doFinal(buf, offset, length, destbuf, destOffset);
+		return m_blake2b.setDigestLength((byte) 64).doFinal(buf, offset,
+				length, destbuf, destOffset);
 	}
-	
-	public final static short Blake2b512(byte[] buf, short offset,
-			short length, byte[] key, short keyOffset, byte keyLength,
+
+	public final static short Blake2b512WithKey(byte[] buf, short offset,
+			short length, byte[] key, short keyOffset, short keyLength,
 			byte[] destbuf, short destOffset) {
-		return m_blake2b_512.doFinal(buf, offset, length, key, keyOffset,
-				keyLength, destbuf, destOffset);
+		return m_blake2b.setDigestLength((byte) 64)
+				.setKey(key, keyOffset, keyLength)
+				.doFinal(buf, offset, length, destbuf, destOffset);
 	}
 
 	public final static short Blake3256(byte[] buf, short offset, short length,

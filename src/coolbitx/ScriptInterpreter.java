@@ -575,8 +575,7 @@ public class ScriptInterpreter {
 				// hash
 				// (data,offset,length,dest,-,hashType)
 				getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
-						(byte) (argInt0 | (argInt1 << 4)), null, (short) 0,
-						(short) 0);
+						(byte) (argInt0 | (argInt1 << 4)));
 				break;
 			case (byte) 0x6C:
 			// derive ECDSA publicKey with
@@ -1009,6 +1008,7 @@ public class ScriptInterpreter {
 				addDestOffset(destBuf, destLength);
 				break;
 			// ================ script verion 9 ================
+			// only use for KAS
 			case (byte) 0x5b: {
 				// new hash
 				// data: hash type(1 byte) + hash length(2 bytes) + hash data +
@@ -1019,8 +1019,9 @@ public class ScriptInterpreter {
 				short keyLength = Util.getShort(dataBuf,
 						(short) (hashDataOffset + hashDataLength));
 				short keyOffset = (short) (hashDataOffset + hashDataLength + 2);
-				getHash(dataBuf, hashDataOffset, hashDataLength, destBuf,
-						destOffset, hashType, dataBuf, keyOffset, keyLength);
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, hashType, dataBuf, keyOffset,
+						keyLength);
 			}
 				break;
 			default:
@@ -1069,7 +1070,7 @@ public class ScriptInterpreter {
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
-					hashType, null, (short) 0, (short) 0);
+					hashType);
 			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
@@ -1089,12 +1090,16 @@ public class ScriptInterpreter {
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		if (shouldUpdateTransaction) {
-			getUpdateHash(transaction, (short) 0, placeholderOffset, hashType,
-					key, keyOffset, keyLength);
+			if (keyLength > 0) {
+				getUpdateAdvancedHash(transaction, (short) 0,
+						placeholderOffset, hashType, key, keyOffset, keyLength);
+			} else {
+				getUpdateHash(transaction, (short) 0, placeholderOffset,
+						hashType);
+			}
 		}
 		// Hashing data
-		// Key only update once
-		getUpdateHash(data, offset, length, hashType, key, keyOffset, (short) 0);
+		getUpdateHash(data, offset, length, hashType);
 		if (isUTXOtx) {
 			placeholderLength = 0;
 		} else {
@@ -1109,7 +1114,7 @@ public class ScriptInterpreter {
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 		getHash(transaction, placeholderOffset, remainLength, workspace,
-				workspaceOffset, hashType, null, (short) 0, (short) 0);
+				workspaceOffset, hashType);
 
 		ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
@@ -1381,8 +1386,7 @@ public class ScriptInterpreter {
 	}
 
 	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
-			short keyLength) {
+			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
 		case 0xD: // double sha-256, should hash again later
@@ -1394,13 +1398,24 @@ public class ScriptInterpreter {
 		case 0x11:
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
+		default:
+			ISOException.throwIt((short) 0x6A0A);
+		}
+	}
+
+	private static void getUpdateAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
+			short keyLength) {
+		switch (hashType) {
 		case 0x13:
-			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setKey(keyBuf, keyOffset, keyLength)
+					.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x14:
-			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setKey(keyBuf, keyOffset, keyLength)
+					.update(dataBuf, dataOffset, dataLength);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
@@ -1408,8 +1423,7 @@ public class ScriptInterpreter {
 	}
 
 	private static void getHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte[] destBuf, short destOffset, byte hashType,
-			byte[] keyBuf, short keyOffset, short keyLength) {
+			short dataLength, byte[] destBuf, short destOffset, byte hashType) {
 		short length = 0;
 		switch (hashType) {
 		case 0:
@@ -1490,13 +1504,24 @@ public class ScriptInterpreter {
 			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
+		default:
+			ISOException.throwIt((short) 0x6A0A);
+		}
+		addDestOffset(destBuf, length);
+	}
+
+	private static void getAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte[] destBuf, short destOffset, byte hashType,
+			byte[] keyBuf, short keyOffset, short keyLength) {
+		short length = 0;
+		switch (hashType) {
 		case 0x13:
-			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b256WithKey(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, keyLength, destBuf, destOffset);
 			break;
 		case 0x14:
-			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b512WithKey(dataBuf, dataOffset, dataLength,
+					keyBuf, keyOffset, keyLength, destBuf, destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
