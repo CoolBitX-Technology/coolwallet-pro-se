@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 9;
+	public static final byte scriptVersion = 10;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -1398,8 +1398,16 @@ public class ScriptInterpreter {
 		case 0x11:
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
+		case 0x13:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32).update(dataBuf,
+					dataOffset, dataLength);
+			break;
+		case 0x14:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64).update(dataBuf,
+					dataOffset, dataLength);
+			break;
 		default:
-			ISOException.throwIt((short) 0x6A0A);
+			ISOException.throwIt((short) 0x6A10);
 		}
 	}
 
@@ -1418,7 +1426,7 @@ public class ScriptInterpreter {
 					.update(dataBuf, dataOffset, dataLength);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6A0A);
+			ISOException.throwIt((short) 0x6A11);
 		}
 	}
 
@@ -1485,10 +1493,12 @@ public class ScriptInterpreter {
 					destBuf, destOffset);
 			break;
 		case 0xE:
+		case 0x13:
 			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
 		case 0xF:
+		case 0x14:
 			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
@@ -1505,7 +1515,7 @@ public class ScriptInterpreter {
 					destBuf, destOffset);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6A0A);
+			ISOException.throwIt((short) 0x6A12);
 		}
 		addDestOffset(destBuf, length);
 	}
