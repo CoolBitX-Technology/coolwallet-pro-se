@@ -7,6 +7,9 @@ public class RlpDataParser {
 	private static short dataOffset;
 	private static short dataLength;
 
+	private static byte[] path = new byte[1];
+	private static final short pathOffset = Common.OFFSET_ZERO;
+
 	public static short getDataOffset() {
 		return dataOffset;
 	}
@@ -18,10 +21,11 @@ public class RlpDataParser {
 	public static void execute(byte[] rlpList, short rlpListOffset,
 			short rlpListLength, byte[] rlpPath, short rlpPathOffset,
 			short rlpPathLength) {
+		// Current index in the RLP list
+		short listIndex = rlpListOffset;
+		// Index to traverse the rlpPath
+		short pathIndex = 0;
 
-		short pathIndex = 0; // Index to traverse the rlpPath
-		short listIndex = rlpListOffset; // Current index in the RLP
-											// list
 		// Traverse the RLP path
 		while (pathIndex < rlpPathLength) {
 			byte pathSegment = rlpPath[(short) (rlpPathOffset + pathIndex)];
@@ -199,4 +203,11 @@ public class RlpDataParser {
 		}
 	}
 
+	public static void decodeByIndex(byte[] rlpList, short rlpListOffset,
+			short rlpListLength, byte index) {
+		path[pathOffset] = index;
+		RlpDataParser.execute(rlpList, rlpListOffset, rlpListLength, path,
+				pathOffset, (short) 1);
+
+	}
 }
