@@ -253,6 +253,14 @@ public final class ShaUtil {
 				.doFinal(buf, offset, length, destbuf, destOffset);
 	}
 
+	public final static short Blake2b512WithPersonal(byte[] buf, short offset,
+			short length, byte[] personal, short personalOffset,
+			short personalLength, byte[] destbuf, short destOffset) {
+		return m_blake2b.setDigestLength((byte) 64)
+				.setPersonal(personal, personalOffset, personalLength)
+				.doFinal(buf, offset, length, destbuf, destOffset);
+	}
+
 	public final static short Blake3256(byte[] buf, short offset, short length,
 			byte[] destbuf, short destOffset) {
 		return m_blake3_256.doFinal(buf, offset, length, destbuf, destOffset);
