@@ -841,6 +841,30 @@ public class ScriptInterpreter {
 						keyLength);
 			}
 				break;
+			// ================ script verion 10 ================
+			case (byte) 0x5c: {
+				// advanced hash
+				// data: RLP list [data][context]
+				// context: salt, key, personal...
+
+				// data
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 0);
+				short hashDataOffset = RlpDataParser.getDataOffset();
+				short hashDataLength = RlpDataParser.getDataLength();
+
+				// context
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 1);
+				short contextOffset = RlpDataParser.getDataOffset();
+				short contextLength = RlpDataParser.getDataLength();
+				// getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
+				// (byte) (argInt0 | (argInt1 << 4)));
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, (byte) (argInt0 | (argInt1 << 4)),
+						dataBuf, contextOffset, contextLength);
+			}
+				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
 				break;
@@ -1229,17 +1253,27 @@ public class ScriptInterpreter {
 	}
 
 	private static void getUpdateAdvancedHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
-			short keyLength) {
+			short dataLength, byte hashType, byte[] context,
+			short contextOffset, short contextLength) {
 		switch (hashType) {
 		case 0x13:
 			ShaUtil.m_blake2b.setDigestLength((byte) 32)
-					.setKey(keyBuf, keyOffset, keyLength)
+					.setKey(context, contextOffset, contextLength)
 					.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x14:
 			ShaUtil.m_blake2b.setDigestLength((byte) 64)
-					.setKey(keyBuf, keyOffset, keyLength)
+					.setKey(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x15:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setPersonal(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x16:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setPersonal(context, contextOffset, contextLength)
 					.update(dataBuf, dataOffset, dataLength);
 			break;
 		default:
@@ -1339,16 +1373,26 @@ public class ScriptInterpreter {
 
 	private static void getAdvancedHash(byte[] dataBuf, short dataOffset,
 			short dataLength, byte[] destBuf, short destOffset, byte hashType,
-			byte[] keyBuf, short keyOffset, short keyLength) {
+			byte[] context, short contextOffset, short contextLength) {
 		short length = 0;
 		switch (hashType) {
 		case 0x13:
 			length = ShaUtil.Blake2b256WithKey(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, keyLength, destBuf, destOffset);
+					context, contextOffset, contextLength, destBuf, destOffset);
 			break;
 		case 0x14:
 			length = ShaUtil.Blake2b512WithKey(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, keyLength, destBuf, destOffset);
+					context, contextOffset, contextLength, destBuf, destOffset);
+			break;
+		case 0x15:
+			length = ShaUtil.Blake2b256WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
+			break;
+		case 0x16:
+			length = ShaUtil.Blake2b512WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
