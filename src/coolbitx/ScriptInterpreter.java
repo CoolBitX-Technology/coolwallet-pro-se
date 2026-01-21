@@ -705,8 +705,8 @@ public class ScriptInterpreter {
 			// ================ script version 5 ================
 			case (byte) 0xC4: {
 				placeholderOffset = destOffset;
-				if (dataLength != 4) {
-					ISOException.throwIt((short) 0x6700);
+				if (dataLength != 4 && dataLength != 0) {
+					ISOException.throwIt((short) 0x6701);
 				}
 				placeholderLength = NumberUtil.byteArrayToInt(dataBuf,
 						dataOffset, dataLength);
