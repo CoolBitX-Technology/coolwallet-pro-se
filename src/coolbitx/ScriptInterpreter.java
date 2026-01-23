@@ -1240,10 +1240,12 @@ public class ScriptInterpreter {
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x13:
+		case 0x15:
 			ShaUtil.m_blake2b.setDigestLength((byte) 32).update(dataBuf,
 					dataOffset, dataLength);
 			break;
 		case 0x14:
+		case 0x16:
 			ShaUtil.m_blake2b.setDigestLength((byte) 64).update(dataBuf,
 					dataOffset, dataLength);
 			break;
@@ -1343,13 +1345,15 @@ public class ScriptInterpreter {
 			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xE:
+		case 0x0E:
 		case 0x13:
+		case 0x15:
 			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xF:
+		case 0x0F:
 		case 0x14:
+		case 0x16:
 			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
