@@ -38,8 +38,8 @@ public class ScriptInterpreter {
 	private static boolean isExecuted = false;
 	private static byte hashType, signType, remainDataType, reserveType;
 	private static byte argType;
-	private static final byte type_concat_data = (byte) 0x00;
-	private static final byte type_rlp_data = (byte) 0x01;
+	private static final byte ARG_TYPE_CONCATENATED = (byte) 0x00;
+	private static final byte ARG_TYPE_RLP = (byte) 0x01;
 	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
@@ -89,7 +89,7 @@ public class ScriptInterpreter {
 		bufferInt = 0;
 		intCache = maxCache = 0;
 		isExecuted = false;
-		hashType = signType = remainDataType = argType = 0;
+		hashType = signType = remainDataType = reserveType = argType = 0;
 		detailIcon = (byte) 0xFF;
 		isUTXOtx = false;
 	}
@@ -183,7 +183,7 @@ public class ScriptInterpreter {
 				dataLength = getInt((byte) dataLength);
 				argInt0 = getInt((byte) argInt0);
 				argInt1 = getInt((byte) argInt1);
-			} else if (argType == type_rlp_data) { // rlp arg type
+			} else if (argType == ARG_TYPE_RLP) {
 				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
 				destOffset = getDestOffset(destBuf);
 				argInt0 = (short) ((script[si] >> 4) & 0x0F);
@@ -207,7 +207,7 @@ public class ScriptInterpreter {
 						rlpPath, rlpPathOffset, rlpPathLength);
 				dataOffset = RlpDataParser.getDataOffset();
 				dataLength = RlpDataParser.getDataLength();
-			} else { // data concat type
+			} else { // argType == ARG_TYPE_CONCATENATED
 				dataOffset = (short) (script[si] & 0x0F);
 				si++;
 				dataLength = (short) ((script[si] >> 4) & 0x0F);
@@ -1134,23 +1134,23 @@ public class ScriptInterpreter {
 			return null;
 		case 0xA:
 			maxCache = argumentLength;
-			argType = type_concat_data;
+			argType = ARG_TYPE_CONCATENATED;
 			return argument;
 		case 0xB:
 			maxCache = argumentLength;
-			argType = type_rlp_data;
+			argType = ARG_TYPE_RLP;
 			return argument;
 		case 0xE:
 			maxCache = c1i;
-			argType = type_concat_data;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache1;
 		case 0xF:
 			maxCache = c2i;
-			argType = type_concat_data;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache2;
 		case 0x7:
 			maxCache = ti;
-			argType = type_concat_data;
+			argType = ARG_TYPE_CONCATENATED;
 			return transaction;
 		default:
 			ISOException.throwIt((short) 0x6A03);
