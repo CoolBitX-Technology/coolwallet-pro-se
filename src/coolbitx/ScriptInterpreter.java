@@ -36,7 +36,7 @@ public class ScriptInterpreter {
 	private static short intCache, maxCache;
 
 	private static boolean isExecuted = false;
-	private static byte hashType, signType, remainDataType;
+	private static byte hashType, signType, remainDataType, reserveType;
 	private static byte argType;
 	private static final byte type_concat_data = (byte) 0x00;
 	private static final byte type_rlp_data = (byte) 0x01;
@@ -158,6 +158,11 @@ public class ScriptInterpreter {
 		if (headerLength >= 4) {
 			remainDataType = script[si++];
 		}
+		if (headerLength >= 5) {
+			// not using now, reserve for the future requirement
+			reserveType = script[si++];
+		}
+
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
