@@ -36,7 +36,10 @@ public class ScriptInterpreter {
 	private static short intCache, maxCache;
 
 	private static boolean isExecuted = false;
-	private static byte hashType, signType, remainDataType, argType;
+	private static byte hashType, signType, remainDataType;
+	private static byte argType;
+	private static final byte type_concat_data = (byte) 0x00;
+	private static final byte type_rlp_data = (byte) 0x01;
 	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
@@ -154,9 +157,6 @@ public class ScriptInterpreter {
 		signType = script[si++];
 		if (headerLength >= 4) {
 			remainDataType = script[si++];
-		}
-		if (headerLength >= 5) {
-			argType = script[si++];
 		}
 		for (; si < scriptLength;) {
 			byte command = script[si++];
@@ -1129,6 +1129,11 @@ public class ScriptInterpreter {
 			return null;
 		case 0xA:
 			maxCache = argumentLength;
+			argType = type_concat_data;
+			return argument;
+		case 0xB:
+			maxCache = argumentLength;
+			argType = type_rlp_data;
 			return argument;
 		case 0xE:
 			maxCache = c1i;
