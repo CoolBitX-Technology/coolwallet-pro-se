@@ -178,7 +178,7 @@ public class ScriptInterpreter {
 				dataLength = getInt((byte) dataLength);
 				argInt0 = getInt((byte) argInt0);
 				argInt1 = getInt((byte) argInt1);
-			} else if (argType == 0x1 && dataBuf == argument) { // rlp arg type
+			} else if (argType == type_rlp_data) { // rlp arg type
 				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
 				destOffset = getDestOffset(destBuf);
 				argInt0 = (short) ((script[si] >> 4) & 0x0F);
@@ -1137,12 +1137,15 @@ public class ScriptInterpreter {
 			return argument;
 		case 0xE:
 			maxCache = c1i;
+			argType = type_concat_data;
 			return cache1;
 		case 0xF:
 			maxCache = c2i;
+			argType = type_concat_data;
 			return cache2;
 		case 0x7:
 			maxCache = ti;
+			argType = type_concat_data;
 			return transaction;
 		default:
 			ISOException.throwIt((short) 0x6A03);
