@@ -870,6 +870,11 @@ public class ScriptInterpreter {
 						dataBuf, contextOffset, contextLength);
 			}
 				break;
+			case (byte) 0x5d: // This command must be followed by command 0x5A
+				getUpdateAdvancedHash(dataBuf, (short) 0, (short) 0,
+						(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset,
+						dataLength);
+				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
 				break;
