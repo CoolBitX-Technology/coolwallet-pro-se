@@ -82,7 +82,7 @@ public class ErrorMessage {
 	 */
 	public static final short _6EA1 = 0x6EA1;
 
-	// ------------ ScriptInterpreter
+	// ------------ RlpDataParser
 	public static final short _6EB0 = 0x6EB0;
 	public static final short _6EB1 = 0x6EB1;
 	public static final short _6EB2 = 0x6EB2;
@@ -90,5 +90,6 @@ public class ErrorMessage {
 	public static final short _6EB4 = 0x6EB4;
 	public static final short _6EB5 = 0x6EB5;
 	public static final short _6EB6 = 0x6EB6;
+	public static final short _6EB7 = 0x6EB7;
 
 }
