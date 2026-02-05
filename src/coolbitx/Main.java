@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 341;
+	private static final short ver = 344;
 
 	private static boolean isInit = false;
 
@@ -102,7 +102,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				Blake3.init();
 				ShaUtil.init();
 				KeyManager.init(); // must after ShaUtil
-				Device.init(true);
+				DeviceManager.init(true);
 				KeyStore.derive(KeyGenerate.CARD_PRO);
 				isInit = true;
 			}
@@ -180,22 +180,22 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				if (dataLength != 99) {
 					ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 				}
-				if (Device.isFreezed()) {
+				if (DeviceManager.isFreezed()) {
 					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 				}
-				if (Device.isFull()) {
+				if (DeviceManager.isFull()) {
 					ISOException.throwIt(ISO7816.SW_FILE_FULL);
 				}
-				Device.setDevice(buf, dataOffset, destBuf, destOffset);
+				DeviceManager.setDevice(buf, dataOffset, destBuf, destOffset);
 				resultLength = Common.LENGTH_APP_ID;
 				break;
 			case (byte) 0x14:// changePairingStatus
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
 				if (buf[(short) (ISO7816.OFFSET_P1)] == 0) {
-					Device.setFreezed(false);
+					DeviceManager.setFreezed(false);
 				} else if (buf[(short) (ISO7816.OFFSET_P1)] == 1) {
-					Device.setFreezed(true);
+					DeviceManager.setFreezed(true);
 				} else {
 					ISOException.throwIt(ISO7816.SW_INCORRECT_P1P2);
 				}
@@ -203,33 +203,42 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			case (byte) 0x18:// getSePairedDevices
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
-				resultLength = Device.getDeviceList(destBuf, destOffset);
+				resultLength = DeviceManager.getDeviceList(destBuf, destOffset);
 				break;
 			case (byte) 0x1A:// getPairPwd
+			{
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
-				processLength = Device.getPassword(destBuf, destOffset);
+				processLength = DeviceManager.getPassword(destBuf, destOffset);
+				byte[] appPublicKey = WorkCenter
+						.getWorkspaceArray(WorkCenter.WORK);
+				short appPublicKeyOffset = WorkCenter
+						.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+				DeviceManager.getAppPublicKeyAsByteArray(appPublicKey,
+						appPublicKeyOffset);
+
 				resultLength = EcdhUtil.encrypt(destBuf, destOffset,
-						processLength, destBuf, destOffset);
+						processLength, appPublicKey, appPublicKeyOffset,
+						destBuf, destOffset);
+
+				WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
 				break;
+			}
 			case (byte) 0x1C: {
 				// removeOtherSeDevices
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
-				byte removeDevice = Device.isRegistered(buf, dataOffset);
-				if (removeDevice == -1) {
+				byte removeDevice = DeviceManager.isRegistered(buf, dataOffset);
+				if (removeDevice == 0) {
 					ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
 				}
-				if (Device.getCurrentDevice() == removeDevice) {
-					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
-				}
-				Device.removeDevice(removeDevice);
+				DeviceManager.removeDevice(removeDevice);
 				break;
 			}
 			case (byte) 0x1E:// renameOwnSeDevice
 				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 				dataLength -= 92;
-				Device.setName(buf, dataOffset);
+				DeviceManager.setName(buf, dataOffset);
 				break;
 			case (byte) 0x24:// createWallet
 				CardInfo.checkWalletStatusNotEqual(Common.WALLET_CREATED);
@@ -287,15 +296,25 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				CardInfo.set(CardInfo.AUTH_GET_KEY, true);
 				break;
 			case (byte) 0x98:// readAccountExtendedKey
+			{
 				if (CardInfo.is(CardInfo.AUTH_GET_KEY) == false) {
 					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 				}
-				processLength = KeyManager.getDerivedPublicKey(buf, dataOffset,
-						dataLength, true, buf, dataOffset);
+				processLength = KeyManager.getDerivedPublicKeyByPath(buf,
+						dataOffset, dataLength, true, buf, dataOffset);
+				byte[] appPublicKey = WorkCenter
+						.getWorkspaceArray(WorkCenter.WORK);
+				short appPublicKeyOffset = WorkCenter
+						.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+				DeviceManager.getAppPublicKeyAsByteArray(appPublicKey,
+						appPublicKeyOffset);
+
 				// encrypt account extended public key to buf
 				resultLength = EcdhUtil.encrypt(buf, dataOffset, processLength,
-						destBuf, destOffset);
+						appPublicKey, appPublicKeyOffset, destBuf, destOffset);
+				WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
 				break;
+			}
 			case (byte) 0x30:// clearTx
 				CardInfo.set(CardInfo.AUTH_TX, false);
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_NONE);
@@ -328,7 +347,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				if (dataLength != Common.LENGTH_APP_ID) {
 					ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 				}
-				if (Device.isRegistered(buf, dataOffset) == 0) {
+				if (DeviceManager.isRegistered(buf, dataOffset) == 0) {
 					ISOException.throwIt(ISO7816.SW_FILE_NOT_FOUND);
 				}
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
@@ -361,7 +380,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				break;
 			case (byte) 0x56:// reset
 				KeyManager.clearKey();
-				Device.reset();
+				DeviceManager.reset();
 				ScriptInterpreter.reset();
 				CardInfo.defaultSettings();
 				break;
@@ -380,7 +399,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			case (byte) 0x66:// getCardInfo
 			{
 				// [Pair_Status(1B)][Freeze_Status(1B)][PairedRemainTimes(1B)]
-				short ptr = Device.getCardInfo(destBuf, destOffset);
+				short ptr = DeviceManager.getCardInfo(destBuf, destOffset);
 				// [Wallet_Status(1B)][Account_Digest(5B)][DisplayType(1B)][BIP32_ED25519_Is_Init(1B)][Account_Digest_20_Bytes(20B)]
 				ptr = CardInfo.getCardInfo(destBuf, ptr);
 
@@ -495,6 +514,40 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				}
 				resultLength = 1;
 				break;
+			case (byte) 0x88: {
+				// backup data to backup card
+				short cardIdOffset = dataOffset;
+				short cardIdLength = Util.makeShort(buf[cardIdOffset++],
+						buf[cardIdOffset++]);
+				Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+				byte[] backCardPublicKey = WorkCenter
+						.getWorkspaceArray(WorkCenter.WORK);
+				short backCardPublicKeyOffset = WorkCenter
+						.getWorkspaceOffset(Common.LENGTH_PUBLICKEY);
+				UniqueImplement.deriveBackupCardKey(buf, cardIdOffset,
+						cardIdLength, backCardPublicKey,
+						backCardPublicKeyOffset);
+				buf = longBuf;
+				Util.arrayFillNonAtomic(longBuf, Common.OFFSET_ZERO,
+						(short) longBuf.length, (byte) 0);
+				resultLength = BackupController.backup(destBuf, destOffset);
+				resultLength = EcdhUtil.encrypt(destBuf, destOffset,
+						resultLength, backCardPublicKey,
+						backCardPublicKeyOffset, destBuf, destOffset);
+				WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
+				break;
+			}
+			case (byte) 0x8A: {
+				// recover data from main card
+				if (DeviceManager.isPaired()) {
+					ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				}
+				short processtLength = EcdhUtil.decrypt(buf, dataOffset,
+						dataLength, destBuf, destOffset,
+						KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
+				BackupController.recover(destBuf, destOffset, processtLength);
+				break;
+			}
 			case (byte) 0xAC:// setScript
 				CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
 				ScriptInterpreter.setScript(buf, dataOffset, dataLength);
@@ -610,7 +663,6 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 						dataOffset, dataLength, path, Common.OFFSET_ONE,
 						pathLength, buf, keyOffset, keyLength, buf, dataOffset,
 						shouldUpdateTransaction);
-
 				if (processLength != 0) {
 					if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 						NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO,
@@ -665,7 +717,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		ScriptInterpreter.uninit();
 		KeyManager.uninit();
 		Bip39.uninit();
-		Device.uninit();
+		DeviceManager.uninit();
 		EcdhUtil.uninit();
 		KeyUtil.uninit();
 		NonceUtil.uninit();

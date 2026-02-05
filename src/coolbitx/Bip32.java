@@ -2,6 +2,8 @@ package coolbitx;
 
 import javacard.framework.ISOException;
 import javacard.framework.Util;
+import javacard.security.ECPrivateKey;
+import javacard.security.KeyAgreement;
 import javacard.security.KeyBuilder;
 import javacard.security.RSAPrivateKey;
 
@@ -24,14 +26,17 @@ public class Bip32 {
 			'5', '1', '9', ' ', 's', 'e', 'e', 'd' };
 
 	private static RSAPrivateKey seedObject;
+	private static KeyAgreement ecAdd;
 
 	public static void init() {
 		seedObject = (RSAPrivateKey) KeyBuilder.buildKey(
 				KeyBuilder.TYPE_RSA_PRIVATE, KeyBuilder.LENGTH_RSA_512, false);
+		ecAdd = KeyAgreement.getInstance(KeyAgreement.ALG_EC_PACE_GM, false);
 	}
 
 	public static void uninit() {
 		seedObject = null;
+		ecAdd = null;
 	}
 
 	public static void clearKey() {
@@ -48,8 +53,8 @@ public class Bip32 {
 		final short workspaceLength = 84;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workspaceLength);
-		getDerivedKeyByPath(standardPath, (short) 0, (short) 1, workspace,
-				workspaceOffset);
+		getDerivedPrivateKeyByPath(standardPath, (short) 0, (short) 1,
+				workspace, workspaceOffset);
 		ShaUtil.SHA1(workspace, workspaceOffset, LENGTH_EXTENDKEY, workspace,
 				(short) (workspaceOffset + 64));
 		Util.arrayFillNonAtomic(workspace, workspaceOffset, (short) 64,
@@ -72,8 +77,17 @@ public class Bip32 {
 		return offset;
 	}
 
-	public static void deriveChildKey(byte[] buf, short offset, byte[] index,
-			short indexOffset, boolean isEd25519, byte[] destBuf,
+	/**
+	 * @param buf (contains private key(32 bytes) || chain code(32 bytes)
+	 * @param offset
+	 * @param index (should be 4 bytes long)
+	 * @param indexOffset
+	 * @param isEd25519
+	 * @param destBuf
+	 * @param destOffset
+	 */
+	public static void deriveChildKeyFromPrivate(byte[] buf, short offset,
+			byte[] index, short indexOffset, boolean isEd25519, byte[] destBuf,
 			short destOffset) {
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset((short) 37);
@@ -84,7 +98,7 @@ public class Bip32 {
 					(short) (workspaceOffset + 1), Common.LENGTH_PRIVATEKEY);
 		} else {
 			if (isEd25519) {
-				ISOException.throwIt((short) 0x6D6C);
+				ISOException.throwIt(ErrorMessage._6D6C);
 			}
 			// put compress public key
 			KeyUtil.privToPubKey(buf, offset, workspace, workspaceOffset);
@@ -106,12 +120,55 @@ public class Bip32 {
 		WorkCenter.release(WorkCenter.WORK1, LENGTH_EXTENDKEY);
 		WorkCenter.release(WorkCenter.WORK, (short) 37);
 	}
+	/**
+	 * @param publicKey (should be 65 bytes long)
+	 * @param publicKeyOffset
+	 * @param publicKeyLength
+	 * @param chainCode (should be 32 bytes long)
+	 * @param chainCodeOffset
+	 * @param index (should be 4 bytes long)
+	 * @param indexOffset
+	 * @param destBuf
+	 * @param destOffset
+	 * @return
+	 */
+	public static short deriveChildKeyFromPublic(byte[] publicKey,
+			short publicKeyOffset, short publicKeyLength, byte[] chainCode,
+			short chainCodeOffset, byte[] index, short indexOffset,
+			byte[] destBuf, short destOffset) {
+		if (publicKeyLength != Common.LENGTH_PUBLICKEY) {
+			ISOException.throwIt(ErrorMessage._6D70);
+		}
+		if ((index[indexOffset] & (byte) 0x80) != 0) {
+			ISOException.throwIt(ErrorMessage._6D71);
+		}
 
-	private static void getDerivedKeyByPath(byte[] path, short pathOffset,
-			short pathLength, byte[] destBuf, short destOffset) {
+		byte[] data = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+		short dataOffset = WorkCenter.getWorkspaceOffset((short) 37);
+
+		KeyUtil.compressPublicKey(publicKey, publicKeyOffset, data, dataOffset);
+		Util.arrayCopyNonAtomic(index, indexOffset, data,
+				(short) (dataOffset + Common.LENGTH_COMPRESS_PUBLICKEY),
+				(short) 4);
+		byte[] trans = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
+		short transOffset = WorkCenter.getWorkspaceOffset(LENGTH_EXTENDKEY);
+
+		HmacSha.HMAC(chainCode, chainCodeOffset, Common.LENGTH_CHAINCODE, data,
+				dataOffset, Common.LENGTH_MESSAGE, trans, transOffset,
+				ShaUtil.m_sha_512);
+		ECPrivateKey tweak = KeyUtil.getPrivKey(trans, transOffset);
+		ecAdd.init(tweak);
+		WorkCenter.release(WorkCenter.WORK1, LENGTH_EXTENDKEY);
+		WorkCenter.release(WorkCenter.WORK, (short) 37);
+		return ecAdd.generateSecret(publicKey, publicKeyOffset,
+				Common.LENGTH_PUBLICKEY, destBuf, destOffset);
+	}
+
+	private static void getDerivedPrivateKeyByPath(byte[] path,
+			short pathOffset, short pathLength, byte[] destBuf, short destOffset) {
 		if (pathLength < 1 || (short) (pathLength - 1) % 4 != 0
 				|| pathLength > 21) {
-			ISOException.throwIt((short) 0x6D63);
+			ISOException.throwIt(ErrorMessage._6D63);
 		}
 		byte[] seed = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short seedOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_SEED);
@@ -131,10 +188,10 @@ public class Bip32 {
 					(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6D65);
+			ISOException.throwIt(ErrorMessage._6D65);
 		}
 		for (byte derivedPathLength = 1; derivedPathLength < pathLength; derivedPathLength += 4) {
-			deriveChildKey(destBuf, destOffset, path,
+			deriveChildKeyFromPrivate(destBuf, destOffset, path,
 					(short) (pathOffset + derivedPathLength),
 					path[pathOffset] == 0x10, destBuf, destOffset);
 		}
@@ -144,9 +201,9 @@ public class Bip32 {
 		WorkCenter.release(WorkCenter.WORK1, Common.LENGTH_SEED);
 	}
 
-	public static short getDerivedPublicKey(byte[] path, short pathOffset,
-			short pathLength, boolean needChainCode, byte[] destBuf,
-			short destOffset) {
+	public static short getDerivedPublicKeyByPath(byte[] path,
+			short pathOffset, short pathLength, boolean needChainCode,
+			byte[] destBuf, short destOffset) {
 		final short transLength = 64;
 		byte[] trans = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short transOffset = WorkCenter.getWorkspaceOffset(transLength);
@@ -154,7 +211,7 @@ public class Bip32 {
 		byte keyType = path[pathOffset];
 
 		if (keyType != KeyManager.CURVE25519) {
-			getDerivedKeyByPath(path, pathOffset, pathLength, trans,
+			getDerivedPrivateKeyByPath(path, pathOffset, pathLength, trans,
 					transOffset);
 		}
 		switch (keyType) {
@@ -180,7 +237,7 @@ public class Bip32 {
 			ret = 32;
 			break;
 		default:
-			ISOException.throwIt((short) 0x6AC4);
+			ISOException.throwIt(ErrorMessage._6D60);
 			break;
 		}
 
@@ -188,14 +245,14 @@ public class Bip32 {
 		return ret;
 	}
 
-	public static short signByDerivedKey(byte[] buf, short offset,
+	public static short deriveKeyAndSign(byte[] buf, short offset,
 			short length, byte[] path, short pathOffset, short pathLength,
 			byte signType, byte[] destBuf, short destOffset) {
 		byte[] trans = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short transOffset = WorkCenter.getWorkspaceOffset(LENGTH_EXTENDKEY);
 
 		if (signType != KeyManager.SIGN_CURVE25519) {
-			getDerivedKeyByPath(path, pathOffset, pathLength, trans,
+			getDerivedPrivateKeyByPath(path, pathOffset, pathLength, trans,
 					transOffset);
 		}
 		short ret;
@@ -228,7 +285,7 @@ public class Bip32 {
 					destBuf, destOffset);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6AC3);
+			ISOException.throwIt(ErrorMessage._6D61);
 			ret = 0;
 			break;
 		}

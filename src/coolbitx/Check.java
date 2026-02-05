@@ -53,7 +53,6 @@ public class Check {
 	public static void verifyCommand(byte[] buf, short apduOffset,
 			short dataOffset, short dataLength) {
 		// data=[apduData(Variety)][appId(20B)[rightJustifiedSignature(72B)]
-
 		if (dataLength < 92) {
 			ISOException.throwIt((short) 0x609C);
 		}
@@ -63,17 +62,17 @@ public class Check {
 		short signOffset = (short) (dataOffset + dataLength - 72);
 		short appIdOffset = (short) (signOffset - 20);
 		dataLength -= 92;
-		byte currentDevice = Device.isRegistered(buf, appIdOffset);
+		byte currentDevice = DeviceManager.isRegistered(buf, appIdOffset);
 		if (currentDevice == 0) {
 			ISOException.throwIt((short) 0x609D);
 		}
-		Device.setCurrentDevice(currentDevice);
+		DeviceManager.setCurrentDevice(currentDevice);
 		CardInfo.set(CardInfo.NONCE_ACTI, false);
 		ShaUtil.m_sha_256.update(buf, apduOffset, (short) 4);
 		ShaUtil.m_sha_256.update(buf, dataOffset, dataLength);
 		boolean isVerified = SignUtil
 				.isVerifiedFixedLength(Main.nonce, (short) 0, (short) 8, buf,
-						signOffset, Device.getAppPublicKey());
+						signOffset, DeviceManager.getAppPublicKey());
 		Common.clearArray(Main.nonce);
 		if (!isVerified) {
 			ISOException.throwIt((short) 0x609E);

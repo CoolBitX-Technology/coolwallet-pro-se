@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 9;
+	public static final byte scriptVersion = 10;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -15,8 +15,6 @@ public class ScriptInterpreter {
 	public static byte[] detail; // special
 	public static short[] array; // store array start offset
 	public static short[] count; // store object number in array
-	public static byte[] rlpArgs; // store rlp argument
-	public static short[] rlpArgsLengths; // store rlp arguments length
 	public static byte[] coinType; // special
 	private static final short scriptMax = 3000;
 	private static final short argumentMax = 10240;
@@ -25,8 +23,6 @@ public class ScriptInterpreter {
 	private static final short transactionMax = 9216;
 	private static final short detailMax = 200;
 	private static final short arrayMax = 16;
-	private static final short rlpMax = 1024;
-	private static final short rlpLengthMax = 64;
 	private static final short coinTypeMax = 4;
 	private static short scriptLength;
 	private static short argumentLength;
@@ -40,7 +36,10 @@ public class ScriptInterpreter {
 	private static short intCache, maxCache;
 
 	private static boolean isExecuted = false;
-	private static byte hashType, signType, remainDataType, argType;
+	private static byte hashType, signType, remainDataType, reserveType;
+	private static byte argType;
+	private static final byte ARG_TYPE_CONCATENATED = (byte) 0x00;
+	private static final byte ARG_TYPE_RLP = (byte) 0x01;
 	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
@@ -58,8 +57,6 @@ public class ScriptInterpreter {
 		detail = new byte[detailMax];
 		array = new short[arrayMax];
 		count = new short[arrayMax];
-		rlpArgs = new byte[rlpMax];
-		rlpArgsLengths = new short[rlpLengthMax];
 		coinType = new byte[coinTypeMax];
 		reset();
 	}
@@ -73,8 +70,6 @@ public class ScriptInterpreter {
 		detail = null;
 		array = null;
 		count = null;
-		rlpArgs = null;
-		rlpArgsLengths = null;
 		coinType = null;
 	}
 
@@ -94,7 +89,7 @@ public class ScriptInterpreter {
 		bufferInt = 0;
 		intCache = maxCache = 0;
 		isExecuted = false;
-		hashType = signType = remainDataType = argType = 0;
+		hashType = signType = remainDataType = reserveType = argType = 0;
 		detailIcon = (byte) 0xFF;
 		isUTXOtx = false;
 	}
@@ -164,56 +159,75 @@ public class ScriptInterpreter {
 			remainDataType = script[si++];
 		}
 		if (headerLength >= 5) {
-			argType = script[si++];
+			// not using now, reserve for the future requirement
+			reserveType = script[si++];
 		}
-		if (argType == 0x1) { // rlp arg type
-			short rlpLength = RlpDecoder.decodeRlpList(argument, (short) 0,
-					rlpArgs, (short) 0, rlpArgsLengths, (short) 0);
-			if (rlpLength != 0) {
-				short remaining = (short) (argumentLength - rlpLength);
-				// Struct the data length and offset for argument
-				Util.arrayCopyNonAtomic(argument, rlpLength, argument,
-						(short) 0, remaining);
-				Util.arrayFillNonAtomic(argument, remaining, argumentLength,
-						(byte) 0x00);
-			}
-		}
+
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
 			short dataOffset = 0;
 			short dataLength = 0;
-			if (dataBuf != null) {
+			byte[] destBuf = null;
+			short destOffset = 0;
+			short argInt0 = 0;
+			short argInt1 = 0;
+			if (dataBuf == null) {
+				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				si++;
+				// format parameter
+				dataOffset = getInt((byte) dataOffset);
+				dataLength = getInt((byte) dataLength);
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+			} else if (argType == ARG_TYPE_RLP) {
+				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				si++;
+				// format parameter
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+				if (dataBuf != argument) {
+					// non-rlp data issue here.
+				}
+				byte[] rlpList = argument;
+				short rlpListOffset = Common.OFFSET_ZERO;
+				short rlpListLength = argumentLength;
+				// short rlpListLength,
+				byte[] rlpPath = script;
+				short rlpPathLength = script[si++];
+				short rlpPathOffset = si;
+				si += rlpPathLength;
+				RlpDataParser.execute(rlpList, rlpListOffset, rlpListLength,
+						rlpPath, rlpPathOffset, rlpPathLength);
+				dataOffset = RlpDataParser.getDataOffset();
+				dataLength = RlpDataParser.getDataLength();
+			} else { // argType == ARG_TYPE_CONCATENATED
 				dataOffset = (short) (script[si] & 0x0F);
 				si++;
 				dataLength = (short) ((script[si] >> 4) & 0x0F);
-			}
-			byte[] destBuf = getDestBuffer((byte) (script[si] & 0x0F));
-			short destOffset = getDestOffset(destBuf);
-			si++;
-			short argInt0 = (short) ((script[si] >> 4) & 0x0F);
-			short argInt1 = (short) (script[si] & 0x0F);
-			si++;
-			// If dataLength equals to 0xA means it is a rlp argument.
-			if (dataLength == (byte) 0xA) {
-				short rlpOffset = getInt((byte) dataOffset);
-				dataOffset = 0;
-				for (short i = 0; i < rlpOffset; i++) {
-					dataOffset += rlpArgsLengths[i];
-				}
-				dataLength = rlpArgsLengths[rlpOffset];
-			} else {
+				destBuf = getDestBuffer((byte) (script[si] & 0x0F));
+				destOffset = getDestOffset(destBuf);
+				si++;
+				argInt0 = (short) ((script[si] >> 4) & 0x0F);
+				argInt1 = (short) (script[si] & 0x0F);
+				si++;
+				// format parameter
 				dataOffset = getInt((byte) dataOffset);
 				dataLength = getInt((byte) dataLength);
-			}
-			argInt0 = getInt((byte) argInt0);
-			argInt1 = getInt((byte) argInt1);
-			// short destLength = 0;
-			if (dataLength < 0) {
-				dataLength *= -1;
-				while (dataBuf[dataOffset] == 0 && dataLength > 0) {
-					dataOffset++;
-					dataLength--;
+				argInt0 = getInt((byte) argInt0);
+				argInt1 = getInt((byte) argInt1);
+				if (dataLength < 0) {
+					dataLength *= -1;
+					while (dataBuf[dataOffset] == 0 && dataLength > 0) {
+						dataOffset++;
+						dataLength--;
+					}
 				}
 			}
 			short destLength;
@@ -383,8 +397,7 @@ public class ScriptInterpreter {
 				// hash
 				// (data,offset,length,dest,-,hashType)
 				getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
-						(byte) (argInt0 | (argInt1 << 4)), null, (short) 0,
-						(short) 0);
+						(byte) (argInt0 | (argInt1 << 4)));
 				break;
 			case (byte) 0x6C:
 			// derive ECDSA publicKey with
@@ -398,8 +411,8 @@ public class ScriptInterpreter {
 				// destOffset,
 				// (short) 33);
 				// WorkCenter.release(WorkCenter.WORK1, workLength);
-				short len = KeyManager.getDerivedPublicKey(dataBuf, dataOffset,
-						dataLength, false, destBuf, destOffset);
+				short len = KeyManager.getDerivedPublicKeyByPath(dataBuf,
+						dataOffset, dataLength, false, destBuf, destOffset);
 				addDestOffset(destBuf, len);
 			}
 				break;
@@ -697,8 +710,8 @@ public class ScriptInterpreter {
 			// ================ script version 5 ================
 			case (byte) 0xC4: {
 				placeholderOffset = destOffset;
-				if (dataLength != 4) {
-					ISOException.throwIt((short) 0x6700);
+				if (dataLength != 4 && dataLength != 0) {
+					ISOException.throwIt((short) 0x6701);
 				}
 				placeholderLength = NumberUtil.byteArrayToInt(dataBuf,
 						dataOffset, dataLength);
@@ -817,6 +830,7 @@ public class ScriptInterpreter {
 				addDestOffset(destBuf, destLength);
 				break;
 			// ================ script verion 9 ================
+			// only use for KAS
 			case (byte) 0x5b: {
 				// new hash
 				// data: hash type(1 byte) + hash length(2 bytes) + hash data +
@@ -827,9 +841,39 @@ public class ScriptInterpreter {
 				short keyLength = Util.getShort(dataBuf,
 						(short) (hashDataOffset + hashDataLength));
 				short keyOffset = (short) (hashDataOffset + hashDataLength + 2);
-				getHash(dataBuf, hashDataOffset, hashDataLength, destBuf,
-						destOffset, hashType, dataBuf, keyOffset, keyLength);
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, hashType, dataBuf, keyOffset,
+						keyLength);
 			}
+				break;
+			// ================ script verion 10 ================
+			case (byte) 0x5c: {
+				// advanced hash
+				// data: RLP list [data][context]
+				// context: salt, key, personal...
+
+				// data
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 0);
+				short hashDataOffset = RlpDataParser.getDataOffset();
+				short hashDataLength = RlpDataParser.getDataLength();
+
+				// context
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 1);
+				short contextOffset = RlpDataParser.getDataOffset();
+				short contextLength = RlpDataParser.getDataLength();
+				// getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
+				// (byte) (argInt0 | (argInt1 << 4)));
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, (byte) (argInt0 | (argInt1 << 4)),
+						dataBuf, contextOffset, contextLength);
+			}
+				break;
+			case (byte) 0x5d: // This command must be followed by command 0x5A
+				getUpdateAdvancedHash(dataBuf, (short) 0, (short) 0,
+						(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset,
+						dataLength);
 				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
@@ -837,8 +881,6 @@ public class ScriptInterpreter {
 			}
 		}
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
-		Common.clearArray(rlpArgs);
-		Common.clearArray(rlpArgsLengths);
 		argumentLength = 0;
 		isExecuted = true;
 	}
@@ -879,13 +921,13 @@ public class ScriptInterpreter {
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
-					hashType, null, (short) 0, (short) 0);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+					hashType);
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
 			WorkCenter.release(WorkCenter.WORK1, workLength);
 		} else {
-			ret = KeyManager.signByDerivedKey(transaction, (short) 0, ti, path,
+			ret = KeyManager.deriveKeyAndSign(transaction, (short) 0, ti, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
 		}
 		return ret;
@@ -899,12 +941,16 @@ public class ScriptInterpreter {
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		if (shouldUpdateTransaction) {
-			getUpdateHash(transaction, (short) 0, placeholderOffset, hashType,
-					key, keyOffset, keyLength);
+			if (keyLength > 0) {
+				getUpdateAdvancedHash(transaction, (short) 0,
+						placeholderOffset, hashType, key, keyOffset, keyLength);
+			} else {
+				getUpdateHash(transaction, (short) 0, placeholderOffset,
+						hashType);
+			}
 		}
 		// Hashing data
-		// Key only update once
-		getUpdateHash(data, offset, length, hashType, key, keyOffset, (short) 0);
+		getUpdateHash(data, offset, length, hashType);
 		if (isUTXOtx) {
 			placeholderLength = 0;
 		} else {
@@ -917,9 +963,11 @@ public class ScriptInterpreter {
 		short workLength = Common.LENGTH_SHA256;
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+
 		getHash(transaction, placeholderOffset, remainLength, workspace,
-				workspaceOffset, hashType, null, (short) 0, (short) 0);
-		ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+				workspaceOffset, hashType);
+
+		ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
 				destOffset);
 		WorkCenter.release(WorkCenter.WORK1, workLength);
@@ -1028,7 +1076,7 @@ public class ScriptInterpreter {
 					workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
@@ -1061,7 +1109,7 @@ public class ScriptInterpreter {
 					(short) 8, workspace, workspaceOffset);
 			ShaUtil.SHA256(workspace, workspaceOffset, (short) 32, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
@@ -1072,7 +1120,7 @@ public class ScriptInterpreter {
 			}
 			ShaUtil.Keccak256(cache2, (short) 0, c2i, workspace,
 					workspaceOffset);
-			ret = KeyManager.signByDerivedKey(workspace, workspaceOffset,
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					Common.LENGTH_SHA256, path, pathOffset, pathLength,
 					KeyManager.SIGN_SECP256K1, destBuf, destOffset);
 			break;
@@ -1091,18 +1139,23 @@ public class ScriptInterpreter {
 			return null;
 		case 0xA:
 			maxCache = argumentLength;
+			argType = ARG_TYPE_CONCATENATED;
 			return argument;
 		case 0xB:
-			maxCache = rlpMax;
-			return rlpArgs;
+			maxCache = argumentLength;
+			argType = ARG_TYPE_RLP;
+			return argument;
 		case 0xE:
 			maxCache = c1i;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache1;
 		case 0xF:
 			maxCache = c2i;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache2;
 		case 0x7:
 			maxCache = ti;
+			argType = ARG_TYPE_CONCATENATED;
 			return transaction;
 		default:
 			ISOException.throwIt((short) 0x6A03);
@@ -1192,8 +1245,7 @@ public class ScriptInterpreter {
 	}
 
 	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
-			short keyLength) {
+			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
 		case 0xD: // double sha-256, should hash again later
@@ -1206,21 +1258,51 @@ public class ScriptInterpreter {
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x13:
-			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+		case 0x15:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32).update(dataBuf,
+					dataOffset, dataLength);
 			break;
 		case 0x14:
-			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+		case 0x16:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64).update(dataBuf,
+					dataOffset, dataLength);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6A0A);
+			ISOException.throwIt((short) 0x6A10);
+		}
+	}
+
+	private static void getUpdateAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte hashType, byte[] context,
+			short contextOffset, short contextLength) {
+		switch (hashType) {
+		case 0x13:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setKey(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x14:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setKey(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x15:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setPersonal(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x16:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setPersonal(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		default:
+			ISOException.throwIt((short) 0x6A11);
 		}
 	}
 
 	private static void getHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte[] destBuf, short destOffset, byte hashType,
-			byte[] keyBuf, short keyOffset, short keyLength) {
+			short dataLength, byte[] destBuf, short destOffset, byte hashType) {
 		short length = 0;
 		switch (hashType) {
 		case 0:
@@ -1281,11 +1363,15 @@ public class ScriptInterpreter {
 			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xE:
+		case 0x0E:
+		case 0x13:
+		case 0x15:
 			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xF:
+		case 0x0F:
+		case 0x14:
+		case 0x16:
 			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
@@ -1301,13 +1387,34 @@ public class ScriptInterpreter {
 			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
+		default:
+			ISOException.throwIt((short) 0x6A12);
+		}
+		addDestOffset(destBuf, length);
+	}
+
+	private static void getAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte[] destBuf, short destOffset, byte hashType,
+			byte[] context, short contextOffset, short contextLength) {
+		short length = 0;
+		switch (hashType) {
 		case 0x13:
-			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b256WithKey(dataBuf, dataOffset, dataLength,
+					context, contextOffset, contextLength, destBuf, destOffset);
 			break;
 		case 0x14:
-			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b512WithKey(dataBuf, dataOffset, dataLength,
+					context, contextOffset, contextLength, destBuf, destOffset);
+			break;
+		case 0x15:
+			length = ShaUtil.Blake2b256WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
+			break;
+		case 0x16:
+			length = ShaUtil.Blake2b512WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);

@@ -55,7 +55,7 @@ public class KeyUtil {
 		ka.init(getPrivKey(key, keyOffset));
 		ka.generateSecret(Secp256k1.G, Common.OFFSET_ZERO,
 				Common.LENGTH_PUBLICKEY, tempKey, tempKeyOffset);
-		compressPublicKey(tempKey, tempKeyOffset);
+		compressPublicKey(tempKey, tempKeyOffset, tempKey, tempKeyOffset);
 		Util.arrayCopyNonAtomic(tempKey, tempKeyOffset, destBuf, destOff,
 				Common.LENGTH_COMPRESS_PUBLICKEY);
 		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
@@ -77,8 +77,11 @@ public class KeyUtil {
 		return aesKey;
 	}
 
-	private static void compressPublicKey(byte[] buffer, short offset) {
-		buffer[(short) (offset)] = ((buffer[(short) ((short) (offset + 64))] & 1) != 0 ? (byte) 0x03
+	public static void compressPublicKey(byte[] publicKey,
+			short publicKeyOffset, byte[] destBuf, short destOffset) {
+		destBuf[destOffset++] = ((publicKey[(short) (publicKeyOffset + 64)] & 1) != 0 ? (byte) 0x03
 				: (byte) 0x02);
+		Util.arrayCopyNonAtomic(publicKey, (short) (publicKeyOffset + 1),
+				destBuf, destOffset, (short) 32);
 	}
 }

@@ -50,7 +50,7 @@ public class KeyManager {
 		}
 	}
 
-	public static short getDerivedPublicKey(byte[] path, short pathOffset,
+	public static short getDerivedPublicKeyByPath(byte[] path, short pathOffset,
 			short pathLength, boolean needChainCode, byte[] destBuf,
 			short destOffset) {
 		short ret = 0;
@@ -62,21 +62,21 @@ public class KeyManager {
 		case CURVE25519:
 		case BIP32EDDSA:
 		case BIP340:
-			ret = Bip32.getDerivedPublicKey(path, pathOffset, pathLength,
+			ret = Bip32.getDerivedPublicKeyByPath(path, pathOffset, pathLength,
 					needChainCode, destBuf, destOffset);
 			break;
 		case BIP32ED25519:
-			ret = Bip32Ed25519.getDerivedPublicKey(path, pathOffset,
+			ret = Bip32Ed25519.getDerivedPublicKeyByPath(path, pathOffset,
 					pathLength, needChainCode, destBuf, destOffset);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6AC3);
+			ISOException.throwIt(ErrorMessage._6D67);
 			break;
 		}
 		return ret;
 	}
 
-	public static short signByDerivedKey(byte[] buf, short offset,
+	public static short deriveKeyAndSign(byte[] buf, short offset,
 			short length, byte[] path, short pathOffset, short pathLength,
 			byte signType, byte[] destBuf, short destOffset) {
 		short ret;
@@ -85,15 +85,15 @@ public class KeyManager {
 		case SIGN_ED25519: // EdDSA Ed25519
 		case SIGN_CURVE25519:
 		case SIGN_SCHNORR:
-			ret = Bip32.signByDerivedKey(buf, offset, length, path, pathOffset,
+			ret = Bip32.deriveKeyAndSign(buf, offset, length, path, pathOffset,
 					pathLength, signType, destBuf, destOffset);
 			break;
 		case SIGN_BIP32ED25519: // Bip32 Ed25519
-			ret = Bip32Ed25519.signByDerivedKey(buf, offset, length, path,
+			ret = Bip32Ed25519.deriveKeyAndSign(buf, offset, length, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6AC3);
+			ISOException.throwIt(ErrorMessage._6D68);
 			ret = 0;
 			break;
 		}

@@ -22,6 +22,7 @@ public class Common {
 	public static final short LENGTH_PUBLICKEY = 65;
 	public static final short LENGTH_PRIVATEKEY = 32;
 	public static final short LENGTH_CHAINCODE = 32;
+	public static final short LENGTH_EXTENDKEY = 64;
 	public static final short LENGTH_APP_ID = 20;
 	public static final short LENGTH_IV = 16;
 	public static final short LENGTH_MAC = 20;
