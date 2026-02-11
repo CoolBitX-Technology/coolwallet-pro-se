@@ -181,7 +181,7 @@ public class RlpDataParser {
 				length = (length << 8) | (rlpList[listIndex] & 0xFF);
 				listIndex++;
 			}
-			if (length >32767) {
+			if (length > 32767) {
 				ISOException.throwIt(ErrorMessage._6EB6);
 			}
 			dataOffset = listIndex;
@@ -198,6 +198,9 @@ public class RlpDataParser {
 			for (int i = 0; i < lengthOfLength; i++) {
 				length = (length << 8) | (rlpList[listIndex] & 0xFF);
 				listIndex++;
+			}
+			if (length > 32767) {
+				ISOException.throwIt(ErrorMessage._6EB6);
 			}
 			dataOffset = listIndex;
 			dataLength = (short) length;
