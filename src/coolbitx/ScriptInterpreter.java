@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 10;
+	public static final byte scriptVersion = 11;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in

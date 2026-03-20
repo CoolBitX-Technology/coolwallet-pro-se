@@ -181,15 +181,16 @@ public class RlpDataParser {
 				length = (length << 8) | (rlpList[listIndex] & 0xFF);
 				listIndex++;
 			}
-			if (length >32767) {
+			if (length > 32767) {
 				ISOException.throwIt(ErrorMessage._6EB6);
 			}
 			dataOffset = listIndex;
 			dataLength = (short) length;
 		} else if ((finalPrefix & 0xFF) >= 0xC0 && (finalPrefix & 0xFF) <= 0xF7) {
 			// Short list (0xC0 - 0xF7)
+			listIndex++;
 			dataOffset = listIndex;
-			dataLength = (short) (finalPrefix - 0xC0 + 1);
+			dataLength = (short) (finalPrefix - 0xC0);
 		} else if ((finalPrefix & 0xFF) >= 0xF8 && (finalPrefix & 0xFF) <= 0xFF) {
 			// Long list (0xF8 - 0xFF)
 			int lengthOfLength = (finalPrefix & 0xFF) - 0xF7;
@@ -198,6 +199,9 @@ public class RlpDataParser {
 			for (int i = 0; i < lengthOfLength; i++) {
 				length = (length << 8) | (rlpList[listIndex] & 0xFF);
 				listIndex++;
+			}
+			if (length > 32767) {
+				ISOException.throwIt(ErrorMessage._6EB6);
 			}
 			dataOffset = listIndex;
 			dataLength = (short) length;
