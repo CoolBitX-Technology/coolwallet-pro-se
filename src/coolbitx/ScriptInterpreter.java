@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 9;
+	public static final byte scriptVersion = 11;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -36,7 +36,10 @@ public class ScriptInterpreter {
 	private static short intCache, maxCache;
 
 	private static boolean isExecuted = false;
-	private static byte hashType, signType, remainDataType, argType;
+	private static byte hashType, signType, remainDataType, reserveType;
+	private static byte argType;
+	private static final byte ARG_TYPE_CONCATENATED = (byte) 0x00;
+	private static final byte ARG_TYPE_RLP = (byte) 0x01;
 	private static boolean isUTXOtx = false;
 
 	private static final byte type_asc = (byte) 0x00;
@@ -86,7 +89,7 @@ public class ScriptInterpreter {
 		bufferInt = 0;
 		intCache = maxCache = 0;
 		isExecuted = false;
-		hashType = signType = remainDataType = argType = 0;
+		hashType = signType = remainDataType = reserveType = argType = 0;
 		detailIcon = (byte) 0xFF;
 		isUTXOtx = false;
 	}
@@ -156,8 +159,10 @@ public class ScriptInterpreter {
 			remainDataType = script[si++];
 		}
 		if (headerLength >= 5) {
-			argType = script[si++];
+			// not using now, reserve for the future requirement
+			reserveType = script[si++];
 		}
+
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
@@ -178,7 +183,7 @@ public class ScriptInterpreter {
 				dataLength = getInt((byte) dataLength);
 				argInt0 = getInt((byte) argInt0);
 				argInt1 = getInt((byte) argInt1);
-			} else if (argType == 0x1 && dataBuf == argument) { // rlp arg type
+			} else if (argType == ARG_TYPE_RLP) {
 				destBuf = getDestBuffer((byte) (script[si++] & 0x0F));
 				destOffset = getDestOffset(destBuf);
 				argInt0 = (short) ((script[si] >> 4) & 0x0F);
@@ -198,194 +203,11 @@ public class ScriptInterpreter {
 				short rlpPathLength = script[si++];
 				short rlpPathOffset = si;
 				si += rlpPathLength;
-				short pathIndex = 0; // Index to traverse the rlpPath
-				short listIndex = rlpListOffset; // Current index in the RLP
-													// list
-				// Traverse the RLP path
-				while (pathIndex < rlpPathLength) {
-					byte pathSegment = rlpPath[(short) (rlpPathOffset + pathIndex)];
-					pathIndex++;
-					// Decode current element in the list
-					int prefix = rlpList[listIndex] & 0xFF;
-					if ((prefix & 0xFF) <= 0x7F) {
-						// Single byte value (0x00 - 0x7F)
-						listIndex++;
-					} else if ((prefix & 0xFF) >= 0x80
-							&& (prefix & 0xFF) <= 0xB7) {
-						// Short string (0x80 - 0xB7)
-						int length = prefix - 0x80;
-						listIndex += length + 1;
-					} else if ((prefix & 0xFF) >= 0xB8
-							&& (prefix & 0xFF) <= 0xBF) {
-						// Long string (0xB8 - 0xBF)
-						int lengthOfLength = (prefix & 0xFF) - 0xB7;
-						listIndex++;
-						int length = 0;
-						for (int i = 0; i < lengthOfLength; i++) {
-							length = (length << 8)
-									| (rlpList[listIndex] & 0xFF);
-							listIndex++;
-						}
-						listIndex += length;
-					} else if ((prefix & 0xFF) >= 0xC0
-							&& (prefix & 0xFF) <= 0xF7) {
-						// Short list (0xC0 - 0xF7)
-						listIndex++;
-						// Navigate through list items
-						for (byte i = 0; i < pathSegment; i++) {
-							int childPrefix = rlpList[listIndex] & 0xFF;
-							if ((childPrefix & 0xFF) <= 0x7F) {
-								// Single byte value
-								listIndex++;
-							} else if ((childPrefix & 0xFF) >= 0x80
-									&& (childPrefix & 0xFF) <= 0xB7) {
-								// Short string
-								int childLength = childPrefix - 0x80;
-								listIndex += childLength + 1;
-							} else if ((childPrefix & 0xFF) >= 0xB8
-									&& (childPrefix & 0xFF) <= 0xBF) {
-								// Long string
-								int childLengthOfLength = (childPrefix & 0xFF) - 0xB7;
-								listIndex++;
-								int childLength = 0;
-								for (int j = 0; j < childLengthOfLength; j++) {
-									childLength = (childLength << 8)
-											| (rlpList[listIndex] & 0xFF);
-									listIndex++;
-								}
-								listIndex += childLength;
-							} else if ((childPrefix & 0xFF) >= 0xC0
-									&& (childPrefix & 0xFF) <= 0xF7) {
-								// Short list
-								int childLength = childPrefix - 0xC0;
-								listIndex += childLength + 1;
-							} else if ((childPrefix & 0xFF) >= 0xF8
-									&& (childPrefix & 0xFF) <= 0xFF) {
-								// Long list
-								int childLengthOfLength = (childPrefix & 0xFF) - 0xF7;
-								listIndex++;
-								int childLength = 0;
-								for (int j = 0; j < childLengthOfLength; j++) {
-									childLength = (childLength << 8)
-											| (rlpList[listIndex] & 0xFF);
-									listIndex++;
-								}
-								listIndex += childLength;
-							} else {
-								ISOException.throwIt(ErrorMessage._6EB0);
-							}
-							if (listIndex >= rlpListOffset + rlpListLength) {
-								ISOException.throwIt(ErrorMessage._6EB1);
-							}
-						}
-					} else if ((prefix & 0xFF) >= 0xF8
-							&& (prefix & 0xFF) <= 0xFF) {
-						// Long list (0xF8 - 0xFF)
-						int lengthOfLength = prefix - 0xF7;
-						listIndex++;
-						short length = 0;
-						for (int i = 0; i < lengthOfLength; i++) {
-							length = (short) ((length << 8) | (rlpList[listIndex] & 0xFF));
-							listIndex++;
-						}
-
-						if (listIndex + length > rlpListOffset + rlpListLength) {
-							ISOException.throwIt(ErrorMessage._6EB2);
-						}
-						// Navigate through list items
-						for (byte i = 0; i < pathSegment; i++) {
-							int childPrefix = rlpList[listIndex] & 0xFF;
-							if ((childPrefix & 0xFF) <= 0x7F) {
-								// Single byte value
-								listIndex++;
-							} else if ((childPrefix & 0xFF) >= 0x80
-									&& (childPrefix & 0xFF) <= 0xB7) {
-								// Short string
-								short childLength = (short) (childPrefix - 0x80);
-								listIndex += childLength + 1;
-							} else if ((childPrefix & 0xFF) >= 0xB8
-									&& (childPrefix & 0xFF) <= 0xBF) {
-								// Long string
-								int childLengthOfLength = (childPrefix & 0xFF) - 0xB7;
-								listIndex++;
-								short childLength = 0;
-								for (int j = 0; j < childLengthOfLength; j++) {
-									childLength = (short) ((childLength << 8) | (rlpList[listIndex] & 0xFF));
-									listIndex++;
-								}
-								listIndex += childLength;
-							} else if ((childPrefix & 0xFF) >= 0xC0
-									&& (childPrefix & 0xFF) <= 0xF7) {
-								// Short list
-								int childLength = childPrefix - 0xC0;
-								listIndex += childLength + 1;
-							} else if ((childPrefix & 0xFF) >= 0xF8
-									&& (childPrefix & 0xFF) <= 0xFF) {
-								// Long list
-								int childLengthOfLength = (childPrefix & 0xFF) - 0xF7;
-								listIndex++;
-								int childLength = 0;
-								for (int j = 0; j < childLengthOfLength; j++) {
-									childLength = (childLength << 8)
-											| (rlpList[listIndex] & 0xFF);
-									listIndex++;
-								}
-								listIndex += childLength;
-							} else {
-
-							}
-							if (listIndex >= rlpListOffset + rlpListLength) {
-								ISOException.throwIt(ErrorMessage._6EB4);
-							}
-						}
-					} else {
-						ISOException.throwIt(ErrorMessage._6EB5);
-					}
-				}
-				// Decode the final element at the resolved path
-				int finalPrefix = rlpList[listIndex] & 0xFF;
-				if ((finalPrefix & 0xFF) <= 0x7F) {
-					// Single byte value (0x00 - 0x7F)
-					dataOffset = listIndex;
-					dataLength = 1;
-				} else if ((finalPrefix & 0xFF) >= 0x80
-						&& (finalPrefix & 0xFF) <= 0xB7) {
-					// Short string (0x80 - 0xB7)
-					dataOffset = (short) (listIndex + 1);
-					dataLength = (short) (finalPrefix - 0x80);
-				} else if ((finalPrefix & 0xFF) >= 0xB8
-						&& (finalPrefix & 0xFF) <= 0xBF) {
-					// Long string (0xB8 - 0xBF)
-					int lengthOfLength = (finalPrefix & 0xFF) - 0xB7;
-					listIndex++;
-					int length = 0;
-					for (int i = 0; i < lengthOfLength; i++) {
-						length = (length << 8) | (rlpList[listIndex] & 0xFF);
-						listIndex++;
-					}
-					dataOffset = listIndex;
-					dataLength = (short) length;
-				} else if ((finalPrefix & 0xFF) >= 0xC0
-						&& (finalPrefix & 0xFF) <= 0xF7) {
-					// Short list (0xC0 - 0xF7)
-					dataOffset = listIndex;
-					dataLength = (short) (finalPrefix - 0xC0 + 1);
-				} else if ((finalPrefix & 0xFF) >= 0xF8
-						&& (finalPrefix & 0xFF) <= 0xFF) {
-					// Long list (0xF8 - 0xFF)
-					int lengthOfLength = (finalPrefix & 0xFF) - 0xF7;
-					listIndex++;
-					int length = 0;
-					for (int i = 0; i < lengthOfLength; i++) {
-						length = (length << 8) | (rlpList[listIndex] & 0xFF);
-						listIndex++;
-					}
-					dataOffset = listIndex;
-					dataLength = (short) length;
-				} else {
-					ISOException.throwIt(ErrorMessage._6EB6);
-				}
-			} else { // data concat type
+				RlpDataParser.execute(rlpList, rlpListOffset, rlpListLength,
+						rlpPath, rlpPathOffset, rlpPathLength);
+				dataOffset = RlpDataParser.getDataOffset();
+				dataLength = RlpDataParser.getDataLength();
+			} else { // argType == ARG_TYPE_CONCATENATED
 				dataOffset = (short) (script[si] & 0x0F);
 				si++;
 				dataLength = (short) ((script[si] >> 4) & 0x0F);
@@ -575,8 +397,7 @@ public class ScriptInterpreter {
 				// hash
 				// (data,offset,length,dest,-,hashType)
 				getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
-						(byte) (argInt0 | (argInt1 << 4)), null, (short) 0,
-						(short) 0);
+						(byte) (argInt0 | (argInt1 << 4)));
 				break;
 			case (byte) 0x6C:
 			// derive ECDSA publicKey with
@@ -889,8 +710,8 @@ public class ScriptInterpreter {
 			// ================ script version 5 ================
 			case (byte) 0xC4: {
 				placeholderOffset = destOffset;
-				if (dataLength != 4) {
-					ISOException.throwIt((short) 0x6700);
+				if (dataLength != 4 && dataLength != 0) {
+					ISOException.throwIt((short) 0x6701);
 				}
 				placeholderLength = NumberUtil.byteArrayToInt(dataBuf,
 						dataOffset, dataLength);
@@ -1009,6 +830,7 @@ public class ScriptInterpreter {
 				addDestOffset(destBuf, destLength);
 				break;
 			// ================ script verion 9 ================
+			// only use for KAS
 			case (byte) 0x5b: {
 				// new hash
 				// data: hash type(1 byte) + hash length(2 bytes) + hash data +
@@ -1019,9 +841,39 @@ public class ScriptInterpreter {
 				short keyLength = Util.getShort(dataBuf,
 						(short) (hashDataOffset + hashDataLength));
 				short keyOffset = (short) (hashDataOffset + hashDataLength + 2);
-				getHash(dataBuf, hashDataOffset, hashDataLength, destBuf,
-						destOffset, hashType, dataBuf, keyOffset, keyLength);
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, hashType, dataBuf, keyOffset,
+						keyLength);
 			}
+				break;
+			// ================ script verion 10 ================
+			case (byte) 0x5c: {
+				// advanced hash
+				// data: RLP list [data][context]
+				// context: salt, key, personal...
+
+				// data
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 0);
+				short hashDataOffset = RlpDataParser.getDataOffset();
+				short hashDataLength = RlpDataParser.getDataLength();
+
+				// context
+				RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength,
+						(byte) 1);
+				short contextOffset = RlpDataParser.getDataOffset();
+				short contextLength = RlpDataParser.getDataLength();
+				// getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
+				// (byte) (argInt0 | (argInt1 << 4)));
+				getAdvancedHash(dataBuf, hashDataOffset, hashDataLength,
+						destBuf, destOffset, (byte) (argInt0 | (argInt1 << 4)),
+						dataBuf, contextOffset, contextLength);
+			}
+				break;
+			case (byte) 0x5d: // This command must be followed by command 0x5A
+				getUpdateAdvancedHash(dataBuf, (short) 0, (short) 0,
+						(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset,
+						dataLength);
 				break;
 			default:
 				ISOException.throwIt((short) 0x6A01);
@@ -1069,7 +921,7 @@ public class ScriptInterpreter {
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 			getHash(transaction, (short) 0, ti, workspace, workspaceOffset,
-					hashType, null, (short) 0, (short) 0);
+					hashType);
 			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 					workLength, path, pathOffset, pathLength, signType,
 					destBuf, destOffset);
@@ -1089,12 +941,16 @@ public class ScriptInterpreter {
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
 		if (shouldUpdateTransaction) {
-			getUpdateHash(transaction, (short) 0, placeholderOffset, hashType,
-					key, keyOffset, keyLength);
+			if (keyLength > 0) {
+				getUpdateAdvancedHash(transaction, (short) 0,
+						placeholderOffset, hashType, key, keyOffset, keyLength);
+			} else {
+				getUpdateHash(transaction, (short) 0, placeholderOffset,
+						hashType);
+			}
 		}
 		// Hashing data
-		// Key only update once
-		getUpdateHash(data, offset, length, hashType, key, keyOffset, (short) 0);
+		getUpdateHash(data, offset, length, hashType);
 		if (isUTXOtx) {
 			placeholderLength = 0;
 		} else {
@@ -1109,7 +965,7 @@ public class ScriptInterpreter {
 		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
 
 		getHash(transaction, placeholderOffset, remainLength, workspace,
-				workspaceOffset, hashType, null, (short) 0, (short) 0);
+				workspaceOffset, hashType);
 
 		ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset,
 				workLength, path, pathOffset, pathLength, signType, destBuf,
@@ -1283,15 +1139,23 @@ public class ScriptInterpreter {
 			return null;
 		case 0xA:
 			maxCache = argumentLength;
+			argType = ARG_TYPE_CONCATENATED;
+			return argument;
+		case 0xB:
+			maxCache = argumentLength;
+			argType = ARG_TYPE_RLP;
 			return argument;
 		case 0xE:
 			maxCache = c1i;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache1;
 		case 0xF:
 			maxCache = c2i;
+			argType = ARG_TYPE_CONCATENATED;
 			return cache2;
 		case 0x7:
 			maxCache = ti;
+			argType = ARG_TYPE_CONCATENATED;
 			return transaction;
 		default:
 			ISOException.throwIt((short) 0x6A03);
@@ -1381,8 +1245,7 @@ public class ScriptInterpreter {
 	}
 
 	private static void getUpdateHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte hashType, byte[] keyBuf, short keyOffset,
-			short keyLength) {
+			short dataLength, byte hashType) {
 		switch (hashType) {
 		case 2:
 		case 0xD: // double sha-256, should hash again later
@@ -1395,21 +1258,51 @@ public class ScriptInterpreter {
 			ShaUtil.m_blake3_256.update(dataBuf, dataOffset, dataLength);
 			break;
 		case 0x13:
-			ShaUtil.m_blake2b_256.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+		case 0x15:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32).update(dataBuf,
+					dataOffset, dataLength);
 			break;
 		case 0x14:
-			ShaUtil.m_blake2b_512.update(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength);
+		case 0x16:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64).update(dataBuf,
+					dataOffset, dataLength);
 			break;
 		default:
-			ISOException.throwIt((short) 0x6A0A);
+			ISOException.throwIt((short) 0x6A10);
+		}
+	}
+
+	private static void getUpdateAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte hashType, byte[] context,
+			short contextOffset, short contextLength) {
+		switch (hashType) {
+		case 0x13:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setKey(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x14:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setKey(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x15:
+			ShaUtil.m_blake2b.setDigestLength((byte) 32)
+					.setPersonal(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		case 0x16:
+			ShaUtil.m_blake2b.setDigestLength((byte) 64)
+					.setPersonal(context, contextOffset, contextLength)
+					.update(dataBuf, dataOffset, dataLength);
+			break;
+		default:
+			ISOException.throwIt((short) 0x6A11);
 		}
 	}
 
 	private static void getHash(byte[] dataBuf, short dataOffset,
-			short dataLength, byte[] destBuf, short destOffset, byte hashType,
-			byte[] keyBuf, short keyOffset, short keyLength) {
+			short dataLength, byte[] destBuf, short destOffset, byte hashType) {
 		short length = 0;
 		switch (hashType) {
 		case 0:
@@ -1470,11 +1363,15 @@ public class ScriptInterpreter {
 			length = ShaUtil.S_DoubleSHA256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xE:
+		case 0x0E:
+		case 0x13:
+		case 0x15:
 			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
-		case 0xF:
+		case 0x0F:
+		case 0x14:
+		case 0x16:
 			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
@@ -1490,13 +1387,34 @@ public class ScriptInterpreter {
 			length = ShaUtil.bech32m_checksum(dataBuf, dataOffset, dataLength,
 					destBuf, destOffset);
 			break;
+		default:
+			ISOException.throwIt((short) 0x6A12);
+		}
+		addDestOffset(destBuf, length);
+	}
+
+	private static void getAdvancedHash(byte[] dataBuf, short dataOffset,
+			short dataLength, byte[] destBuf, short destOffset, byte hashType,
+			byte[] context, short contextOffset, short contextLength) {
+		short length = 0;
+		switch (hashType) {
 		case 0x13:
-			length = ShaUtil.Blake2b256(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b256WithKey(dataBuf, dataOffset, dataLength,
+					context, contextOffset, contextLength, destBuf, destOffset);
 			break;
 		case 0x14:
-			length = ShaUtil.Blake2b512(dataBuf, dataOffset, dataLength,
-					keyBuf, keyOffset, (byte) keyLength, destBuf, destOffset);
+			length = ShaUtil.Blake2b512WithKey(dataBuf, dataOffset, dataLength,
+					context, contextOffset, contextLength, destBuf, destOffset);
+			break;
+		case 0x15:
+			length = ShaUtil.Blake2b256WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
+			break;
+		case 0x16:
+			length = ShaUtil.Blake2b512WithPersonal(dataBuf, dataOffset,
+					dataLength, context, contextOffset, contextLength, destBuf,
+					destOffset);
 			break;
 		default:
 			ISOException.throwIt((short) 0x6A0A);
