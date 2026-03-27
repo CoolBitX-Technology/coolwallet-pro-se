@@ -27,8 +27,8 @@ import javacard.security.Key;
 public abstract class Cipher {
 
         // 模式常數
-        public static final byte MODE_ENCRYPT = 1;
-        public static final byte MODE_DECRYPT = 2;
+        public static final byte MODE_DECRYPT = 1;
+        public static final byte MODE_ENCRYPT = 2;
 
         // 演算法常數
         public static final byte ALG_DES_CBC_NOPAD = 1;
