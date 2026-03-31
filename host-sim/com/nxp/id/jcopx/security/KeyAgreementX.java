@@ -193,13 +193,14 @@ public class KeyAgreementX extends KeyAgreement {
             int outputLen = 0;
 
             if (algorithm == ALG_EC_SVDP_DH_PLAIN_XY) {
-                // 輸出 X || Y
-                if (secret.length - secretOffset < xBytes.length + yBytes.length) {
+                // 輸出 0x04 || X || Y
+                if (secret.length - secretOffset < 1 + xBytes.length + yBytes.length) {
                     CryptoException.throwIt(CryptoException.ILLEGAL_VALUE);
                 }
-                System.arraycopy(xBytes, 0, secret, secretOffset, xBytes.length);
-                System.arraycopy(yBytes, 0, secret, secretOffset + xBytes.length, yBytes.length);
-                outputLen = xBytes.length + yBytes.length;
+                secret[secretOffset] = 0x04; // Uncompressed point format indicator
+                System.arraycopy(xBytes, 0, secret, secretOffset + 1, xBytes.length);
+                System.arraycopy(yBytes, 0, secret, secretOffset + 1 + xBytes.length, yBytes.length);
+                outputLen = 1 + xBytes.length + yBytes.length;
             } else {
                 // 輸出 X
                 if (secret.length - secretOffset < xBytes.length) {
