@@ -198,7 +198,7 @@ scripts/run-web-server.sh
 This service allows you to send APDUs via HTTP POST to `http://localhost:9527/apdu`.
 Example:
 ```bash
-curl -X POST http://localhost:9527/apdu -d '00A4040008A000000003000000'
+curl -X POST http://localhost:9527/apdu -d '00A404000D436F6F6C57616C6C657450524F'
 ```
 
 #### Step 4: Generate CAP files
