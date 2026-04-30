@@ -35,8 +35,6 @@ public class KeyAgreementX extends KeyAgreement {
     public static KeyAgreementX getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
 
-        System.out.println("DEBUG: KeyAgreementX.getInstance algo: " + algorithm);
-
         if (algorithm == ALG_EC_SVDP_DH_PLAIN_XY || algorithm == ALG_EC_SVDP_DH_PLAIN) {
             return new KeyAgreementX(algorithm);
         }
@@ -55,8 +53,6 @@ public class KeyAgreementX extends KeyAgreement {
 
     @Override
     public void init(PrivateKey key) throws CryptoException {
-        System.out.println("DEBUG: KeyAgreementX.init() START");
-
         try {
             if (key == null) {
                 System.out.println("DEBUG: KeyAgreementX.init ERROR: Key is null!");
@@ -92,13 +88,13 @@ public class KeyAgreementX extends KeyAgreement {
             }
 
             if (spec == null) {
-                System.out.println("DEBUG: KeyAgreementX.init ERROR: BouncyCastle could not load curve parameters!");
+                System.out.println(
+                        "DEBUG: KeyAgreementX.init ERROR: BouncyCastle could not load curve parameters!");
                 System.out.println("       Make sure bcprov-jdk15on-*.jar is in the classpath.");
                 CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);
             }
 
             this.bcParams = new ECDomainParameters(spec.getCurve(), spec.getG(), spec.getN(), spec.getH());
-            // System.out.println("DEBUG: Curve parameters loaded: " + curveName);
 
             // 5. 提取私鑰數值 (S)
             // 使用較大的 buffer 避免溢位
@@ -107,7 +103,8 @@ public class KeyAgreementX extends KeyAgreement {
             try {
                 len = privateKey.getS(buffer, (short) 0);
             } catch (Exception e) {
-                System.out.println("DEBUG: KeyAgreementX.init ERROR: Failed to get S from private key.");
+                System.out.println(
+                        "DEBUG: KeyAgreementX.init ERROR: Failed to get S from private key.");
                 e.printStackTrace(); // 印出為什麼 getS 失敗
                 CryptoException.throwIt(CryptoException.UNINITIALIZED_KEY);
             }
@@ -123,9 +120,6 @@ public class KeyAgreementX extends KeyAgreement {
 
             // 轉換為 BigInteger (1 代表正數)
             this.d = new BigInteger(1, sBytes);
-
-            System.out.println("DEBUG: KeyAgreementX.init() SUCCESS. Key loaded.");
-
         } catch (CryptoException ce) {
             throw ce; // 重新拋出已知的 JavaCard 錯誤
         } catch (Throwable t) {
@@ -199,7 +193,8 @@ public class KeyAgreementX extends KeyAgreement {
                 }
                 secret[secretOffset] = 0x04; // Uncompressed point format indicator
                 System.arraycopy(xBytes, 0, secret, secretOffset + 1, xBytes.length);
-                System.arraycopy(yBytes, 0, secret, secretOffset + 1 + xBytes.length, yBytes.length);
+                System.arraycopy(yBytes, 0, secret, secretOffset + 1 + xBytes.length,
+                        yBytes.length);
                 outputLen = 1 + xBytes.length + yBytes.length;
             } else {
                 // 輸出 X
