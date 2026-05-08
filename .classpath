@@ -7,24 +7,7 @@
 	<!-- Host-side simulation / tools is now a separate Eclipse project in host-sim/.project -->
 
 	<!-- JRE (Java 8) -->
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
-		<accessrules>
-			<accessrule kind="accessible" pattern="com/sun/net/httpserver/**"/>
-		</accessrules>
-	</classpathentry>
-
-	<!-- Local JavaCard / JCOP libraries (from local_lib, not committed to git) -->
-	<!-- These are for VS Code auto-complete. Made "optional" so Windows Eclipse doesn't complain if they are missing (since Eclipse uses the JCOP container above). -->
-	<classpathentry kind="lib" path="local_lib/javacard-libs/api_classic.jar">
-		<attributes>
-			<attribute name="optional" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="local_lib/javacard-libs/JCOPx_API-R1.1.4.jar">
-		<attributes>
-			<attribute name="optional" value="true"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 
 	<!-- Output folder -->
 	<classpathentry kind="output" path="bin"/>
