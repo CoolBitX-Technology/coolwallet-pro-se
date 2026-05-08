@@ -14,14 +14,17 @@
 	</classpathentry>
 
 	<!-- Local JavaCard / JCOP libraries (from local_lib, not committed to git) -->
-	<classpathentry kind="lib" path="local_lib/javacard-libs/api_classic.jar"/>
-	<classpathentry kind="lib" path="local_lib/javacard-libs/JCOPx_API-R1.1.4.jar"/>
-
-	<!-- Host-side simulator / crypto libraries -->
-	<!-- jcardsim: public jar, committed under lib/ -->
-	<classpathentry kind="lib" path="lib/jcardsim-3.0.5-20230313.131323-6.jar"/>
-	<!-- bcprov: fetched via Gradle into local_lib (ignored by git) -->
-	<classpathentry kind="lib" path="local_lib/javacard-libs/bcprov-jdk15on-1.70.jar"/>
+	<!-- These are for VS Code auto-complete. Made "optional" so Windows Eclipse doesn't complain if they are missing (since Eclipse uses the JCOP container above). -->
+	<classpathentry kind="lib" path="local_lib/javacard-libs/api_classic.jar">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="local_lib/javacard-libs/JCOPx_API-R1.1.4.jar">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
 
 	<!-- Output folder -->
 	<classpathentry kind="output" path="bin"/>
