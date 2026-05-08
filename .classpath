@@ -4,8 +4,8 @@
 	<classpathentry kind="src" path="src"/>
 	<!-- JCOP SDK container for Windows Eclipse CAP generation -->
 	<classpathentry kind="con" path="com.nxp.id.jcop.eclipse.containers.cardconfig/com.nxp.id.jcop.eclipse.cardconfigs.custom;com.nxp.id.jcop.eclipse.cardapis.jc305;com.nxp.id.jcop.eclipse.cardapis.gp230;com.nxp.id.jcop.eclipse.cardapis.R1.1.4"/>
-	<!-- Host-side simulation / tools -->
-	<classpathentry kind="src" path="host-sim"/>
+	<!-- Host-side simulation / tools (output to a different folder so JCOP doesn't try to build it into CAP) -->
+	<classpathentry kind="src" path="host-sim" output="bin-sim"/>
 
 	<!-- JRE (Java 8) -->
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
