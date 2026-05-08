@@ -5,16 +5,28 @@
 	<projects>
 	</projects>
 	<buildSpec>
-		<!-- Keep only the standard Java builder -->
+		<!-- Standard Java builder -->
 		<buildCommand>
 			<name>org.eclipse.jdt.core.javabuilder</name>
 			<arguments>
 			</arguments>
 		</buildCommand>
+		<!-- JCOP Builders for Windows CAP generation -->
+		<buildCommand>
+			<name>com.nxp.id.jcop.eclipse.jcopbuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>com.nxp.id.jcop.eclipse.jcopbuildverifier</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 	</buildSpec>
 	<natures>
-		<!-- Pure Java project nature -->
+		<!-- Java and JCOP natures -->
 		<nature>org.eclipse.jdt.core.javanature</nature>
+		<nature>com.nxp.id.jcop.eclipse.jcopnature</nature>
 	</natures>
 	<filteredResources>
 		<filter>
