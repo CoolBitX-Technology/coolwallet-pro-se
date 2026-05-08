@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<!-- Source files -->
-	<classpathentry kind="src" path="src"/>
+	<!-- Source files (exclude sim directory so JCOP doesn't try to build it into CAP) -->
+	<classpathentry kind="src" path="src" excluding="coolbitx/sim/"/>
 	<!-- JCOP SDK container for Windows Eclipse CAP generation -->
 	<classpathentry kind="con" path="com.nxp.id.jcop.eclipse.containers.cardconfig/com.nxp.id.jcop.eclipse.cardconfigs.custom;com.nxp.id.jcop.eclipse.cardapis.jc305;com.nxp.id.jcop.eclipse.cardapis.gp230;com.nxp.id.jcop.eclipse.cardapis.R1.1.4"/>
 	<!-- Host-side simulation / tools (output to a different folder so JCOP doesn't try to build it into CAP) -->
