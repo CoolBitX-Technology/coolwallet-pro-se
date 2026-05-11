@@ -78,9 +78,9 @@ public class Bip32 {
 	}
 
 	/**
-	 * @param buf (contains private key(32 bytes) || chain code(32 bytes)
+	 * @param buf         (contains private key(32 bytes) || chain code(32 bytes)
 	 * @param offset
-	 * @param index (should be 4 bytes long)
+	 * @param index       (should be 4 bytes long)
 	 * @param indexOffset
 	 * @param isEd25519
 	 * @param destBuf
@@ -120,13 +120,14 @@ public class Bip32 {
 		WorkCenter.release(WorkCenter.WORK1, LENGTH_EXTENDKEY);
 		WorkCenter.release(WorkCenter.WORK, (short) 37);
 	}
+
 	/**
-	 * @param publicKey (should be 65 bytes long)
+	 * @param publicKey       (should be 65 bytes long)
 	 * @param publicKeyOffset
 	 * @param publicKeyLength
-	 * @param chainCode (should be 32 bytes long)
+	 * @param chainCode       (should be 32 bytes long)
 	 * @param chainCodeOffset
-	 * @param index (should be 4 bytes long)
+	 * @param index           (should be 4 bytes long)
 	 * @param indexOffset
 	 * @param destBuf
 	 * @param destOffset
@@ -175,20 +176,20 @@ public class Bip32 {
 		seedObject.getExponent(seed, seedOffset);
 		byte keyType = path[pathOffset];
 		switch (keyType) {
-		case KeyManager.BIP32:
-		case KeyManager.BIP32EDDSA:
-		case KeyManager.BIP340:
-			HmacSha.HMAC(masterSecretKey, Common.OFFSET_ZERO,
-					(short) masterSecretKey.length, seed, seedOffset,
-					(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
-			break;
-		case KeyManager.SLIP0010:
-			HmacSha.HMAC(masterSecretKeyEd25519, Common.OFFSET_ZERO,
-					(short) masterSecretKeyEd25519.length, seed, seedOffset,
-					(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
-			break;
-		default:
-			ISOException.throwIt(ErrorMessage._6D65);
+			case KeyManager.BIP32:
+			case KeyManager.BIP32EDDSA:
+			case KeyManager.BIP340:
+				HmacSha.HMAC(masterSecretKey, Common.OFFSET_ZERO,
+						(short) masterSecretKey.length, seed, seedOffset,
+						(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
+				break;
+			case KeyManager.SLIP0010:
+				HmacSha.HMAC(masterSecretKeyEd25519, Common.OFFSET_ZERO,
+						(short) masterSecretKeyEd25519.length, seed, seedOffset,
+						(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
+				break;
+			default:
+				ISOException.throwIt(ErrorMessage._6D65);
 		}
 		for (byte derivedPathLength = 1; derivedPathLength < pathLength; derivedPathLength += 4) {
 			deriveChildKeyFromPrivate(destBuf, destOffset, path,
@@ -215,30 +216,30 @@ public class Bip32 {
 					transOffset);
 		}
 		switch (keyType) {
-		case KeyManager.BIP340:
-		case KeyManager.BIP32: // ECDSA secp256k1
-			KeyUtil.privToPubKey(trans, transOffset, destBuf, destOffset);
-			ret = 33;
-			if (needChainCode) {
-				Util.arrayCopyNonAtomic(trans, (short) (transOffset + 32),
-						destBuf, (short) (destOffset + 33), (short) 32);
-				ret += 32;
-			}
-			break;
-		case KeyManager.SLIP0010: // EdDSA Ed25519
-		case KeyManager.BIP32EDDSA:
-			Ed25519.getPublic(destBuf, destOffset, trans, transOffset);
-			ret = 32;
-			break;
-		case KeyManager.CURVE25519:
-			seedObject.getExponent(trans, transOffset);
-			Ed25519.getCurve25519PublicKey(trans, transOffset, destBuf,
-					destOffset);
-			ret = 32;
-			break;
-		default:
-			ISOException.throwIt(ErrorMessage._6D60);
-			break;
+			case KeyManager.BIP340:
+			case KeyManager.BIP32: // ECDSA secp256k1
+				KeyUtil.privToPubKey(trans, transOffset, destBuf, destOffset);
+				ret = 33;
+				if (needChainCode) {
+					Util.arrayCopyNonAtomic(trans, (short) (transOffset + 32),
+							destBuf, (short) (destOffset + 33), (short) 32);
+					ret += 32;
+				}
+				break;
+			case KeyManager.SLIP0010: // EdDSA Ed25519
+			case KeyManager.BIP32EDDSA:
+				Ed25519.getPublic(destBuf, destOffset, trans, transOffset);
+				ret = 32;
+				break;
+			case KeyManager.CURVE25519:
+				seedObject.getExponent(trans, transOffset);
+				Ed25519.getCurve25519PublicKey(trans, transOffset, destBuf,
+						destOffset);
+				ret = 32;
+				break;
+			default:
+				ISOException.throwIt(ErrorMessage._6D60);
+				break;
 		}
 
 		WorkCenter.release(WorkCenter.WORK1, transLength);
@@ -257,37 +258,37 @@ public class Bip32 {
 		}
 		short ret;
 		switch (signType) {
-		case KeyManager.SIGN_SECP256K1: // ECDSA secp256k1
-			ret = SignUtil
-					.sign(buf, offset, length,
-							KeyUtil.getPrivKey(trans, transOffset), destBuf,
-							destOffset);
-			break;
-		case KeyManager.SIGN_ED25519: // EdDSA Ed25519
-			Ed25519.sign(destBuf, destOffset, buf, offset, length, trans,
-					transOffset);
-			ret = 64;
-			break;
-		case KeyManager.SIGN_CURVE25519: // Curve25519
-			// Generate random bytes to signing curve25519
-			byte[] rnd = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
-			short rndOffset = WorkCenter
-					.getWorkspaceOffset(Common.LENGTH_SHA512);
-			NonceUtil.randomNonce(rnd, rndOffset, Common.LENGTH_SHA512);
-			seedObject.getExponent(trans, transOffset);
-			Ed25519.signCurve25519Random(destBuf, destOffset, buf, offset,
-					length, rnd, rndOffset, trans, transOffset);
-			WorkCenter.release(WorkCenter.WORK1, Common.LENGTH_SHA512);
-			ret = 64;
-			break;
-		case KeyManager.SIGN_SCHNORR:
-			ret = Schnorr.sign(buf, offset, length, trans, transOffset,
-					destBuf, destOffset);
-			break;
-		default:
-			ISOException.throwIt(ErrorMessage._6D61);
-			ret = 0;
-			break;
+			case KeyManager.SIGN_SECP256K1: // ECDSA secp256k1
+				ret = SignUtil
+						.sign(buf, offset, length,
+								KeyUtil.getPrivKey(trans, transOffset), destBuf,
+								destOffset);
+				break;
+			case KeyManager.SIGN_ED25519: // EdDSA Ed25519
+				Ed25519.sign(destBuf, destOffset, buf, offset, length, trans,
+						transOffset);
+				ret = 64;
+				break;
+			case KeyManager.SIGN_CURVE25519: // Curve25519
+				// Generate random bytes to signing curve25519
+				byte[] rnd = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
+				short rndOffset = WorkCenter
+						.getWorkspaceOffset(Common.LENGTH_SHA512);
+				NonceUtil.randomNonce(rnd, rndOffset, Common.LENGTH_SHA512);
+				seedObject.getExponent(trans, transOffset);
+				Ed25519.signCurve25519Random(destBuf, destOffset, buf, offset,
+						length, rnd, rndOffset, trans, transOffset);
+				WorkCenter.release(WorkCenter.WORK1, Common.LENGTH_SHA512);
+				ret = 64;
+				break;
+			case KeyManager.SIGN_SCHNORR:
+				ret = Schnorr.sign(buf, offset, length, trans, transOffset,
+						destBuf, destOffset);
+				break;
+			default:
+				ISOException.throwIt(ErrorMessage._6D61);
+				ret = 0;
+				break;
 		}
 
 		WorkCenter.release(WorkCenter.WORK1, LENGTH_EXTENDKEY);

@@ -31,9 +31,44 @@ The CoolWallet Pro Firmware prioritizes security and privacy to protect users' d
 - Curve25519
 - Bip32-Ed25519 (Cardano Signature)
 
+## Project Installation (Common)
+
+To install the project, please follow the steps below:
+### Step 1: Cloning the Repository
+Clone the repository by running the following command in your terminal or command prompt:
+
+```bash
+git clone git@github.com:CoolBitX-Technology/coolwallet-pro-se.git
+```
+
+### Step 2: Initialize and Update Submodule
+Initialize and update the submodule by running the following commands:
+```shell
+$ git submodule init
+$ git submodule update
+```
+
+### Step 3: Run the Installation Script
+Run the installation script by executing the following command:
+```shell
+$ cd coolwallet-pro-se-crypto
+$ javac Installation.java
+$ java Installation
+```
+
+>**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
+
 ## Environment Setup
 
-To successfully build and set up the development environment for this project on **Windows**, please follow the instructions below:
+This project supports two development workflows:
+1.  **Windows (Eclipse)**: Official NXP JCOP Tools workflow for CAP file generation.
+2.  **Cross-Platform (CLI / VS Code)**: Script-based workflow for macOS, Linux, and Windows (WSL), supporting local simulation.
+
+---
+
+## 1. Windows Environment Setup (Eclipse)
+
+To successfully build and set up the development environment for this project on **Windows** using Eclipse, please follow the instructions below:
 
 ### Prerequisites
 - [JDK 8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) (64-bit)
@@ -74,41 +109,121 @@ To ensure a smooth compilation process, it is recommended to have the following 
    - Create a Java Card project.
    - Select the licensed JCOP: JCOP_Tools_activation_workspace.
 
-## Installation
-To install the project, please follow the steps below:
-### Step 1: Cloning the Repository
-Clone the repository by running the following command in your terminal or command prompt:
+---
+
+## 2. Cross-Platform Environment Setup (CLI / VS Code)
+
+This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WSL)** who prefer using command-line tools or VS Code/Cursor. It supports compiling, simulating (without a physical card), and generating CAP files.
+
+### Prerequisites
+- JDK 8 (Must be accessible via `JAVA8_HOME`)
+- Gradle (for downloading simulator dependencies)
+
+### Configuration
+
+#### 1. Configure Java 8 Path (Required)
+
+Before building, please create a `javacard.config` file in the project root to specify your Java 8 path.
+
+Run the following command to create `javacard.config` (adjust the path if necessary):
 
 ```bash
-git clone git@github.com:CoolBitX-Technology/coolwallet-pro-se.git
+cat > javacard.config <<EOF
+# Path to your Java 8 installation
+JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+EOF
 ```
 
-### Step 2: Initialize and Update Submodule
-Initialize and update the submodule by running the following commands:
-```shell
-$ git submodule init
-$ git submodule update
+#### 2. VS Code Configuration (Optional)
+
+If you are using VS Code, you also need to configure the Java runtime path in `.vscode/settings.json`:
+
+```json
+{
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-1.8",
+            "path": "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home", // Set your Java 8 path here
+            "default": true
+        }
+    ]
+}
 ```
 
-### Step 3: Run the Installation Script
-Run the installation script by executing the following command:
-```shell
-$ cd coolwallet-pro-se-crypto
-$ javac Installation.java
-$ java Installation
+### Workflow
+
+#### Step 1: Initial Setup (One-time)
+
+Before running the setup script, you must obtain the **NXP JCOP Plugin** (version 5.32.0.4) and place it in the `local_lib` directory.
+
+1.  Obtain `NXP_JCOP_Plugin_5.32.0.4.zip`.
+2.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
+
+Run the setup script to extract dependencies:
+
+```bash
+chmod +x scripts/setup-libs.sh
+scripts/setup-libs.sh
 ```
 
->**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
+Then, use Gradle to download and copy the host-side simulator dependencies (BouncyCastle, jCardSim):
 
-## Building the Project
-After executing the `Installation` script, proceed with the following steps in Eclipse:
-1. Click on **Project > Clean**.
-2. Check the box for **Clean projects selected below**.
-3. Select **CoolWalletS_3rd** project.
-4. Check the box for **Start a build immediately**.
-5. Check the box for **Build only the selected projects**.
+```bash
+gradle copyHostLibs
+```
 
-Upon successful build completion, the `coolbitx.cap` file will be generated in the following location: `\coolwallet-pro-se\bin\coolbitx\javacard`.
+#### Step 2: Build the Project
+
+To compile the JavaCard applet:
+
+```bash
+chmod +x scripts/build.sh
+scripts/build.sh
+```
+
+`scripts/build.sh` will:
+- Compile all `.java` files under `src/` using Java 8
+- Use the JavaCard / JCOP jars in `local_lib/javacard-libs` as the classpath
+- Output `.class` files into the `bin/` directory
+
+#### Step 3: Run the Simulator (Web Service)
+
+To start the APDU simulation web service on port 9527 (requires `javacard.config` to be set):
+
+```bash
+chmod +x scripts/run-web-server.sh
+scripts/run-web-server.sh
+```
+
+This service allows you to send APDUs via HTTP POST to `http://localhost:9527/apdu`.
+Example:
+```bash
+curl -X POST http://localhost:9527/apdu -d '00A404000D436F6F6C57616C6C657450524F'
+```
+
+#### Step 4: Generate CAP files
+
+After compilation, you can generate CAP files with the following commands:
+
+```bash
+chmod +x scripts/build-cap.sh
+scripts/build-cap.sh
+```
+
+This script will:
+- Read `.class` files from the `bin/` directory
+- Use the JavaCard converter in `local_lib/javacard-libs/tools.jar`
+- Use export files in `local_lib/javacard-libs/api_export_files`
+- Produce two CAP packages:
+  - Main applet: `coolbitx` (main applet, AID `CoolWalletPRO`)
+  - SIO applet: `coolbitx.sio` (StoreApplet, AID `BackupApplet`)
+
+CAP output locations:
+- Main package: `bin/coolbitx/javacard/`
+- SIO package: `bin/coolbitx/sio/javacard/`
+
+---
+
 
 ## License
 This project is licensed under the [CoolBitX Limited Use License](LICENSE).
