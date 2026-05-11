@@ -38,10 +38,10 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 
 public class SymmetricCipherImpl extends Cipher {
 
-    byte algorithm;
-    BufferedBlockCipher engine;
-    boolean isInitialized;
-    byte[] iv;
+    private byte algorithm;
+    private BufferedBlockCipher engine;
+    private boolean isInitialized;
+    private byte[] iv;
 
     public SymmetricCipherImpl(byte algorithm) {
         this.algorithm = algorithm;
