@@ -6,7 +6,9 @@
 	<classpathentry kind="con" path="com.nxp.id.jcop.eclipse.containers.cardconfig/com.nxp.id.jcop.eclipse.cardconfigs.custom;com.nxp.id.jcop.eclipse.cardapis.jc305;com.nxp.id.jcop.eclipse.cardapis.gp230;com.nxp.id.jcop.eclipse.cardapis.R1.1.4"/>
 	<!-- Host-side simulation / tools is now a separate Eclipse project in host-sim/.project -->
 
-	<!-- JavaCard / JCOP libraries for VS Code (optional so Windows Eclipse ignores them and uses the JCOP container above) -->
+	<!-- JavaCard / JCOP libraries for VS Code -->
+	<!-- optional=true: silently skipped on Windows where local_lib/ does not exist; -->
+	<!-- Eclipse projects ignore java.project.referencedLibraries in settings.json so these entries are the only way VSCode resolves JavaCard APIs -->
 	<classpathentry kind="lib" path="local_lib/javacard-libs/api_classic.jar">
 		<attributes>
 			<attribute name="optional" value="true"/>
