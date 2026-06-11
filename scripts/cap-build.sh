@@ -10,8 +10,25 @@ API_JAR="$JC_LIB_DIR/api_classic.jar"
 EXPORT_DIR="$JC_LIB_DIR/api_export_files"
 CLASSDIR="$PROJECT_ROOT/bin"
 
-# Use a fixed Java 8 runtime (adjust this path on other machines)
-JAVA8_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
+# Load Java 8 home from javacard.config or environment
+CONFIG_FILE="$PROJECT_ROOT/javacard.config"
+
+if [ -z "${JAVA8_HOME:-}" ]; then
+  if [ -f "$CONFIG_FILE" ]; then
+    JAVA8_HOME_CFG=$(grep "^JAVA8_HOME=" "$CONFIG_FILE" | head -1 | cut -d'=' -f2-)
+    if [ -n "$JAVA8_HOME_CFG" ]; then
+      JAVA8_HOME="$JAVA8_HOME_CFG"
+    fi
+  fi
+fi
+
+if [ -z "${JAVA8_HOME:-}" ]; then
+  echo "ERROR: JAVA8_HOME is not set."
+  echo "Please set it in '$CONFIG_FILE' (e.g., JAVA8_HOME=/path/to/jdk8)"
+  echo "or export JAVA8_HOME in your environment."
+  exit 1
+fi
+
 JAVA8="$JAVA8_HOME/bin/java"
 
 # Output locations (follow original layout as much as possible)
@@ -39,45 +56,54 @@ if [ ! -d "$EXPORT_DIR" ]; then
   exit 1
 fi
 
-if [ ! -d "$CLASSDIR" ] || [ ! -f "$CLASSDIR/coolbitx/Main.class" ]; then
-  echo "ERROR: Compiled classes not found in $CLASSDIR."
-  echo "Please run: scripts/build.sh first."
-  exit 1
-fi
+echo "=== Step 1: Compile sources ==="
+"$PROJECT_ROOT/scripts/build.sh"
+echo
 
 mkdir -p "$OUT_MAIN" "$OUT_SIO"
 
-CP="$TOOLS_JAR:$API_JAR"
+# Full classpath matching converter.sh from the JCOP SDK (tools.jar alone is not enough)
+CP="$JC_LIB_DIR/tools.jar"
+CP="$CP:$JC_LIB_DIR/api_classic.jar"
+CP="$CP:$JC_LIB_DIR/api_classic_annotations.jar"
+CP="$CP:$JC_LIB_DIR/jctasks.jar"
+CP="$CP:$JC_LIB_DIR/bcel-5.2.jar"
+CP="$CP:$JC_LIB_DIR/asm-all-3.1.jar"
+CP="$CP:$JC_LIB_DIR/ant-contrib-1.0b3.jar"
+CP="$CP:$JC_LIB_DIR/commons-cli-1.0.jar"
+CP="$CP:$JC_LIB_DIR/commons-codec-1.3.jar"
+CP="$CP:$JC_LIB_DIR/commons-httpclient-3.0.jar"
+CP="$CP:$JC_LIB_DIR/commons-logging-1.1.jar"
+
+CONVERTER_COMMON=(
+  -Djc.home="$JC_LIB_DIR"
+  -cp "$CP"
+  com.sun.javacard.converter.Main
+  -i
+  -verbose
+  -classdir "$CLASSDIR"
+  -exportpath "$EXPORT_DIR"
+)
 
 echo
 echo "[1/2] Building main package (coolbitx)..."
 
-# From .jcop and existing scripts, the AIDs are:
-#   Package  AID (coolbitx)       : 'CoolWallet'      -> 43 6f 6f 6c 57 61 6c 6c 65 74
-#   Applet   AID (Main applet)    : 'CoolWalletPRO'   -> 43 6f 6f 6c 57 61 6c 6c 65 74 50 52 4f
+# Package  AID: 'CoolWallet'    -> 43 6f 6f 6c 57 61 6c 6c 65 74
+# Applet   AID: 'CoolWalletPRO' -> 43 6f 6f 6c 57 61 6c 6c 65 74 50 52 4f
 
-"$JAVA8" -cp "$CP" com.sun.javacard.converter.Main \
-  -i \
-  -verbose \
-  -classdir "$CLASSDIR" \
+"$JAVA8" "${CONVERTER_COMMON[@]}" \
   -d "$OUT_MAIN" \
-  -exportpath "$EXPORT_DIR" \
   -applet 0x43:0x6f:0x6f:0x6c:0x57:0x61:0x6c:0x6c:0x65:0x74:0x50:0x52:0x4f coolbitx.Main \
   coolbitx 0x43:0x6f:0x6f:0x6c:0x57:0x61:0x6c:0x6c:0x65:0x74 1.0
 
 echo
 echo "[2/2] Building SIO package (coolbitx.sio)..."
 
-# From .jcop and scripts:
-#   Package  AID (coolbitx.sio)   : 'Backup'          -> 42 61 63 6b 75 70
-#   Applet   AID (StoreApplet)    : 'BackupApplet'    -> 42 61 63 6b 75 70 41 70 70 6c 65 74
+# Package  AID: 'Backup'        -> 42 61 63 6b 75 70
+# Applet   AID: 'BackupApplet'  -> 42 61 63 6b 75 70 41 70 70 6c 65 74
 
-"$JAVA8" -cp "$CP" com.sun.javacard.converter.Main \
-  -i \
-  -verbose \
-  -classdir "$CLASSDIR" \
+"$JAVA8" "${CONVERTER_COMMON[@]}" \
   -d "$OUT_SIO" \
-  -exportpath "$EXPORT_DIR" \
   -applet 0x42:0x61:0x63:0x6b:0x75:0x70:0x41:0x70:0x70:0x6c:0x65:0x74 coolbitx.sio.StoreApplet \
   coolbitx.sio 0x42:0x61:0x63:0x6b:0x75:0x70 1.0
 

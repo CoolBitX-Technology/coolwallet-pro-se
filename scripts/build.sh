@@ -65,11 +65,11 @@ rm -rf "$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
 echo "[2/2] Compile sources with Java 8 (JavaCard-compatible bytecode)..."
-# JavaCard converter 3.0.5 只支援非常舊的 class 版本，
-# 這裡強制 javac 使用 Java 1.3 的語法與 bytecode，避免再出現
-# 「unsupported class file format of version XX」的問題。
-"$JAVAC" -cp "$CLASSPATH" -source 1.6 -target 1.6 -Xlint:-options \
-  -d "$BIN_DIR" $(find "$SRC_DIR" -name "*.java")
+# Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
+# This produces cleaner type information that the JavaCard converter can process without errors.
+# Exclude coolbitx/sim/ — simulation-only code, mirrors .classpath excluding="coolbitx/sim/"
+"$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -Xlint:-options \
+  -d "$BIN_DIR" $(find "$SRC_DIR" -name "*.java" -not -path "*/coolbitx/sim/*")
 
 echo
 echo "Build finished. Classes output to:"

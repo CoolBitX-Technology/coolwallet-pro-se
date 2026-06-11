@@ -109,6 +109,20 @@ To ensure a smooth compilation process, it is recommended to have the following 
    - Create a Java Card project.
    - Select the licensed JCOP: JCOP_Tools_activation_workspace.
 
+### Library Setup (Required)
+
+Before opening the project in Eclipse, you must place the following library files into `local_lib/javacard-libs/`:
+
+| File | Source |
+|------|--------|
+| `api_classic.jar` | Extracted from `NXP_JCOP_Plugin_5.32.0.4.zip` |
+| `JCOPx_API-R1.1.4.jar` | Extracted from `NXP_JCOP_Plugin_5.32.0.4.zip` |
+| `bcprov-jdk15on-1.70.jar` | [Maven Central](https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar) |
+
+These files are referenced by the project's `.classpath` and are required for Eclipse to compile the source successfully.
+
+If you are on macOS/Linux, you can run `scripts/setup-libs.sh` to extract these automatically. On Windows, you can obtain the first two jars by extracting `NXP_JCOP_Plugin_5.32.0.4.zip` and locating them inside the plugin bundle, or request a pre-packaged zip from a teammate who has already run the setup script.
+
 ---
 
 ## 2. Cross-Platform Environment Setup (CLI / VS Code)

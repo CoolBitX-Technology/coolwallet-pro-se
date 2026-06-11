@@ -57,17 +57,23 @@ if [ -d "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" ]; then
   cp -R "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" "$OUT_DIR"/api_export_files
 fi
 
+echo "[4/4] Download BouncyCastle (bcprov-jdk15on-1.70.jar)..."
+BC_JAR="$OUT_DIR/bcprov-jdk15on-1.70.jar"
+BC_URL="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar"
+if [ -f "$BC_JAR" ]; then
+  echo "  Already exists, skipping."
+else
+  curl -fsSL "$BC_URL" -o "$BC_JAR"
+  echo "  Downloaded to $BC_JAR"
+fi
+
 echo
-echo "Done. Extracted libraries into:"
-echo "  $OUT_DIR"
+echo "Done."
 echo
 echo "You can now:"
-echo "  1) Ensure .vscode/settings.json is using local_lib/javacard-libs/**/*.jar and lib/**/*.jar"
-echo "  2) (Optional) Run: ./gradlew copyHostLibs   # to download bcprov into local_lib/javacard-libs"
-echo "  3) Manually download jcardsim-3.0.5.jar from GitHub and place it under:"
-echo "       $PROJECT_ROOT/lib/"
-echo "     （這個 jar 是公開的，可以一起 commit 到 Git repo）"
-echo "  4) Run: scripts/build.sh   # to compile"
+echo "  1) Open the project in VSCode"
+echo "  2) Run: scripts/cap-build.sh   # compile + build CAP"
+echo "  3) Run: scripts/run-web-server.sh   # compile + start simulator"
 
 rm -rf "$TEMP_DIR"
 
