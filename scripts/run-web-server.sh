@@ -78,4 +78,6 @@ echo "Try: curl http://localhost:9527/ping"
 echo "     curl -X POST http://localhost:9527/apdu -d '80A4040009'  (raw hex, for coolwallet3-se-test)"
 echo '     curl -X POST http://localhost:9527/card/sendAPDUCommand -H "Content-Type: application/json" -d '"'"'{"cla":128,"ins":84,"p1":0,"p2":0,"data":""}'"'"'  (jcvm compat)'
 
+# cd to project root so coolwallet-pro-se.env is always created there, regardless of where this script is invoked from
+cd "$PROJECT_ROOT"
 "$JAVA8" -cp "$SIM_BIN:$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" SimHttpServer

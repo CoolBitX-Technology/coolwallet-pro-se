@@ -105,6 +105,11 @@ public class McuLayer {
      * APDU body decrypts correctly on every restart.
      */
     public static void setupStorage(Simulator sim) {
+        if (!new File(ENV_FILE).exists()) {
+            saveEnv(new Properties());
+            System.out.println("[MCU] Created " + ENV_FILE + " (empty — will be populated after register)");
+        }
+
         Properties env = loadEnv();
         String register = env.getProperty("register");
         if (register == null || register.isEmpty()) {
