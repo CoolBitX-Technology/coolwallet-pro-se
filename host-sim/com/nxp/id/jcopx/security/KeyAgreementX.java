@@ -9,10 +9,9 @@ import javacard.security.KeyAgreement;
 import javacard.security.PrivateKey;
 
 // Bouncy Castle Imports
+import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
-import org.bouncycastle.jce.ECNamedCurveTable;
 
 import java.math.BigInteger;
 
@@ -75,26 +74,33 @@ public class KeyAgreementX extends KeyAgreement {
                 // 繼續往下試試看，有時候 isInitialized 實作不準
             }
 
-            // 4. 設定 Bouncy Castle 的曲線參數
-            // 為了模擬器方便，我們這裡假設使用的是 Secp256k1 (Bitcoin/Ethereum 標準)
-            // 如果您的 Applet 用的是 NIST P-256，請改用 "secp256r1"
-            String curveName = "secp256k1";
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(curveName);
+            // 4. 從 ECPrivateKey 讀取實際的曲線參數，而非寫死曲線名稱
+            byte[] fieldBuf = new byte[32];
+            byte[] aBuf = new byte[32];
+            byte[] bBuf = new byte[32];
+            byte[] gBuf = new byte[65];
+            byte[] nBuf = new byte[32];
 
-            if (spec == null) {
-                System.out.println("DEBUG: Warning: secp256k1 not found, trying secp256r1...");
-                curveName = "secp256r1";
-                spec = ECNamedCurveTable.getParameterSpec(curveName);
-            }
+            short fieldLen = this.privateKey.getField(fieldBuf, (short) 0);
+            short aLen = this.privateKey.getA(aBuf, (short) 0);
+            short bLen = this.privateKey.getB(bBuf, (short) 0);
+            short gLen = this.privateKey.getG(gBuf, (short) 0);
+            short nLen = this.privateKey.getR(nBuf, (short) 0);
 
-            if (spec == null) {
-                System.out.println(
-                        "DEBUG: KeyAgreementX.init ERROR: BouncyCastle could not load curve parameters!");
-                System.out.println("       Make sure bcprov-jdk15on-*.jar is in the classpath.");
-                CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);
-            }
+            byte[] fieldBytes = java.util.Arrays.copyOf(fieldBuf, fieldLen);
+            byte[] aBytes = java.util.Arrays.copyOf(aBuf, aLen);
+            byte[] bBytes = java.util.Arrays.copyOf(bBuf, bLen);
+            byte[] gBytes = java.util.Arrays.copyOf(gBuf, gLen);
+            byte[] nBytes = java.util.Arrays.copyOf(nBuf, nLen);
 
-            this.bcParams = new ECDomainParameters(spec.getCurve(), spec.getG(), spec.getN(), spec.getH());
+            BigInteger p = new BigInteger(1, fieldBytes);
+            BigInteger aCurve = new BigInteger(1, aBytes);
+            BigInteger bCurve = new BigInteger(1, bBytes);
+            BigInteger order = new BigInteger(1, nBytes);
+
+            ECCurve curve = new ECCurve.Fp(p, aCurve, bCurve, order, BigInteger.ONE);
+            ECPoint generator = curve.decodePoint(gBytes);
+            this.bcParams = new ECDomainParameters(curve, generator, order, BigInteger.ONE);
 
             // 5. 提取私鑰數值 (S)
             // 使用較大的 buffer 避免溢位
