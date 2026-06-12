@@ -17,10 +17,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * HTTP server + jCardSim simulator listening on port 9527.
  *
  * Endpoints:
- * GET /ping -> "pong"
- * POST /apdu -> request body = hex APDU, response body = hex response APDU
- *
- * jCardSim 在這裡跑你的 applet（目前預設是 StoreApplet 或 TestApplet），不需要實體卡。
+ *   GET  /ping                    -> "pong"
+ *   POST /apdu                    -> raw hex APDU in, raw hex response out (for coolwallet3-se-test)
+ *   POST /card/sendAPDUCommand    -> JSON {cla,ins,p1,p2,data} in, lowercase hex response out
+ *                                    (coolwallet-jcvm compatible, includes MCU pre/post processing)
  */
 public class SimHttpServer {
 
@@ -29,6 +29,7 @@ public class SimHttpServer {
     public static void main(String[] args) throws IOException {
         Security.addProvider(new BouncyCastleProvider()); // 強制加入 BC
         initSimulator();
+        McuLayer.setupStorage(simulator);
 
         int port = 9527;
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
@@ -106,6 +107,57 @@ public class SimHttpServer {
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(respBody);
                 }
+            }
+        });
+
+        // coolwallet-jcvm compatible endpoint with MCU pre/post processing
+        server.createContext("/card/sendAPDUCommand", new HttpHandler() {
+            @Override
+            public void handle(HttpExchange exchange) throws IOException {
+                String method = exchange.getRequestMethod();
+                if (!"POST".equalsIgnoreCase(method)) {
+                    String msg = "Use POST with JSON body: {cla,ins,p1,p2,data}";
+                    byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(405, bytes.length);
+                    try (OutputStream os = exchange.getResponseBody()) { os.write(bytes); }
+                    return;
+                }
+
+                String jsonBody;
+                try (InputStream is = exchange.getRequestBody()) {
+                    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = is.read(buf)) != -1) baos.write(buf, 0, n);
+                    jsonBody = baos.toString(StandardCharsets.UTF_8.name()).trim();
+                }
+
+                String respHex;
+                try {
+                    int[] fields = McuLayer.parseJsonFields(jsonBody);
+                    int cla = fields[0], ins = fields[1], p1 = fields[2], p2 = fields[3];
+                    String data = McuLayer.parseJsonData(jsonBody);
+
+                    data = McuLayer.preProcess(cla, ins, data);
+
+                    byte[] apduBytes = McuLayer.buildApdu(cla, ins, p1, p2, data);
+                    byte[] respBytes = simulator.transmitCommand(apduBytes);
+                    respHex = McuLayer.bytesToHex(respBytes);
+
+                    McuLayer.postProcess(ins, p1, data, respHex, simulator);
+                } catch (Exception e) {
+                    System.err.println("[/card/sendAPDUCommand] Error: " + e.getMessage());
+                    e.printStackTrace();
+                    String msg = "Error: " + e.getMessage();
+                    byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+                    exchange.sendResponseHeaders(500, bytes.length);
+                    try (OutputStream os = exchange.getResponseBody()) { os.write(bytes); }
+                    return;
+                }
+
+                byte[] respBody = respHex.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, respBody.length);
+                try (OutputStream os = exchange.getResponseBody()) { os.write(respBody); }
             }
         });
 

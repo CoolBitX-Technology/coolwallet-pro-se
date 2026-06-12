@@ -75,6 +75,7 @@ SIM_SOURCES=$(find "$SIM_SRC_DIR" -name '*.java'; find "$PROJECT_ROOT/src/coolbi
 
 echo "=== Start HTTP server on port 9527 ==="
 echo "Try: curl http://localhost:9527/ping"
-echo "     curl -X POST http://localhost:9527/apdu -d '00A4040008A000000003000000'"
+echo "     curl -X POST http://localhost:9527/apdu -d '80A4040009'  (raw hex, for coolwallet3-se-test)"
+echo '     curl -X POST http://localhost:9527/card/sendAPDUCommand -H "Content-Type: application/json" -d '"'"'{"cla":128,"ins":84,"p1":0,"p2":0,"data":""}'"'"'  (jcvm compat)'
 
 "$JAVA8" -cp "$SIM_BIN:$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" SimHttpServer
