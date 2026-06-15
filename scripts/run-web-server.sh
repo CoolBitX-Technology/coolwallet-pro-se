@@ -63,7 +63,7 @@ if [ ! -f "$BC_JAR" ]; then
 fi
 
 echo "=== Step 1: Compile sources ==="
-"$PROJECT_ROOT/scripts/build.sh"
+"$PROJECT_ROOT/scripts/build.sh" --sim
 echo
 
 mkdir -p "$SIM_BIN"
