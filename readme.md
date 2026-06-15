@@ -175,7 +175,11 @@ If auto-detection fails (e.g., multiple JDKs installed and the wrong one is pick
 Before running the setup script, you must obtain the **NXP JCOP Plugin** (version 5.32.0.4) and place it in the `local_lib` directory.
 
 1.  Obtain `NXP_JCOP_Plugin_5.32.0.4.zip`.
-2.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
+2.  Ensure the `local_lib` directory exists (create it if needed):
+    ```bash
+    mkdir -p local_lib
+    ```
+3.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
 
 Run the setup script to extract dependencies:
 
