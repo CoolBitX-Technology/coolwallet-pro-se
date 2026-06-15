@@ -137,9 +137,7 @@ This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WS
 
 #### 1. Configure Java 8 Path (Required)
 
-Before building, please create a `javacard.config` file in the project root to specify your Java 8 path.
-
-Run the following command to create `javacard.config` (adjust the path if necessary):
+The build scripts (`build.sh`, `run-web-server.sh`, etc.) require `JAVA8_HOME` to locate the Java 8 compiler. Create a `javacard.config` file in the project root to set this path:
 
 ```bash
 cat > javacard.config <<EOF
@@ -148,9 +146,15 @@ JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
 EOF
 ```
 
+> **Note:** If `JAVA8_HOME` is already exported in your shell (`.zshrc` / `.bash_profile`), the `javacard.config` file is not needed — the scripts will use the environment variable directly.
+
 #### 2. VS Code Configuration (Optional)
 
-If you are using VS Code, you also need to configure the Java runtime path in `.vscode/settings.json`:
+This step is independent of Step 1. It tells the **VS Code Java extension** where Java 8 is so that IDE features (code completion, error highlighting, etc.) work correctly. It has no effect on the build scripts.
+
+The project's `.vscode/settings.json` already configures VS Code to auto-detect Java 8, so no manual changes are needed in most cases.
+
+If auto-detection fails (e.g., multiple JDKs installed and the wrong one is picked), you can pin the path explicitly in `.vscode/settings.json`:
 
 ```json
 {

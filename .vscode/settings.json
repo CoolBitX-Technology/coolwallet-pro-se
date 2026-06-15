@@ -23,7 +23,9 @@
     "java.format.enabled": true,
     "editor.formatOnSave": true,
     // 避免自動幫你亂改 import（例如改成 javax.rmi.CORBA.Util）
-    "java.saveActions.organizeImports": false,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "never"
+    },
     // 強制不要當成 Gradle/Maven 專案，改用一般 Java 專案模式
     "java.import.gradle.enabled": false,
     "java.import.maven.enabled": false
