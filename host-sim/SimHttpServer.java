@@ -38,6 +38,11 @@ public class SimHttpServer {
         server.createContext("/ping", new HttpHandler() {
             @Override
             public void handle(HttpExchange exchange) throws IOException {
+                addCorsHeaders(exchange);
+                if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 String response = "pong";
                 byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, bytes.length);
@@ -51,6 +56,11 @@ public class SimHttpServer {
         server.createContext("/apdu", new HttpHandler() {
             @Override
             public void handle(HttpExchange exchange) throws IOException {
+                addCorsHeaders(exchange);
+                if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 String method = exchange.getRequestMethod();
                 if (!"POST".equalsIgnoreCase(method)) {
                     String msg = "Use POST with raw hex APDU body";
@@ -114,6 +124,11 @@ public class SimHttpServer {
         server.createContext("/card/sendAPDUCommand", new HttpHandler() {
             @Override
             public void handle(HttpExchange exchange) throws IOException {
+                addCorsHeaders(exchange);
+                if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 String method = exchange.getRequestMethod();
                 if (!"POST".equalsIgnoreCase(method)) {
                     String msg = "Use POST with JSON body: {cla,ins,p1,p2,data}";
@@ -256,6 +271,14 @@ public class SimHttpServer {
         System.out.println("Installed coolbitx.sim.TestApplet.");
         simulator.selectApplet(testAid);
         System.out.println("Selected coolbitx.sim.TestApplet.");
+    }
+
+    // --- CORS ---
+
+    private static void addCorsHeaders(HttpExchange exchange) {
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
     }
 
     // --- Small hex utilities (no external deps) ---
