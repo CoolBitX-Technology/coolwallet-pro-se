@@ -61,8 +61,7 @@ fi
 
 if [ ! -f "$BC_JAR" ]; then
   echo "ERROR: BouncyCastle jar not found: $BC_JAR"
-  echo "If you are using Gradle, you can generate it with:"
-  echo "  ./gradlew copyHostLibs"
+  echo "Run scripts/setup-libs.sh to restore it."
   exit 1
 fi
 

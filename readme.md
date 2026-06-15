@@ -184,12 +184,6 @@ chmod +x scripts/setup-libs.sh
 scripts/setup-libs.sh
 ```
 
-Then, use Gradle to download and copy the host-side simulator dependencies (BouncyCastle, jCardSim):
-
-```bash
-gradle copyHostLibs
-```
-
 #### Step 2: Build the Project
 
 To compile the JavaCard applet:
