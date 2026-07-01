@@ -5,8 +5,8 @@ import javacard.security.CryptoException;
 import javacard.security.Key;
 
 /**
- * Wrapper around jcardsim's AsymmetricCipherImpl that always right-pads the
- * RSA NOPAD output to the full block size (inLen bytes).
+ * Wrapper around jcardsim's AsymmetricCipherImpl that always left-pads the
+ * RSA NOPAD output with leading zeros to the full block size (I2OSP, RFC 8017 §4.1).
  *
  * jcardsim's processBlock returns only the significant bytes of the RSA result
  * (no leading zeros), but JavaCard spec requires the output to always fill the
@@ -44,7 +44,7 @@ class PaddedAsymmetricCipher extends Cipher {
     }
 
     /**
-     * Performs RSA block cipher and right-pads the output to inLen bytes.
+     * Performs RSA block cipher and left-pads the output with leading zeros to inLen bytes.
      *
      * This compensates for BouncyCastle processBlock() returning fewer bytes
      * than the block size when the result has leading zero bytes.

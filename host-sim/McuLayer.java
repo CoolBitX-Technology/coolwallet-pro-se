@@ -220,6 +220,9 @@ public class McuLayer {
 
     public static byte[] hexToBytes(String hex) {
         hex = hex.replaceAll("\\s+", "");
+        if (hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("Hex string must have even length, got: " + hex.length());
+        }
         byte[] data = new byte[hex.length() / 2];
         for (int i = 0; i < data.length; i++) {
             data[i] = (byte) ((Character.digit(hex.charAt(i * 2), 16) << 4)
