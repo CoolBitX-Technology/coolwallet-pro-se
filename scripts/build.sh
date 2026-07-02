@@ -1,7 +1,15 @@
 #!/bin/bash
 # Simple build script for the JavaCard project
+#
+# Usage: build.sh [--sim]
+#   --sim  Skip -bootclasspath restriction so System.out.println works (simulator only)
 
 set -e
+
+SIM_MODE=false
+for arg in "$@"; do
+  [ "$arg" = "--sim" ] && SIM_MODE=true
+done
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SRC_DIR="$PROJECT_ROOT/src"
@@ -53,8 +61,7 @@ fi
 
 if [ ! -f "$BC_JAR" ]; then
   echo "ERROR: BouncyCastle jar not found: $BC_JAR"
-  echo "If you are using Gradle, you can generate it with:"
-  echo "  ./gradlew copyHostLibs"
+  echo "Run scripts/setup-libs.sh to restore it."
   exit 1
 fi
 
@@ -65,11 +72,18 @@ rm -rf "$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
 echo "[2/2] Compile sources with Java 8 (JavaCard-compatible bytecode)..."
-# JavaCard converter 3.0.5 只支援非常舊的 class 版本，
-# 這裡強制 javac 使用 Java 1.3 的語法與 bytecode，避免再出現
-# 「unsupported class file format of version XX」的問題。
-"$JAVAC" -cp "$CLASSPATH" -source 1.6 -target 1.6 -Xlint:-options \
-  -d "$BIN_DIR" $(find "$SRC_DIR" -name "*.java")
+# Exclude coolbitx/sim/ — simulation-only code, mirrors .classpath excluding="coolbitx/sim/"
+SRC_FILES=$(find "$SRC_DIR" -name "*.java" -not -path "*/coolbitx/sim/*")
+if [ "$SIM_MODE" = true ]; then
+  # --sim: skip -bootclasspath so System.out etc. are available for simulator debugging
+  echo "       (sim mode: -bootclasspath skipped)"
+  "$JAVAC" -cp "$CLASSPATH" -source 1.5 -target 1.5 -Xlint:-options -d "$BIN_DIR" $SRC_FILES
+else
+  # Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
+  # This produces cleaner type information that the JavaCard converter can process without errors.
+  "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -Xlint:-options \
+    -d "$BIN_DIR" $SRC_FILES
+fi
 
 echo
 echo "Build finished. Classes output to:"

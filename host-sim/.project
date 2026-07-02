@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>CoolWalletS_Sim</name>
-	<comment></comment>
+	<comment>
+		Cursor / VS Code IDE project for this repository.
+		Used together with `coolwallet.code-workspace` so that JDT.LS uses
+		this self-contained project instead of the root `.project`
+		(which is reserved for the Windows Eclipse + NXP JCOP CAP workflow).
+		The applet sources under `../src` are exposed via a linked resource
+		called `src-main` so they show up as part of this project.
+	</comment>
 	<projects>
-		<project>CoolWalletS_3rd</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -15,4 +21,22 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>src-main</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/src</locationURI>
+		</link>
+	</linkedResources>
+	<filteredResources>
+		<filter>
+			<id>1781490699157</id>
+			<name></name>
+			<type>30</type>
+			<matcher>
+				<id>org.eclipse.core.resources.regexFilterMatcher</id>
+				<arguments>node_modules|\.git|__CREATED_BY_JAVA_LANGUAGE_SERVER__</arguments>
+			</matcher>
+		</filter>
+	</filteredResources>
 </projectDescription>

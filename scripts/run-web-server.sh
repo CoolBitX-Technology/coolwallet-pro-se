@@ -62,21 +62,22 @@ if [ ! -f "$BC_JAR" ]; then
   exit 1
 fi
 
-# Ensure JavaCard applet classes are compiled
-if [ ! -f "$PROJECT_ROOT/bin/coolbitx/Main.class" ]; then
-  echo "ERROR: JavaCard classes not found in bin/. Please build the project first:"
-  echo "  scripts/build.sh"
-  exit 1
-fi
+echo "=== Step 1: Compile sources ==="
+"$PROJECT_ROOT/scripts/build.sh" --sim
+echo
 
 mkdir -p "$SIM_BIN"
 
 echo "=== Compile host-sim sources (including SymmetricCipherImpl shadow) ==="
-SIM_SOURCES=$(find "$SIM_SRC_DIR" -name '*.java')
+# Also include src/coolbitx/sim/ — excluded from the JavaCard build but needed here
+SIM_SOURCES=$(find "$SIM_SRC_DIR" -name '*.java'; find "$PROJECT_ROOT/src/coolbitx/sim" -name '*.java')
 "$JAVAC8" -cp "$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" -d "$SIM_BIN" $SIM_SOURCES
 
 echo "=== Start HTTP server on port 9527 ==="
 echo "Try: curl http://localhost:9527/ping"
-echo "     curl -X POST http://localhost:9527/apdu -d '00A4040008A000000003000000'"
+echo "     curl -X POST http://localhost:9527/apdu -d '80A4040009'  (raw hex, for coolwallet3-se-test)"
+echo '     curl -X POST http://localhost:9527/card/sendAPDUCommand -H "Content-Type: application/json" -d '"'"'{"cla":128,"ins":84,"p1":0,"p2":0,"data":""}'"'"'  (jcvm compat)'
 
+# cd to project root so coolwallet-pro-se.env is always created there, regardless of where this script is invoked from
+cd "$PROJECT_ROOT"
 "$JAVA8" -cp "$SIM_BIN:$PROJECT_ROOT/bin:$JCARDSIM_JAR:$BC_JAR" SimHttpServer

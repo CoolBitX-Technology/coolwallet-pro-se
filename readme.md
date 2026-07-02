@@ -109,6 +109,20 @@ To ensure a smooth compilation process, it is recommended to have the following 
    - Create a Java Card project.
    - Select the licensed JCOP: JCOP_Tools_activation_workspace.
 
+### Library Setup (Required)
+
+Before opening the project in Eclipse, you must place the following library files into `local_lib/javacard-libs/`:
+
+| File | Source |
+|------|--------|
+| `api_classic.jar` | Extracted from `NXP_JCOP_Plugin_5.32.0.4.zip` |
+| `JCOPx_API-R1.1.4.jar` | Extracted from `NXP_JCOP_Plugin_5.32.0.4.zip` |
+| `bcprov-jdk15on-1.70.jar` | [Maven Central](https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar) |
+
+These files are referenced by the project's `.classpath` and are required for Eclipse to compile the source successfully.
+
+If you are on macOS/Linux, you can run `scripts/setup-libs.sh` to extract these automatically. On Windows, you can obtain the first two jars by extracting `NXP_JCOP_Plugin_5.32.0.4.zip` and locating them inside the plugin bundle, or request a pre-packaged zip from a teammate who has already run the setup script.
+
 ---
 
 ## 2. Cross-Platform Environment Setup (CLI / VS Code)
@@ -123,9 +137,7 @@ This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WS
 
 #### 1. Configure Java 8 Path (Required)
 
-Before building, please create a `javacard.config` file in the project root to specify your Java 8 path.
-
-Run the following command to create `javacard.config` (adjust the path if necessary):
+The build scripts (`build.sh`, `run-web-server.sh`, etc.) require `JAVA8_HOME` to locate the Java 8 compiler. Create a `javacard.config` file in the project root to set this path:
 
 ```bash
 cat > javacard.config <<EOF
@@ -134,9 +146,15 @@ JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
 EOF
 ```
 
+> **Note:** If `JAVA8_HOME` is already exported in your shell (`.zshrc` / `.bash_profile`), the `javacard.config` file is not needed — the scripts will use the environment variable directly.
+
 #### 2. VS Code Configuration (Optional)
 
-If you are using VS Code, you also need to configure the Java runtime path in `.vscode/settings.json`:
+This step is independent of Step 1. It tells the **VS Code Java extension** where Java 8 is so that IDE features (code completion, error highlighting, etc.) work correctly. It has no effect on the build scripts.
+
+The project's `.vscode/settings.json` already configures VS Code to auto-detect Java 8, so no manual changes are needed in most cases.
+
+If auto-detection fails (e.g., multiple JDKs installed and the wrong one is picked), you can pin the path explicitly in `.vscode/settings.json`:
 
 ```json
 {
@@ -157,19 +175,17 @@ If you are using VS Code, you also need to configure the Java runtime path in `.
 Before running the setup script, you must obtain the **NXP JCOP Plugin** (version 5.32.0.4) and place it in the `local_lib` directory.
 
 1.  Obtain `NXP_JCOP_Plugin_5.32.0.4.zip`.
-2.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
+2.  Ensure the `local_lib` directory exists (create it if needed):
+    ```bash
+    mkdir -p local_lib
+    ```
+3.  Place the file at: `local_lib/NXP_JCOP_Plugin_5.32.0.4.zip`.
 
 Run the setup script to extract dependencies:
 
 ```bash
 chmod +x scripts/setup-libs.sh
 scripts/setup-libs.sh
-```
-
-Then, use Gradle to download and copy the host-side simulator dependencies (BouncyCastle, jCardSim):
-
-```bash
-gradle copyHostLibs
 ```
 
 #### Step 2: Build the Project

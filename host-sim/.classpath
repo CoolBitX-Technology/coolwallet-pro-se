@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<!-- Source is the root of host-sim -->
+	<!--
+		IDE project for Cursor / VS Code (paired with `coolwallet.code-workspace`).
+
+		Source folders:
+		  - ""        : host-sim/ itself (simulator overrides, SimHttpServer, etc.)
+		  - src-main  : linked resource pointing at ../src (declared in .project)
+
+		This project is self-contained on purpose: it does NOT depend on the
+		root Eclipse project, so Cursor users do not have to import the
+		root `.project`/`.classpath` (which targets the Windows Eclipse +
+		NXP JCOP plugin CAP workflow).
+	-->
 	<classpathentry kind="src" path=""/>
-	
-	<!-- Java 8 JRE -->
+	<classpathentry kind="src" path="src-main" excluding="coolbitx/sim/"/>
+
+	<!-- Java 8 JRE; allow access to com.sun.net.httpserver for SimHttpServer -->
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
 		<accessrules>
 			<accessrule kind="accessible" pattern="com/sun/net/httpserver/**"/>
 		</accessrules>
 	</classpathentry>
 
-	<!-- Depend on the main project to access coolbitx.* classes -->
-	<classpathentry combineaccessrules="false" kind="src" path="/CoolWalletS_3rd"/>
+	<!-- JavaCard classic API (javacard.*, javacardx.*) -->
+	<classpathentry kind="lib" path="../local_lib/javacard-libs/api_classic.jar"/>
+	<!-- JCOP extension API (com.nxp.id.jcopx.*) -->
+	<classpathentry kind="lib" path="../local_lib/javacard-libs/JCOPx_API-R1.1.4.jar"/>
 
 	<!-- Host-side simulator / crypto libraries -->
 	<classpathentry kind="lib" path="../lib/jcardsim-3.0.5-20230313.131323-6.jar"/>
 	<classpathentry kind="lib" path="../local_lib/javacard-libs/bcprov-jdk15on-1.70.jar"/>
 
-	<!-- Output folder for simulator -->
+	<!-- Output folder -->
 	<classpathentry kind="output" path="bin-sim"/>
 </classpath>

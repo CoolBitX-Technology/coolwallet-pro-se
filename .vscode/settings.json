@@ -1,9 +1,8 @@
 {
-    // 使用 Java 8 做為預設 JDK（請依照你實際的路徑調整）
+    // Java 8 runtime — no path specified; VSCode auto-detects via JAVA_HOME or installed JDKs
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-1.8",
-            "path": "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home",
             "default": true
         }
     ],
@@ -24,7 +23,9 @@
     "java.format.enabled": true,
     "editor.formatOnSave": true,
     // 避免自動幫你亂改 import（例如改成 javax.rmi.CORBA.Util）
-    "java.saveActions.organizeImports": false,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "never"
+    },
     // 強制不要當成 Gradle/Maven 專案，改用一般 Java 專案模式
     "java.import.gradle.enabled": false,
     "java.import.maven.enabled": false

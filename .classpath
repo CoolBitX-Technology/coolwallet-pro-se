@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<!-- Source files (exclude sim directory so JCOP doesn't try to build it into CAP) -->
-	<classpathentry kind="src" path="src" excluding="coolbitx/sim/"/>
-	<!-- JCOP SDK container for Windows Eclipse CAP generation -->
+	<classpathentry excluding="coolbitx/sim/" kind="src" path="src"/>
 	<classpathentry kind="con" path="com.nxp.id.jcop.eclipse.containers.cardconfig/com.nxp.id.jcop.eclipse.cardconfigs.custom;com.nxp.id.jcop.eclipse.cardapis.jc305;com.nxp.id.jcop.eclipse.cardapis.gp230;com.nxp.id.jcop.eclipse.cardapis.R1.1.4"/>
-	<!-- Host-side simulation / tools is now a separate Eclipse project in host-sim/.project -->
-
-	<!-- JRE (Java 8) -->
+	<classpathentry kind="lib" path="local_lib/javacard-libs/api_classic.jar">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="local_lib/javacard-libs/JCOPx_API-R1.1.4.jar">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-
-	<!-- Output folder -->
 	<classpathentry kind="output" path="bin"/>
 </classpath>

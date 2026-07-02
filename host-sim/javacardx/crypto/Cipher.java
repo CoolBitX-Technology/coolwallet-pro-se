@@ -65,7 +65,9 @@ public abstract class Cipher {
                                 algorithm == ALG_RSA_ISO14888 ||
                                 algorithm == ALG_RSA_PKCS1_OAEP ||
                                 algorithm == ALG_RSA_NOPAD) {
-                        instance = new AsymmetricCipherImpl(algorithm);
+                        // Use PaddedAsymmetricCipher to ensure RSA NOPAD output is always
+                        // right-padded to the full block size (jcardsim strips leading zeros).
+                        instance = new PaddedAsymmetricCipher(algorithm);
 
                 }
                 // 2. 對稱加密 (包含我們的新目標)
