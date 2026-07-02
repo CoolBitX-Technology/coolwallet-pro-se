@@ -26,7 +26,7 @@ public class ScriptInterpreter {
 	private static final short coinTypeMax = 4;
 	private static short scriptLength;
 	private static short argumentLength;
-	private static int placeholderLength;
+	private static short placeholderLength;
 	private static short placeholderOffset;
 	// private static short transactionLength;
 	// private static short detailLength;
@@ -713,8 +713,12 @@ public class ScriptInterpreter {
 				if (dataLength != 4 && dataLength != 0) {
 					ISOException.throwIt((short) 0x6701);
 				}
-				placeholderLength = NumberUtil.byteArrayToInt(dataBuf,
-						dataOffset, dataLength);
+				if (dataLength == 0) {
+					placeholderLength = 0;
+				} else {
+					placeholderLength = (short)((dataBuf[dataOffset]&0xFF)<<24|(dataBuf[(short)(dataOffset+1)]&0xFF)<<16
+							|(dataBuf[(short)(dataOffset+2)]&0xFF)<<8|(dataBuf[(short)(dataOffset+3)]&0xFF));
+				}
 				// RLP
 				if (argInt0 == 0) {
 					if (placeholderLength <= 55) {

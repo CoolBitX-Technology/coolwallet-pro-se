@@ -36,7 +36,7 @@ public class RlpDecoder {
 	 * of the RLP encodings of the items. The range of the first byte is thus
 	 * [0xc0, 0xf7].
 	 */
-	public static int OFFSET_SHORT_LIST = 0xc0;
+	public static short OFFSET_SHORT_LIST = 0xc0;
 
 	/**
 	 * [0xf7] If the total payload of a list is more than 55 bytes long, the RLP
@@ -45,7 +45,7 @@ public class RlpDecoder {
 	 * followed by the concatenation of the RLP encodings of the items. The
 	 * range of the first byte is thus [0xf8, 0xff].
 	 */
-	public static int OFFSET_LONG_LIST = 0xf7;
+	public static short OFFSET_LONG_LIST = 0xf7;
 
 	public static final short RLP_EXCEPTION = 6;
 

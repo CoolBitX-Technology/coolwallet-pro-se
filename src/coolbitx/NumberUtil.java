@@ -459,21 +459,6 @@ public class NumberUtil {
 		}
 	}
 
-	public static final int byteArrayToInt(byte[] bytes, short offset,
-			short length) {
-		int result = 0;
-		for (short i = offset; i < (short) (offset + length); i++) {
-			result = (result << 8) + (bytes[i] & 0xFF);
-		}
-
-		return result;
-	}
-
-	public static final void intToByteArray(int input, byte[] buf, short offset) {
-		for (byte i = 0; i < 4; i++) {
-			buf[(short) (offset + i)] = (byte) ((input >> (8 * (3 - i))) & 0xff);
-		}
-	}
 
 	public static final byte typeInt = 0;
 	public static final byte typeString = 1;
