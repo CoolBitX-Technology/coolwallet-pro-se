@@ -21,7 +21,7 @@ fi
 rm -rf "$TEMP_DIR" "$OUT_DIR"
 mkdir -p "$TEMP_DIR" "$OUT_DIR"
 
-echo "[1/3] Unzip JCOP plugin zip..."
+echo "[1/5] Unzip JCOP plugin zip..."
 unzip -q "$ZIP_PATH" -d "$TEMP_DIR/extracted"
 
 PLUGIN_JAR="$(find "$TEMP_DIR/extracted" -name 'com.nxp.id.jcop.eclipse_*.jar' | head -1)"
@@ -31,12 +31,12 @@ if [ -z "$PLUGIN_JAR" ]; then
 fi
 echo "Found plugin jar: $(basename "$PLUGIN_JAR")"
 
-echo "[2/3] Extract plugin jar..."
+echo "[2/5] Extract plugin jar..."
 unzip -q "$PLUGIN_JAR" -d "$TEMP_DIR/plugin"
 
 JTOOLS="$TEMP_DIR/plugin/JTools_Module"
 
-echo "[3/3] Copy JavaCard 3.0.5 API, JCOPx API and tools..."
+echo "[3/5] Copy JavaCard 3.0.5 API, JCOPx API and tools..."
 
 # JavaCard 3.0.5 APIs
 if [ -d "$JTOOLS/Java_Card_Classic_API-3.0.5/lib" ]; then
@@ -57,7 +57,35 @@ if [ -d "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" ]; then
   cp -R "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" "$OUT_DIR"/api_export_files
 fi
 
-echo "[4/4] Download BouncyCastle (bcprov-jdk15on-1.70.jar)..."
+echo "[4/5] Copy TRIC converter jars and JCOPx export files..."
+
+# TRIC converter and its runtime dependencies (from plugin lib/)
+PLUGIN_LIB="$TEMP_DIR/plugin/lib"
+for jar_name in tric-1.0.jar asm-all-3.1.jar bcel-5.2.jar commons-codec-1.3.jar; do
+  if [ -f "$PLUGIN_LIB/$jar_name" ]; then
+    cp "$PLUGIN_LIB/$jar_name" "$OUT_DIR/"
+    echo "  Copied $jar_name"
+  else
+    echo "WARNING: $jar_name not found in plugin lib/"
+  fi
+done
+
+# JCOPx export files (needed if applets import com.nxp.id.jcopx.* APIs)
+JCOPX_SRC="$JTOOLS/JCOPx_API-R1.1.4"
+if [ -d "$JCOPX_SRC" ]; then
+  mkdir -p "$OUT_DIR/jcopx_export_files"
+  find "$JCOPX_SRC" -name "*.exp" | while read -r exp; do
+    rel="${exp#$JCOPX_SRC/}"
+    dest="$OUT_DIR/jcopx_export_files/$rel"
+    mkdir -p "$(dirname "$dest")"
+    cp "$exp" "$dest"
+  done
+  echo "  Copied JCOPx export files"
+else
+  echo "WARNING: JCOPx_API-R1.1.4 directory not found."
+fi
+
+echo "[5/5] Download BouncyCastle (bcprov-jdk15on-1.70.jar)..."
 BC_JAR="$OUT_DIR/bcprov-jdk15on-1.70.jar"
 BC_URL="https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.70/bcprov-jdk15on-1.70.jar"
 if [ -f "$BC_JAR" ]; then
@@ -71,9 +99,9 @@ echo
 echo "Done."
 echo
 echo "You can now:"
-echo "  1) Open the project in VSCode"
-echo "  2) Run: scripts/cap-build.sh   # compile + build CAP"
-echo "  3) Run: scripts/run-web-server.sh   # compile + start simulator"
+echo "  1) Run: scripts/make-ibm-stubs.sh  # compile IBM stub classes for TRIC"
+echo "  2) Run: scripts/cap-build.sh       # compile + build CAP files"
+echo "  3) Run: scripts/run-web-server.sh  # compile + start simulator"
 
 rm -rf "$TEMP_DIR"
 

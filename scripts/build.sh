@@ -38,7 +38,12 @@ if [ -z "${JAVA8_HOME:-}" ]; then
   exit 1
 fi
 
+JAVA8="$JAVA8_HOME/bin/java"
 JAVAC="$JAVA8_HOME/bin/javac"
+
+# Prefer ECJ over javac — ECJ generates bytecode compatible with JavaCard converter 3.0.5
+# for classes with large static initializers (e.g. Ed25519 curve constants)
+ECJ_JAR="$(ls "$PROJECT_ROOT/lib"/ecj-*.jar 2>/dev/null | head -1 || true)"
 
 echo "=== Build JavaCard project ==="
 echo "Project root : $PROJECT_ROOT"
@@ -74,15 +79,27 @@ mkdir -p "$BIN_DIR"
 echo "[2/2] Compile sources with Java 8 (JavaCard-compatible bytecode)..."
 # Exclude coolbitx/sim/ — simulation-only code, mirrors .classpath excluding="coolbitx/sim/"
 SRC_FILES=$(find "$SRC_DIR" -name "*.java" -not -path "*/coolbitx/sim/*")
-if [ "$SIM_MODE" = true ]; then
-  # --sim: skip -bootclasspath so System.out etc. are available for simulator debugging
-  echo "       (sim mode: -bootclasspath skipped)"
-  "$JAVAC" -cp "$CLASSPATH" -source 1.5 -target 1.5 -Xlint:-options -d "$BIN_DIR" $SRC_FILES
+if [ -n "$ECJ_JAR" ]; then
+  echo "  (using ECJ: $ECJ_JAR)"
+  if [ "$SIM_MODE" = true ]; then
+    echo "       (sim mode: -bootclasspath skipped)"
+    "$JAVA8" -jar "$ECJ_JAR" -cp "$CLASSPATH" -source 1.5 -target 1.5 -nowarn \
+      -d "$BIN_DIR" $SRC_FILES
+  else
+    "$JAVA8" -jar "$ECJ_JAR" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -nowarn \
+      -d "$BIN_DIR" $SRC_FILES
+  fi
 else
-  # Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
-  # This produces cleaner type information that the JavaCard converter can process without errors.
-  "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -Xlint:-options \
-    -d "$BIN_DIR" $SRC_FILES
+  echo "  (ECJ not found in lib/, falling back to javac)"
+  if [ "$SIM_MODE" = true ]; then
+    echo "       (sim mode: -bootclasspath skipped)"
+    "$JAVAC" -cp "$CLASSPATH" -source 1.5 -target 1.5 -Xlint:-options -d "$BIN_DIR" $SRC_FILES
+  else
+    # Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
+    # This produces cleaner type information that the JavaCard converter can process without errors.
+    "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -Xlint:-options \
+      -d "$BIN_DIR" $SRC_FILES
+  fi
 fi
 
 echo
