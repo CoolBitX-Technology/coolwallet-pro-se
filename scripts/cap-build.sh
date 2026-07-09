@@ -24,6 +24,12 @@ TOOLS_JAR="$JC_LIB_DIR/tools.jar"
 API_JAR="$JC_LIB_DIR/api_classic.jar"
 EXPORT_DIR="$JC_LIB_DIR/api_export_files"
 JCOPX_EXPORT_DIR="$JC_LIB_DIR/jcopx_export_files"
+# Older/manually-populated local_lib layouts extract the JCOPx .exp tree
+# (com/nxp/id/jcopx/...) directly under $JC_LIB_DIR instead of a
+# jcopx_export_files/ subfolder — fall back to that layout if present.
+if [ ! -d "$JCOPX_EXPORT_DIR" ] && [ -d "$JC_LIB_DIR/com/nxp" ]; then
+  JCOPX_EXPORT_DIR="$JC_LIB_DIR"
+fi
 CLASSDIR="$PROJECT_ROOT/bin"
 
 # Load Java 8 home from javacard.config or environment
@@ -47,9 +53,14 @@ fi
 
 JAVA8="$JAVA8_HOME/bin/java"
 
-# Output locations (follow original layout as much as possible)
-OUT_MAIN="$PROJECT_ROOT/bin/coolbitx/javacard"
-OUT_SIO="$PROJECT_ROOT/bin/coolbitx/sio/javacard"
+# Output locations. Both converters append the package path (and a
+# trailing "javacard" segment) under whatever directory is passed via
+# -d/-dd, so pass the bin/ root here rather than pre-building the
+# package path ourselves — doing so double-nests it, e.g.
+# bin/coolbitx/javacard/coolbitx/javacard/coolbitx.cap instead of
+# bin/coolbitx/javacard/coolbitx.cap.
+OUT_MAIN="$PROJECT_ROOT/bin"
+OUT_SIO="$PROJECT_ROOT/bin"
 
 echo "=== Build CAP files ==="
 echo "Project root : $PROJECT_ROOT"
@@ -79,6 +90,8 @@ echo
 # Auto-apply patch if needed (Oracle InstrContainer.reset() bug).
 # IC_MARKER is the unique 24-byte block appended to reset() by the patch.
 # IC_FIND is the original throw sequence present in a fresh tools.jar.
+# (disable -e around this: a nonzero exit here means "needs patch", not a real failure)
+set +e
 python3 -c "
 import zipfile, sys
 jar='$TOOLS_JAR'
@@ -99,6 +112,7 @@ print('ERROR: InstrContainer in unexpected state — re-run scripts/setup-libs.s
 sys.exit(2)
 " 2>/dev/null
 STATUS=$?
+set -e
 if [ $STATUS -eq 1 ]; then
   echo "tools.jar not fully patched — applying patches..."
   "$PROJECT_ROOT/scripts/patch-tools-jar.sh"
@@ -184,5 +198,5 @@ echo "[2/2] Building main package (coolbitx) with TRIC converter..."
 
 echo
 echo "=== CAP build completed ==="
-echo "Main CAP : $OUT_MAIN"
-echo "SIO  CAP : $OUT_SIO"
+echo "Main CAP : $OUT_MAIN/coolbitx/javacard/coolbitx.cap"
+echo "SIO  CAP : $OUT_SIO/coolbitx/sio/javacard/sio.cap"
