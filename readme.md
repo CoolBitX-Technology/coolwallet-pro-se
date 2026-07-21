@@ -58,6 +58,12 @@ $ java Installation
 
 >**Note:** The Crypto Library is an internal library provided by CoolBitX, offering a range of encoding and digital signature algorithms.
 
+>**Windows Note:** This script creates **symbolic links** from `src/coolbitx/` to the files in `coolwallet-pro-se-crypto/src/`. Creating a symbolic link on Windows requires the `SeCreateSymbolicLinkPrivilege`, which a standard user account does not have by default. If you run the commands above from a normal (non-elevated) terminal, symlink creation will fail with an `AccessDeniedException` and Eclipse will show the crypto classes (`Sha2`, `Ed25519`, etc.) as missing/unresolved. To fix this, do **one** of the following before running `java Installation`:
+>- Enable **Developer Mode** (Settings → Update & Security → For developers → Developer Mode), or
+>- Run your terminal/command prompt **as Administrator**.
+>
+>You only need elevated privileges at the moment the links are *created* — once the symlinks exist, opening and building the project in Eclipse afterwards works normally with a regular user account. If you ever re-run `java Installation` (e.g. after new files are added to the crypto library), repeat this with an elevated/Developer Mode session.
+
 ## Environment Setup
 
 This project supports two development workflows:
