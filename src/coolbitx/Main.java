@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 345;
+	private static final short ver = 7777;
 
 	private static boolean isInit = false;
 
@@ -441,6 +441,25 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					resultLength = (short) (dataOffset + dataLength);
 				}
 				break;
+			case (byte) 0x72:// DEBUG: SHA512/256(data) -> digest. Used to verify the int-shift
+				// hardware bug (see project notes) is fixed/reproduced on a given build.
+				resultLength = ShaUtil.SHA512256(buf, dataOffset, dataLength, destBuf, destOffset);
+				break;
+			case (byte) 0x78: {// DEBUG: isolate a single int shift op. P1=shift amount, P2: 0=>>>, 1=<<
+				// Companion to 0x72 -- probes the raw shift operator directly.
+				int x = ((buf[dataOffset] & 0xFF) << 24)
+						| ((buf[(short) (dataOffset + 1)] & 0xFF) << 16)
+						| ((buf[(short) (dataOffset + 2)] & 0xFF) << 8)
+						| (buf[(short) (dataOffset + 3)] & 0xFF);
+				byte n = buf[ISO7816.OFFSET_P1];
+				int r = (buf[ISO7816.OFFSET_P2] == 0) ? (x >>> n) : (x << n);
+				destBuf[destOffset] = (byte) (r >>> 24);
+				destBuf[(short) (destOffset + 1)] = (byte) (r >>> 16);
+				destBuf[(short) (destOffset + 2)] = (byte) (r >>> 8);
+				destBuf[(short) (destOffset + 3)] = (byte) r;
+				resultLength = 4;
+				break;
+			}
 			case (byte) 0x80:// backupRegisterData
 				// need long buf to store data
 				buf = longBuf;
