@@ -103,7 +103,8 @@ public class RlpDecoder {
 				// 1. the data is a string if the range of the
 				// first byte(i.e. prefix) is [0x00, 0x7f],
 				// and the string is the first byte itself exactly;
-				destBuf[offsetPivot++] = (byte) (prefix);
+				destBuf[offsetPivot] = (byte) (prefix);
+				offsetPivot += 1;
 				lengthDest[lengthPivot] = 1;
 				lengthPivot += 1;
 				start += 1;
