@@ -1,26 +1,41 @@
 #!/bin/bash
-# Build CAP files using a hybrid converter strategy:
+# Build CAP files using the Oracle JavaCard converter for both packages.
 #
-#   [1/2] SIO package  — Oracle converter (tools.jar)
-#           Oracle handles coolbitx.sio cleanly and produces the .exp file
-#           that TRIC needs for the main package.  tools.jar is binary-patched
-#           to fix InstrContainer.reset() crash (see patch-tools-jar.sh).
+# This matches the actual toolchain the team's Windows Eclipse + JCOP Tools
+# build uses (verified via JCOP_DEBUG converter-arg tracing against a real
+# Windows build, and confirmed correct on physical hardware — see memory:
+# project-tric-shift-bug.md). Two things are required for this to work:
 #
-#   [2/2] Main package — IBM TRIC converter (tric-1.0.jar)
-#           TRIC is used because Oracle's I2S algorithm cycles indefinitely
-#           on certain short-type array-index patterns in RlpDecoder/RlpDataParser.
-#           TRIC handles these patterns natively without an explicit -i flag.
+#   1. Sources must be compiled with -g (scripts/build.sh does this).
+#      ECJ's debug info (LineNumberTable/LocalVariableTable) works around
+#      an internal Oracle converter crash (InstrContainer.merge /
+#      setOperandStack) on complex methods like ScriptInterpreter's opcode
+#      switch. Without -g, Oracle crashes partway through the main package.
+#
+#   2. The real tools-1.0.jar + api_classic.jar from the JCOP Eclipse
+#      plugin must be used (scripts/setup-libs.sh) — NOT a hand-patched
+#      vanilla tools.jar. tools-1.0.jar is NXP's own build of the Oracle
+#      converter and is the exact jar Windows Eclipse invokes.
+#
+# The Oracle converter unconditionally bundles the original .class files
+# plus META-INF/MANIFEST.MF / javacard.xml / APPLET-INF/applet.xml into the
+# output .cap whenever the package declares an -applet (confirmed by
+# decompiling tools-1.0.jar: CapGen.java always builds an AppletXml when
+# the package has an applet, and CapWriter.publishCommon() always embeds
+# the compiled classes when present — there is no flag to suppress this).
+# None of that is meaningful to the card's JCVM; it's desktop-tooling
+# metadata that bloats a real ~67KB CAP to ~285KB. strip_cap() below
+# removes it, keeping only the real */javacard/*.cap component entries.
 #
 # Prerequisites (one-time):
-#   scripts/setup-libs.sh      — extracts all jars (tools.jar, tric-1.0.jar, …)
-#   scripts/patch-tools-jar.sh — patches InstrContainer.reset() in tools.jar
-#   scripts/build.sh           — compiles Java sources into bin/
+#   scripts/setup-libs.sh — extracts all jars (tools-1.0.jar, api_classic.jar, …)
+#   scripts/build.sh      — compiles Java sources into bin/ (invoked below)
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 JC_LIB_DIR="$PROJECT_ROOT/local_lib/javacard-libs"
-TOOLS_JAR="$JC_LIB_DIR/tools.jar"
+TOOLS_JAR="$JC_LIB_DIR/tools-1.0.jar"
 API_JAR="$JC_LIB_DIR/api_classic.jar"
 EXPORT_DIR="$JC_LIB_DIR/api_export_files"
 JCOPX_EXPORT_DIR="$JC_LIB_DIR/jcopx_export_files"
@@ -53,16 +68,15 @@ fi
 
 JAVA8="$JAVA8_HOME/bin/java"
 
-# Output locations. Both converters append the package path (and a
-# trailing "javacard" segment) under whatever directory is passed via
-# -d/-dd, so pass the bin/ root here rather than pre-building the
-# package path ourselves — doing so double-nests it, e.g.
-# bin/coolbitx/javacard/coolbitx/javacard/coolbitx.cap instead of
-# bin/coolbitx/javacard/coolbitx.cap.
+# Both converters append the package path (and a trailing "javacard"
+# segment) under whatever directory is passed via -d, so pass the bin/
+# root here rather than pre-building the package path ourselves — doing
+# so double-nests it, e.g. bin/coolbitx/javacard/coolbitx/javacard/coolbitx.cap
+# instead of bin/coolbitx/javacard/coolbitx.cap.
 OUT_MAIN="$PROJECT_ROOT/bin"
 OUT_SIO="$PROJECT_ROOT/bin"
 
-echo "=== Build CAP files ==="
+echo "=== Build CAP files (Oracle converter) ==="
 echo "Project root : $PROJECT_ROOT"
 
 if [ ! -d "$JC_LIB_DIR" ]; then
@@ -72,7 +86,7 @@ if [ ! -d "$JC_LIB_DIR" ]; then
 fi
 
 if [ ! -f "$TOOLS_JAR" ] || [ ! -f "$API_JAR" ]; then
-  echo "ERROR: tools.jar or api_classic.jar not found in $JC_LIB_DIR."
+  echo "ERROR: tools-1.0.jar or api_classic.jar not found in $JC_LIB_DIR."
   echo "Make sure scripts/setup-libs.sh ran successfully."
   exit 1
 fi
@@ -83,77 +97,40 @@ if [ ! -d "$EXPORT_DIR" ]; then
   exit 1
 fi
 
-echo "=== Step 1: Compile sources ==="
+echo "=== Step 1: Compile sources (-g) ==="
 "$PROJECT_ROOT/scripts/build.sh"
 echo
 
-# Auto-apply patch if needed (Oracle InstrContainer.reset() bug).
-# IC_MARKER is the unique 24-byte block appended to reset() by the patch.
-# IC_FIND is the original throw sequence present in a fresh tools.jar.
-# (disable -e around this: a nonzero exit here means "needs patch", not a real failure)
-set +e
-python3 -c "
-import zipfile, sys
-jar='$TOOLS_JAR'
-IC = 'com/sun/javacard/converter/converters/InstrContainer.class'
-IC_FIND   = bytes([0xB4,0x00,0x11,0xC7,0x00,0x0B,0xBB,0x00,0x19,0x59,0xB7,0x00,0x1A,0xBF])
-IC_MARKER = bytes([0x2a,0xb4,0x00,0x10,0xc7,0x00,0x0e,
-                   0x2a,0xbb,0x00,0x14,0x59,
-                   0xb7,0x00,0xbb,
-                   0xb5,0x00,0x10,
-                   0x2a,0x01,0xb5,0x00,0x0a,0xb1])
-with zipfile.ZipFile(jar) as z:
-    ic = z.read(IC)
-if IC_MARKER in ic:
-    sys.exit(0)   # already patched
-if IC_FIND in ic:
-    sys.exit(1)   # needs patch
-print('ERROR: InstrContainer in unexpected state — re-run scripts/setup-libs.sh to restore.')
-sys.exit(2)
-" 2>/dev/null
-STATUS=$?
-set -e
-if [ $STATUS -eq 1 ]; then
-  echo "tools.jar not fully patched — applying patches..."
-  "$PROJECT_ROOT/scripts/patch-tools-jar.sh"
-elif [ $STATUS -eq 2 ]; then
-  echo "ERROR: tools.jar is in an unexpected state. Re-run scripts/setup-libs.sh to restore it."
-  exit 1
-fi
-
 mkdir -p "$OUT_MAIN" "$OUT_SIO"
 
-# Oracle converter reads $jc.home/api_export_files and $jc.home/lib/*.jar.
-# javacard-libs/ already has api_export_files/ at the right level; we only
-# need a lib/ subdirectory with the required jars.
-JC_HOME="$JC_LIB_DIR"
-JC_LIB_SUBDIR="$JC_LIB_DIR/lib"
-if [ ! -d "$JC_LIB_SUBDIR" ]; then
-  mkdir -p "$JC_LIB_SUBDIR"
-  for jar_name in tools.jar api_classic.jar api_classic_annotations.jar api_connected.jar; do
-    if [ -f "$JC_LIB_DIR/$jar_name" ]; then
-      ln -sf "../$jar_name" "$JC_LIB_SUBDIR/$jar_name"
-    fi
-  done
-fi
-
-ORACLE_CP="$TOOLS_JAR:$API_JAR"
-
-# TRIC classpath (IBM TRIC converter + stub classes for IBM-proprietary APIs)
-TRIC_JAR="$JC_LIB_DIR/tric-1.0.jar"
-IBM_STUBS="$JC_LIB_DIR/ibm-jc-stubs.jar"
-ASM_JAR="$JC_LIB_DIR/asm-all-3.1.jar"
-BCEL_JAR="$JC_LIB_DIR/bcel-5.2.jar"
-CODEC_JAR="$JC_LIB_DIR/commons-codec-1.3.jar"
-
-for f in "$TRIC_JAR" "$IBM_STUBS" "$ASM_JAR" "$BCEL_JAR" "$CODEC_JAR"; do
-  if [ ! -f "$f" ]; then
-    echo "ERROR: $f not found. Run: scripts/setup-libs.sh"
+# Full classpath matching the real converter.bat/converter.sh shipped with
+# the JCOP Eclipse plugin (order doesn't matter for the JVM, but these are
+# exactly the jars it uses — verified via JCOP_DEBUG arg tracing).
+JARS=(
+  "$JC_LIB_DIR/ant-contrib-1.0b3.jar"
+  "$JC_LIB_DIR/api_classic_annotations.jar"
+  "$JC_LIB_DIR/asm-all-3.1.jar"
+  "$JC_LIB_DIR/bcel-5.2.jar"
+  "$JC_LIB_DIR/commons-cli-1.0.jar"
+  "$JC_LIB_DIR/commons-codec-1.3.jar"
+  "$JC_LIB_DIR/commons-httpclient-3.0.jar"
+  "$JC_LIB_DIR/commons-logging-1.1.jar"
+  "$JC_LIB_DIR/jctasks-1.0.jar"
+  "$TOOLS_JAR"
+  "$API_JAR"
+)
+ORACLE_CP=""
+for j in "${JARS[@]}"; do
+  if [ ! -f "$j" ]; then
+    echo "ERROR: $j not found. Run: scripts/setup-libs.sh"
     exit 1
   fi
+  if [ -n "$ORACLE_CP" ]; then
+    ORACLE_CP="$ORACLE_CP:$j"
+  else
+    ORACLE_CP="$j"
+  fi
 done
-
-TRIC_CP="$IBM_STUBS:$TRIC_JAR:$ASM_JAR:$BCEL_JAR:$CODEC_JAR:$API_JAR"
 
 # Export path for referenced packages
 EXPORT_PATH="$EXPORT_DIR"
@@ -161,40 +138,51 @@ if [ -d "$JCOPX_EXPORT_DIR" ]; then
   EXPORT_PATH="$EXPORT_PATH:$JCOPX_EXPORT_DIR"
 fi
 
-# Build order: SIO first (Oracle) because:
-#   1. Oracle produces both .cap and .exp (TRIC only produces .cap)
-#   2. TRIC needs coolbitx.sio.exp to resolve types when building main
-echo
-echo "[1/2] Building SIO package (coolbitx.sio) with Oracle converter..."
+# Strips a converter-produced .cap down to just the real */javacard/*.cap
+# component entries — discards META-INF/MANIFEST.MF, javacard.xml,
+# applet.xml, and the original .class files the converter always embeds
+# when the package declares an applet (see header comment above).
+strip_cap() {
+  local cap_file="$1"
+  local work_dir
+  work_dir="$(mktemp -d)"
+  unzip -q "$cap_file" -d "$work_dir/extracted"
+  (cd "$work_dir/extracted" && find . -name "*.cap") | sed 's|^\./||' > "$work_dir/entries.txt"
+  rm -f "$cap_file"
+  (cd "$work_dir/extracted" && zip -q -X "$cap_file" -@ < "$work_dir/entries.txt")
+  rm -rf "$work_dir"
+}
 
 # AIDs:
 #   Package AID  'Backup'       = 0x42:0x61:0x63:0x6b:0x75:0x70
 #   Applet  AID  'BackupApplet' = 0x42:0x61:0x63:0x6b:0x75:0x70:0x41:0x70:0x70:0x6c:0x65:0x74
+#   Package AID  'CoolWallet'      = 0x43:0x6f:0x6f:0x6c:0x57:0x61:0x6c:0x6c:0x65:0x74
+#   Applet  AID  'CoolWalletPRO'   = above + 0x50:0x52:0x4f
 
-"$JAVA8" -noverify -Djc.home="$JC_HOME" -cp "$ORACLE_CP" com.sun.javacard.converter.Main \
-  -i \
+echo
+echo "[1/2] Building SIO package (coolbitx.sio) with Oracle converter..."
+"$JAVA8" -Djc.home="$JC_LIB_DIR" -cp "$ORACLE_CP" com.sun.javacard.converter.Main \
+  -i -noverify -useproxyclass \
   -classdir "$CLASSDIR" \
   -d "$OUT_SIO" \
   -exportpath "$EXPORT_PATH" \
-  -applet 0x42:0x61:0x63:0x6b:0x75:0x70:0x41:0x70:0x70:0x6c:0x65:0x74 coolbitx.sio.StoreApplet \
-  coolbitx.sio 0x42:0x61:0x63:0x6b:0x75:0x70 1.0
+  coolbitx.sio 0x42:0x61:0x63:0x6b:0x75:0x70 1.0 \
+  -applet 0x42:0x61:0x63:0x6b:0x75:0x70:0x41:0x70:0x70:0x6c:0x65:0x74 coolbitx.sio.StoreApplet
 
 echo
-echo "[2/2] Building main package (coolbitx) with TRIC converter..."
+echo "[2/2] Building main package (coolbitx) with Oracle converter..."
+"$JAVA8" -Djc.home="$JC_LIB_DIR" -cp "$ORACLE_CP" com.sun.javacard.converter.Main \
+  -i -noverify -useproxyclass \
+  -classdir "$CLASSDIR" \
+  -d "$OUT_MAIN" \
+  -exportpath "$EXPORT_PATH:$OUT_SIO" \
+  coolbitx 0x43:0x6f:0x6f:0x6c:0x57:0x61:0x6c:0x6c:0x65:0x74 1.0 \
+  -applet 0x43:0x6f:0x6f:0x6c:0x57:0x61:0x6c:0x6c:0x65:0x74:0x50:0x52:0x4f coolbitx.Main
 
-# TRIC AID format: plain hex string (no 0x: prefix).
-# CoolWallet  (pkg)    = 0x43 0x6f 0x6f 0x6c 0x57 0x61 0x6c 0x6c 0x65 0x74
-# CoolWalletPRO (applet)= above + 0x50 0x52 0x4f
-# -ncv : no CAP file verification (equivalent to Oracle's -noverify concern)
-# OUT_SIO contains the coolbitx.sio.exp needed for cross-package type resolution
-
-"$JAVA8" -cp "$TRIC_CP" com.ibm.jc.apps.tric.jc.Converter \
-  -dd "$OUT_MAIN" \
-  -cp "$CLASSDIR" \
-  -ep "$EXPORT_PATH:$OUT_SIO" \
-  -ncv \
-  -a 436f6f6c57616c6c657450524f coolbitx.Main \
-  coolbitx 436f6f6c57616c6c6574 1 0
+echo
+echo "Stripping desktop-tooling metadata (MANIFEST/xml/embedded .class) from output CAPs..."
+strip_cap "$OUT_MAIN/coolbitx/javacard/coolbitx.cap"
+strip_cap "$OUT_SIO/coolbitx/sio/javacard/sio.cap"
 
 echo
 echo "=== CAP build completed ==="

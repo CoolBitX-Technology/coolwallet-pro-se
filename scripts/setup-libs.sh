@@ -57,11 +57,16 @@ if [ -d "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" ]; then
   cp -R "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" "$OUT_DIR"/api_export_files
 fi
 
-echo "[4/5] Copy TRIC converter jars and JCOPx export files..."
+echo "[4/5] Copy Oracle converter jars and JCOPx export files..."
 
-# TRIC converter and its runtime dependencies (from plugin lib/)
+# Oracle converter (tools-1.0.jar — the actual jar Windows Eclipse + JCOP
+# Tools uses, NOT a patched vanilla tools.jar) and its runtime dependencies
+# (from plugin lib/). This is the full classpath used by the plugin's own
+# cmds/converter.sh|.bat.
 PLUGIN_LIB="$TEMP_DIR/plugin/lib"
-for jar_name in tric-1.0.jar asm-all-3.1.jar bcel-5.2.jar commons-codec-1.3.jar; do
+for jar_name in ant-contrib-1.0b3.jar asm-all-3.1.jar bcel-5.2.jar \
+  commons-codec-1.3.jar commons-httpclient-3.0.jar commons-logging-1.1.jar \
+  jctasks-1.0.jar tools-1.0.jar; do
   if [ -f "$PLUGIN_LIB/$jar_name" ]; then
     cp "$PLUGIN_LIB/$jar_name" "$OUT_DIR/"
     echo "  Copied $jar_name"
@@ -99,9 +104,8 @@ echo
 echo "Done."
 echo
 echo "You can now:"
-echo "  1) Run: scripts/make-ibm-stubs.sh  # compile IBM stub classes for TRIC"
-echo "  2) Run: scripts/cap-build.sh       # compile + build CAP files"
-echo "  3) Run: scripts/run-web-server.sh  # compile + start simulator"
+echo "  1) Run: scripts/cap-build.sh       # compile + build CAP files"
+echo "  2) Run: scripts/run-web-server.sh  # compile + start simulator"
 
 rm -rf "$TEMP_DIR"
 

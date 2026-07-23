@@ -1,6 +1,10 @@
 #! /bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-READER="Identiv uTrust 4701 F Dual Interface Reader(2)"
+# Leave empty to let GlobalPlatformPro auto-select the sole connected reader
+# (PC/SC reader enumeration for dual-interface readers can shift between
+# sessions — a hardcoded "(1)"/"(2)" suffix can go stale). Set this if you
+# have multiple readers connected and need to pick a specific one.
+READER="${GP_READER:-}"
 # GlobalPlatformPro's own default test key — passing it explicitly avoids
 # its "no keys given, defaulting to ..." warning on every command.
 KEY="404142434445464748494A4B4C4D4E4F"
@@ -48,24 +52,31 @@ run_step_delete() {
 
 overall_status=0
 
+# Only pass -r when a reader was explicitly requested — an empty "-r ''"
+# would fail differently than simply letting gp.jar auto-select.
+READER_ARGS=()
+if [ -n "${READER}" ]; then
+  READER_ARGS=(-r "${READER}")
+fi
+
 run_step_delete "刪除舊 applet/package（若尚未安裝過則視為正常）" \
-  java -jar "${DIR}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f -delete 436f6f6c57616c6c6574 -r "${READER}" \
+  java -jar "${DIR}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
   || overall_status=$?
 
 if [ "$1" == "1" ]; then
   install_desc="安裝 CAP（params c0）"
   run_step "${install_desc}" \
-    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" -params c0 -r "${READER}" -default \
+    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" -params c0 "${READER_ARGS[@]}" -default \
     || overall_status=$?
 else
   install_desc="安裝 CAP（無 params）"
   run_step "${install_desc}" \
-    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" -r "${READER}" -default \
+    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" "${READER_ARGS[@]}" -default \
     || overall_status=$?
 fi
 
 run_step "選取 applet 並發送測試 APDU" \
-  java -jar "${DIR}/gp.jar" -key "${KEY}" -apdu 00a404000d436f6f6c57616c6c657450524f -apdu 8052000000 -r "${READER}" -debug \
+  java -jar "${DIR}/gp.jar" -key "${KEY}" -apdu 00a404000d436f6f6c57616c6c657450524f -apdu 8052000000 "${READER_ARGS[@]}" -debug \
   || overall_status=$?
 
 echo "========================================"

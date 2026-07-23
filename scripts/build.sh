@@ -83,21 +83,21 @@ if [ -n "$ECJ_JAR" ]; then
   echo "  (using ECJ: $ECJ_JAR)"
   if [ "$SIM_MODE" = true ]; then
     echo "       (sim mode: -bootclasspath skipped)"
-    "$JAVA8" -jar "$ECJ_JAR" -cp "$CLASSPATH" -source 1.5 -target 1.5 -nowarn \
+    "$JAVA8" -jar "$ECJ_JAR" -cp "$CLASSPATH" -source 1.5 -target 1.5 -g -nowarn \
       -d "$BIN_DIR" $SRC_FILES
   else
-    "$JAVA8" -jar "$ECJ_JAR" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -nowarn \
+    "$JAVA8" -jar "$ECJ_JAR" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -g -nowarn \
       -d "$BIN_DIR" $SRC_FILES
   fi
 else
   echo "  (ECJ not found in lib/, falling back to javac)"
   if [ "$SIM_MODE" = true ]; then
     echo "       (sim mode: -bootclasspath skipped)"
-    "$JAVAC" -cp "$CLASSPATH" -source 1.5 -target 1.5 -Xlint:-options -d "$BIN_DIR" $SRC_FILES
+    "$JAVAC" -cp "$CLASSPATH" -source 1.5 -target 1.5 -g -Xlint:-options -d "$BIN_DIR" $SRC_FILES
   else
     # Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
     # This produces cleaner type information that the JavaCard converter can process without errors.
-    "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -Xlint:-options \
+    "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -g -Xlint:-options \
       -d "$BIN_DIR" $SRC_FILES
   fi
 fi
