@@ -43,30 +43,42 @@ public class MathUtil {
 		return carry;
 	}
 
-	// a = a+b (32-bit big-endian word)
-	public static void addInt(byte[] a, short aOff, byte[] b, short bOff) {
-		int aValue = (a[aOff] & 0xFF) << 24 | (a[(short)(aOff+1)] & 0xFF) << 16
-				| (a[(short)(aOff+2)] & 0xFF) << 8 | (a[(short)(aOff+3)] & 0xFF);
-		int bValue = (b[bOff] & 0xFF) << 24 | (b[(short)(bOff+1)] & 0xFF) << 16
-				| (b[(short)(bOff+2)] & 0xFF) << 8 | (b[(short)(bOff+3)] & 0xFF);
-		int result = aValue + bValue;
-		a[aOff] = (byte)(result >>> 24);
-		a[(short)(aOff+1)] = (byte)(result >>> 16);
-		a[(short)(aOff+2)] = (byte)(result >>> 8);
-		a[(short)(aOff+3)] = (byte)result;
+	public static int makeInt(byte[] a, short aOff) {
+		return a[(short) (aOff + 3)] & 0xFF
+				| (a[(short) (aOff + 2)] & 0xff) << 8
+				| (a[(short) (aOff + 1)] & 0xff) << 16
+				| (a[(aOff)] & 0xff) << 24;
 	}
 
-	// a ^= b (32-bit big-endian word)
+	/**
+	 * Set given int to given bytes array. <code> a = value; </code>
+	 * 
+	 * @param a
+	 *            bytes array.
+	 * @param aOff
+	 *            offset of bytes array.
+	 * @param value
+	 *            int value.
+	 */
+	public static void setInt(byte[] a, short aOff, int value) {
+		a[aOff] = (byte) (value >>> 24);
+		a[(short) (aOff + 1)] = (byte) (value >>> 16);
+		a[(short) (aOff + 2)] = (byte) (value >>> 8);
+		a[(short) (aOff + 3)] = (byte) value;
+	}
+
+	// a = a+b
+	public static void addInt(byte[] a, short aOff, byte[] b, short bOff) {
+		int aValue = makeInt(a, aOff);
+		int bValue = makeInt(b, bOff);
+		setInt(a, aOff, aValue + bValue);
+	}
+
+	// a ^= b
 	public static void xorInt(byte[] a, short aOff, byte[] b, short bOff) {
-		int aValue = (a[aOff] & 0xFF) << 24 | (a[(short)(aOff+1)] & 0xFF) << 16
-				| (a[(short)(aOff+2)] & 0xFF) << 8 | (a[(short)(aOff+3)] & 0xFF);
-		int bValue = (b[bOff] & 0xFF) << 24 | (b[(short)(bOff+1)] & 0xFF) << 16
-				| (b[(short)(bOff+2)] & 0xFF) << 8 | (b[(short)(bOff+3)] & 0xFF);
-		int result = aValue ^ bValue;
-		a[aOff] = (byte)(result >>> 24);
-		a[(short)(aOff+1)] = (byte)(result >>> 16);
-		a[(short)(aOff+2)] = (byte)(result >>> 8);
-		a[(short)(aOff+3)] = (byte)result;
+		int aValue = makeInt(a, aOff);
+		int bValue = makeInt(b, bOff);
+		setInt(a, aOff, aValue ^ bValue);
 	}
 
 	public static void big2littleEndian(byte[] big, short bigOff,
@@ -165,13 +177,9 @@ public class MathUtil {
 	}
 
 	public static void rotrInt(byte[] buf, short off, short rot) {
-		int value = (buf[off] & 0xFF) << 24 | (buf[(short)(off+1)] & 0xFF) << 16
-				| (buf[(short)(off+2)] & 0xFF) << 8 | (buf[(short)(off+3)] & 0xFF);
+		int value = makeInt(buf, off);
 		value = (value >>> rot) | (value << (32 - rot));
-		buf[off] = (byte)(value >>> 24);
-		buf[(short)(off+1)] = (byte)(value >>> 16);
-		buf[(short)(off+2)] = (byte)(value >>> 8);
-		buf[(short)(off+3)] = (byte)value;
+		setInt(buf, off, value);
 	}
 
 	public static void rotr(byte[] buf, short off, short len, short rot) {
