@@ -81,9 +81,9 @@ run_step "選取 applet 並發送測試 APDU" \
 
 echo "========================================"
 if [ ${overall_status} -eq 0 ]; then
-  echo -e "${COLOR_OK}✔ install-cap.sh 執行成功${COLOR_RESET}"
+  echo -e "${COLOR_OK}✔ main-cap-install.sh 執行成功${COLOR_RESET}"
 else
-  echo -e "${COLOR_FAIL}✘ install-cap.sh 執行失敗，請檢查上方 [FAIL] 步驟的錯誤訊息${COLOR_RESET}"
+  echo -e "${COLOR_FAIL}✘ main-cap-install.sh 執行失敗，請檢查上方 [FAIL] 步驟的錯誤訊息${COLOR_RESET}"
 fi
 
 exit ${overall_status}
