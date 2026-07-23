@@ -1,5 +1,5 @@
 #! /bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 # Leave empty to let GlobalPlatformPro auto-select the sole connected reader
 # (PC/SC reader enumeration for dual-interface readers can shift between
 # sessions — a hardcoded "(1)"/"(2)" suffix can go stale). Set this if you
@@ -60,30 +60,30 @@ if [ -n "${READER}" ]; then
 fi
 
 run_step_delete "刪除舊 applet/package（若尚未安裝過則視為正常）" \
-  java -jar "${DIR}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
   || overall_status=$?
 
 if [ "$1" == "1" ]; then
   install_desc="安裝 CAP（params c0）"
   run_step "${install_desc}" \
-    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" -params c0 "${READER_ARGS[@]}" -default \
+    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/javacard/coolbitx.cap" -params c0 "${READER_ARGS[@]}" -default \
     || overall_status=$?
 else
   install_desc="安裝 CAP（無 params）"
   run_step "${install_desc}" \
-    java -jar "${DIR}/gp.jar" -key "${KEY}" -install "${DIR}/bin/coolbitx/javacard/coolbitx.cap" "${READER_ARGS[@]}" -default \
+    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/javacard/coolbitx.cap" "${READER_ARGS[@]}" -default \
     || overall_status=$?
 fi
 
 run_step "選取 applet 並發送測試 APDU" \
-  java -jar "${DIR}/gp.jar" -key "${KEY}" -apdu 00a404000d436f6f6c57616c6c657450524f -apdu 8052000000 "${READER_ARGS[@]}" -debug \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -apdu 00a404000d436f6f6c57616c6c657450524f -apdu 8052000000 "${READER_ARGS[@]}" -debug \
   || overall_status=$?
 
 echo "========================================"
 if [ ${overall_status} -eq 0 ]; then
-  echo -e "${COLOR_OK}✔ init.sh 執行成功${COLOR_RESET}"
+  echo -e "${COLOR_OK}✔ install-cap.sh 執行成功${COLOR_RESET}"
 else
-  echo -e "${COLOR_FAIL}✘ init.sh 執行失敗，請檢查上方 [FAIL] 步驟的錯誤訊息${COLOR_RESET}"
+  echo -e "${COLOR_FAIL}✘ install-cap.sh 執行失敗，請檢查上方 [FAIL] 步驟的錯誤訊息${COLOR_RESET}"
 fi
 
 exit ${overall_status}
