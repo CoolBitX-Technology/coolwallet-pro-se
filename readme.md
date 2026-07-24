@@ -136,14 +136,14 @@ If you are on macOS/Linux, you can run `scripts/setup-libs.sh` to extract these 
 This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WSL)** who prefer using command-line tools or VS Code/Cursor. It supports compiling, simulating (without a physical card), and generating CAP files.
 
 ### Prerequisites
-- A JDK on `JAVA_HOME` (or just on `PATH`) — the build scripts compile via the bundled ECJ compiler (`lib/ecj-*.jar`), which always targets JavaCard-compatible bytecode (`-source/-target 1.5`) regardless of which JDK runs it, so any JDK works (verified against 8, 11, and 17). If `lib/ecj-*.jar` is ever missing, the scripts fall back to your JDK's own `javac`, which *does* need to be JDK 8 — `-source/-target 1.5` was dropped in later `javac` versions.
+- A JDK on `JAVA_HOME` (or `PATH`) — any version works (verified on 8, 11, 17)
 - Gradle (for downloading simulator dependencies)
 
 ### Configuration
 
 #### 1. VS Code Configuration (Optional)
 
-This tells the **VS Code Java extension** where a JDK 8 is so that IDE features (code completion, error highlighting, etc.) work correctly — the project's `.classpath` declares its execution environment as `JavaSE-1.8` (matching the JavaCard-compatible bytecode target above), independently of whichever JDK the build scripts use. It has no effect on the build scripts themselves.
+This tells the **VS Code Java extension** where a JDK 8 is so that IDE features (code completion, error highlighting, etc.) work correctly. It has no effect on the build scripts.
 
 The project's `.vscode/settings.json` already configures VS Code to auto-detect Java 8, so no manual changes are needed in most cases.
 
@@ -212,24 +212,21 @@ curl -X POST http://localhost:9527/apdu -d '00A404000D436F6F6C57616C6C657450524F
 
 #### Step 4: Generate CAP files
 
-After compilation, you can generate CAP files with the following commands:
-
 ```bash
-chmod +x scripts/build-cap.sh
-scripts/build-cap.sh
+chmod +x scripts/cap-build.sh
+scripts/cap-build.sh
 ```
 
-This script will:
-- Read `.class` files from the `bin/` directory
-- Use the JavaCard converter in `local_lib/javacard-libs/tools.jar`
-- Use export files in `local_lib/javacard-libs/api_export_files`
-- Produce two CAP packages:
-  - Main applet: `coolbitx` (main applet, AID `CoolWalletPRO`)
-  - SIO applet: `coolbitx.sio` (StoreApplet, AID `BackupApplet`)
+Produces two CAP packages:
+- Main applet: `coolbitx` (AID `CoolWalletPRO`) → `bin/coolbitx/javacard/coolbitx.cap`
+- SIO applet: `coolbitx.sio` (AID `BackupApplet`) → `bin/coolbitx/sio/javacard/sio.cap`
 
-CAP output locations:
-- Main package: `bin/coolbitx/javacard/`
-- SIO package: `bin/coolbitx/sio/javacard/`
+To install onto a physical card via GlobalPlatformPro:
+
+```bash
+chmod +x scripts/main-cap-install.sh
+scripts/main-cap-install.sh
+```
 
 ---
 
