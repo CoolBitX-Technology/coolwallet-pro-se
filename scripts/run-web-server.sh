@@ -12,31 +12,15 @@ PUBLIC_LIB_DIR="$PROJECT_ROOT/lib"
 # Local, non-versioned JCOP / JavaCard libs live under local_lib/
 JC_LIB_DIR="$PROJECT_ROOT/local_lib/javacard-libs"
 
-# Use Java 8 explicitly (jcardsim 3.x expects Java 8 / URLClassLoader)
-# Load Java 8 home from javacard.config or environment
-CONFIG_FILE="$PROJECT_ROOT/javacard.config"
-
-# Read from config if variable is not set
-if [ -z "${JAVA8_HOME:-}" ]; then
-  if [ -f "$CONFIG_FILE" ]; then
-    # Read line starting with JAVA8_HOME=...
-    # cut -d'=' -f2- handles values containing '='
-    JAVA8_HOME_CFG=$(grep "^JAVA8_HOME=" "$CONFIG_FILE" | head -1 | cut -d'=' -f2-)
-    if [ -n "$JAVA8_HOME_CFG" ]; then
-      JAVA8_HOME="$JAVA8_HOME_CFG"
-    fi
-  fi
+# Verified working against JDK 8/11/17 — jcardsim/SimHttpServer has no
+# actual Java 8 requirement, so any JDK on JAVA_HOME/PATH works.
+if [ -n "${JAVA_HOME:-}" ]; then
+  JAVAC8="$JAVA_HOME/bin/javac"
+  JAVA8="$JAVA_HOME/bin/java"
+else
+  JAVAC8="javac"
+  JAVA8="java"
 fi
-
-if [ -z "${JAVA8_HOME:-}" ]; then
-  echo "ERROR: JAVA8_HOME is not set."
-  echo "Please set it in '$CONFIG_FILE' (e.g., JAVA8_HOME=/path/to/jdk8)"
-  echo "or export JAVA8_HOME in your environment."
-  exit 1
-fi
-
-JAVAC8="$JAVA8_HOME/bin/javac"
-JAVA8="$JAVA8_HOME/bin/java"
 
 # Locate jcardsim jar:
 # 1) Prefer committed jar under lib/jcardsim-*.jar

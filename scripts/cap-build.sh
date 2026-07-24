@@ -47,26 +47,13 @@ if [ ! -d "$JCOPX_EXPORT_DIR" ] && [ -d "$JC_LIB_DIR/com/nxp" ]; then
 fi
 CLASSDIR="$PROJECT_ROOT/bin"
 
-# Load Java 8 home from javacard.config or environment
-CONFIG_FILE="$PROJECT_ROOT/javacard.config"
-
-if [ -z "${JAVA8_HOME:-}" ]; then
-  if [ -f "$CONFIG_FILE" ]; then
-    JAVA8_HOME_CFG=$(grep "^JAVA8_HOME=" "$CONFIG_FILE" | head -1 | cut -d'=' -f2-)
-    if [ -n "$JAVA8_HOME_CFG" ]; then
-      JAVA8_HOME="$JAVA8_HOME_CFG"
-    fi
-  fi
+# The Oracle converter runs fine under any modern JVM — no pinned JDK 8
+# needed (see scripts/build.sh for why compilation itself isn't tied to one).
+if [ -n "${JAVA_HOME:-}" ]; then
+  JAVA8="$JAVA_HOME/bin/java"
+else
+  JAVA8="java"
 fi
-
-if [ -z "${JAVA8_HOME:-}" ]; then
-  echo "ERROR: JAVA8_HOME is not set."
-  echo "Please set it in '$CONFIG_FILE' (e.g., JAVA8_HOME=/path/to/jdk8)"
-  echo "or export JAVA8_HOME in your environment."
-  exit 1
-fi
-
-JAVA8="$JAVA8_HOME/bin/java"
 
 # Both converters append the package path (and a trailing "javacard"
 # segment) under whatever directory is passed via -d, so pass the bin/

@@ -136,27 +136,14 @@ If you are on macOS/Linux, you can run `scripts/setup-libs.sh` to extract these 
 This workflow is recommended for users on **macOS**, **Linux**, or **Windows (WSL)** who prefer using command-line tools or VS Code/Cursor. It supports compiling, simulating (without a physical card), and generating CAP files.
 
 ### Prerequisites
-- JDK 8 (Must be accessible via `JAVA8_HOME`)
+- A JDK on `JAVA_HOME` (or just on `PATH`) — the build scripts compile via the bundled ECJ compiler (`lib/ecj-*.jar`), which always targets JavaCard-compatible bytecode (`-source/-target 1.5`) regardless of which JDK runs it, so any JDK works (verified against 8, 11, and 17). If `lib/ecj-*.jar` is ever missing, the scripts fall back to your JDK's own `javac`, which *does* need to be JDK 8 — `-source/-target 1.5` was dropped in later `javac` versions.
 - Gradle (for downloading simulator dependencies)
 
 ### Configuration
 
-#### 1. Configure Java 8 Path (Required)
+#### 1. VS Code Configuration (Optional)
 
-The build scripts (`build.sh`, `run-web-server.sh`, etc.) require `JAVA8_HOME` to locate the Java 8 compiler. Create a `javacard.config` file in the project root to set this path:
-
-```bash
-cat > javacard.config <<EOF
-# Path to your Java 8 installation
-JAVA8_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
-EOF
-```
-
-> **Note:** If `JAVA8_HOME` is already exported in your shell (`.zshrc` / `.bash_profile`), the `javacard.config` file is not needed — the scripts will use the environment variable directly.
-
-#### 2. VS Code Configuration (Optional)
-
-This step is independent of Step 1. It tells the **VS Code Java extension** where Java 8 is so that IDE features (code completion, error highlighting, etc.) work correctly. It has no effect on the build scripts.
+This tells the **VS Code Java extension** where a JDK 8 is so that IDE features (code completion, error highlighting, etc.) work correctly — the project's `.classpath` declares its execution environment as `JavaSE-1.8` (matching the JavaCard-compatible bytecode target above), independently of whichever JDK the build scripts use. It has no effect on the build scripts themselves.
 
 The project's `.vscode/settings.json` already configures VS Code to auto-detect Java 8, so no manual changes are needed in most cases.
 
@@ -204,13 +191,13 @@ scripts/build.sh
 ```
 
 `scripts/build.sh` will:
-- Compile all `.java` files under `src/` using Java 8
+- Compile all `.java` files under `src/` to JavaCard-compatible bytecode
 - Use the JavaCard / JCOP jars in `local_lib/javacard-libs` as the classpath
 - Output `.class` files into the `bin/` directory
 
 #### Step 3: Run the Simulator (Web Service)
 
-To start the APDU simulation web service on port 9527 (requires `javacard.config` to be set):
+To start the APDU simulation web service on port 9527:
 
 ```bash
 chmod +x scripts/run-web-server.sh
