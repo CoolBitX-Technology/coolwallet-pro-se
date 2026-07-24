@@ -1,8 +1,10 @@
 {
-    // Java 8 runtime — no path specified; VSCode auto-detects via JAVA_HOME or installed JDKs
+    // Satisfies .classpath's JavaSE-1.8 execution environment declaration so
+    // the Java Language Server can resolve types.
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-1.8",
+            "path": "/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home", // Set your Java 8 path here
             "default": true
         }
     ],

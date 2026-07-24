@@ -52,5 +52,4 @@ src/coolbitx/KeyGenerate.java
 
 # Additional crypto module
 coolwallet-pro-se-crypto/
-javacard.config
 coolwallet-pro-se.env

@@ -10,16 +10,30 @@ repositories {
     }
 }
 
+configurations {
+    ecjCompiler
+}
+
 dependencies {
     implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
     // JavaCard simulator (for host-side testing without a real card)
     // implementation 'com.licel:jcardsim:3.0.5-SNAPSHOT'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+
+    // Eclipse Compiler for Java — used by build.sh to compile JavaCard sources
+    // (produces bytecode compatible with JavaCard converter 3.0.5)
+    ecjCompiler 'org.eclipse.jdt:ecj:3.18.0'
 }
 
 test {
     useJUnitPlatform()
+}
+
+// 將 ECJ jar 複製到 lib/（可 commit 進 git，供 build.sh 使用）
+tasks.register('copyEcj', Copy) {
+    from configurations.ecjCompiler
+    into file("$projectDir/lib")
 }
 
 // 將 jcardsim / BouncyCastle 等 host-side 依賴複製到 local_lib/javacard-libs（不進 git）
