@@ -60,13 +60,16 @@ fi
 echo "[4/5] Copy Oracle converter jars and JCOPx export files..."
 
 # Oracle converter (tools-1.0.jar — the actual jar Windows Eclipse + JCOP
-# Tools uses, NOT a patched vanilla tools.jar) and its runtime dependencies
-# (from plugin lib/). This is the full classpath used by the plugin's own
-# cmds/converter.sh|.bat.
+# Tools uses, NOT a patched vanilla tools.jar) and jctasks-1.0.jar, from the
+# plugin's own lib/. This is part of the classpath used by the plugin's own
+# cmds/converter.sh|.bat; every other jar that script needs
+# (ant-contrib/asm-all/bcel/commons-*) is byte-identical to the copy already
+# pulled from Java_Card_Classic_API-3.0.5/lib/ above, so only these two
+# (which exist ONLY here, under different names than their
+# Java_Card_Classic_API-3.0.5/lib/ counterparts jctasks.jar/tools.jar) need
+# a separate copy.
 PLUGIN_LIB="$TEMP_DIR/plugin/lib"
-for jar_name in ant-contrib-1.0b3.jar asm-all-3.1.jar bcel-5.2.jar \
-  commons-codec-1.3.jar commons-httpclient-3.0.jar commons-logging-1.1.jar \
-  jctasks-1.0.jar tools-1.0.jar; do
+for jar_name in jctasks-1.0.jar tools-1.0.jar; do
   if [ -f "$PLUGIN_LIB/$jar_name" ]; then
     cp "$PLUGIN_LIB/$jar_name" "$OUT_DIR/"
     echo "  Copied $jar_name"
