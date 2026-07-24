@@ -1,5 +1,6 @@
 {
-    // Java 8 runtime — path matches JAVA8_HOME in javacard.config
+    // Satisfies .classpath's JavaSE-1.8 execution environment declaration so
+    // the Java Language Server can resolve types.
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-1.8",
