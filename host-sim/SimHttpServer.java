@@ -230,10 +230,13 @@ public class SimHttpServer {
                 byte[] mainAppletAidBytes = "CoolWalletPRO".getBytes(StandardCharsets.US_ASCII);
                 AID mainAppletAid = new AID(mainAppletAidBytes, (short) 0, (byte) mainAppletAidBytes.length);
                 short aidLen = (short) mainAppletAidBytes.length;
-                byte[] installParams = new byte[aidLen + 3];
+                // [aidLen][aid][controlLen=0][paraLen=1][para=0x40] -> developMode=true, matching coolwallet-jcvm's default
+                byte[] installParams = new byte[aidLen + 4];
                 installParams[0] = (byte) aidLen;
                 System.arraycopy(mainAppletAidBytes, 0, installParams, 1, aidLen);
                 installParams[aidLen + 1] = (byte) 0x00;
+                installParams[aidLen + 2] = (byte) 0x01;
+                installParams[aidLen + 3] = (byte) 0x40;
 
                 // 使用另一個支援傳入 install data 的 installApplet 方法
                 simulator.installApplet(
