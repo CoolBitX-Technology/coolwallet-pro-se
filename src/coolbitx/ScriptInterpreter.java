@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 11;
+	public static final byte scriptVersion = 12;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -424,9 +424,27 @@ public class ScriptInterpreter {
 				case (byte) 0x11:
 					// skip incoming script unless data[] is signed by sign[]
 					// (data,offset,length,signBuf=argument,offset,jumpDistance)
-					if (!SignUtil.isVerifiedFixedLength(dataBuf, dataOffset, dataLength, argument,
-							argInt1, KeyUtil.getPubKey(KeyStore.CBPubKey, Common.OFFSET_ZERO))) {
-						si += argInt0;
+					if (argType == ARG_TYPE_RLP) {
+						// data: content of the [tokenInfo, sign] list, header excluded
+						RlpDataParser.decodeChildByIndex(dataBuf, dataOffset, dataLength, (byte) 0);
+						short tokenInfoDataOffset = RlpDataParser.getDataOffset();
+						short tokenInfoDataLength = RlpDataParser.getDataLength();
+
+						RlpDataParser.decodeChildByIndex(dataBuf, dataOffset, dataLength, (byte) 1);
+						short signOffset = RlpDataParser.getDataOffset();
+						if (!SignUtil.isVerifiedFixedLength(dataBuf, tokenInfoDataOffset,
+								tokenInfoDataLength, dataBuf, signOffset,
+								KeyUtil.getPubKey(KeyStore.CBPubKey, Common.OFFSET_ZERO))) {
+							si += argInt0;
+						}
+					} else if (argType == ARG_TYPE_CONCATENATED) {
+						if (!SignUtil.isVerifiedFixedLength(dataBuf, dataOffset, dataLength,
+								argument, argInt1,
+								KeyUtil.getPubKey(KeyStore.CBPubKey, Common.OFFSET_ZERO))) {
+							si += argInt0;
+						}
+					} else {
+						ISOException.throwIt((short) 0x6A77);
 					}
 					break;
 				case (byte) 0x25:
@@ -809,16 +827,16 @@ public class ScriptInterpreter {
 				// ================ script verion 10 ================
 				case (byte) 0x5c: {
 					// advanced hash
-					// data: RLP list [data][context]
+					// data: content of the [data, context] list, header excluded
 					// context: salt, key, personal...
 
 					// data
-					RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength, (byte) 0);
+					RlpDataParser.decodeChildByIndex(dataBuf, dataOffset, dataLength, (byte) 0);
 					short hashDataOffset = RlpDataParser.getDataOffset();
 					short hashDataLength = RlpDataParser.getDataLength();
 
 					// context
-					RlpDataParser.decodeByIndex(dataBuf, dataOffset, dataLength, (byte) 1);
+					RlpDataParser.decodeChildByIndex(dataBuf, dataOffset, dataLength, (byte) 1);
 					short contextOffset = RlpDataParser.getDataOffset();
 					short contextLength = RlpDataParser.getDataLength();
 					// getHash(dataBuf, dataOffset, dataLength, destBuf, destOffset,
@@ -840,6 +858,7 @@ public class ScriptInterpreter {
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
 		argumentLength = 0;
 		isExecuted = true;
+
 	}
 
 	public static boolean validateSignState(byte[] path, short pathOffset, short pathLength) {
