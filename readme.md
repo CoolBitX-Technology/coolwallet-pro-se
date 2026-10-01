@@ -221,11 +221,43 @@ Produces two CAP packages:
 - Main applet: `coolbitx` (AID `CoolWalletPRO`) → `bin/coolbitx/javacard/coolbitx.cap`
 - SIO applet: `coolbitx.sio` (AID `BackupApplet`) → `bin/coolbitx/sio/javacard/sio.cap`
 
-To install onto a physical card via GlobalPlatformPro:
+> **Note:** `scripts/build.sh` (also run by `scripts/run-web-server.sh`) wipes `bin/`, including the CAP files. Re-run `scripts/cap-build.sh` before installing if you have built or started the simulator since. The install scripts abort before touching the card if the CAP is missing.
+
+#### Step 5: Install onto a Physical Card
+
+Both scripts use GlobalPlatformPro (`gp.jar`) with its default test key. The main package depends on the SIO package, so on a fresh card install SIO first, then main.
+
+**SIO applet (`BackupApplet`):**
+
+```bash
+chmod +x scripts/sio-cap-install.sh
+scripts/sio-cap-install.sh <card id>      # e.g. scripts/sio-cap-install.sh CWP000001
+```
+
+- `<card id>` is required; it is written to `BackupApplet` after install.
+- The script deletes the main applet/package first (it depends on SIO), then the existing `BackupApplet` and SIO package, then reinstalls SIO.
+- If the main applet/package cannot be deleted, the script stops without touching `BackupApplet`.
+
+> ⚠️ **Deleting `BackupApplet` wipes the card id and genuine key stored on the card.** Only run `sio-cap-install.sh` on a card you intend to re-provision.
+
+**Main applet (`CoolWalletPRO`):**
 
 ```bash
 chmod +x scripts/main-cap-install.sh
-scripts/main-cap-install.sh
+scripts/main-cap-install.sh       # install with no install parameters
+scripts/main-cap-install.sh 1     # install with -params c0 (factoryMode + developMode)
+```
+
+- Install parameter bits: `0x80` enables `factoryMode`, `0x40` enables `developMode`.
+- After install, the script selects the applet and sends a test APDU (`80 52 00 00 00`). It reports `[FAIL]` if any response is not `9000`.
+
+**Selecting a card reader:**
+
+By default `gp.jar` auto-selects the reader, preferring the one with a card present. A dual-interface reader shows up as two readers, e.g. `... Dual Interface Reader(1)` and `(2)`, and their numbering can shift between sessions. If `gp.jar` picks the wrong reader or cannot decide, set `GP_READER` to the reader name. On macOS, list reader names with `system_profiler SPSmartCardsDataType`:
+
+```bash
+GP_READER="<reader name>" scripts/sio-cap-install.sh <card id>
+GP_READER="<reader name>" scripts/main-cap-install.sh
 ```
 
 ---
