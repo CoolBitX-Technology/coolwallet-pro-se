@@ -26,7 +26,6 @@ import javacard.security.DESKey;
 
 // Bouncy Castle Imports (使用標準 org.bouncycastle)
 import org.bouncycastle.crypto.BufferedBlockCipher;
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.engines.DESEngine;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
@@ -169,8 +168,6 @@ public class SymmetricCipherImpl extends Cipher {
             int processed = engine.processBytes(inBuff, inOffset, inLength, outBuff, outOffset);
             processed += engine.doFinal(outBuff, outOffset + processed);
             return (short) processed;
-        } catch (InvalidCipherTextException e) {
-            CryptoException.throwIt(CryptoException.ILLEGAL_USE);
         } catch (Exception e) {
             CryptoException.throwIt(CryptoException.ILLEGAL_USE);
         }

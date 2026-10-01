@@ -7,8 +7,10 @@ import coolbitx.sio.StoreInterface;
 
 /**
  * Simulator-only wrapper that logs exceptions before jcardsim swallows them.
- * Used instead of coolbitx.Main in SimHttpServer so that any exception
- * thrown from process() is printed to stderr before 6F00 is returned.
+ * Not wired in by default — for manual debugging only. To use it, temporarily
+ * replace coolbitx.Main.class with coolbitx.SimMain.class in SimHttpServer's
+ * installApplet call, so that any exception thrown from process() is printed
+ * to stderr before 6F00 is returned.
  */
 public class SimMain extends Main {
 

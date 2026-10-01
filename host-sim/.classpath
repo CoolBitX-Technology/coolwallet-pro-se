@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<!--
-		IDE project for Cursor / VS Code (paired with `coolwallet.code-workspace`).
+		IDE project for the jCardSim host simulator (VS Code / Cursor).
 
 		Source folders:
 		  - ""        : host-sim/ itself (simulator overrides, SimHttpServer, etc.)
 		  - src-main  : linked resource pointing at ../src (declared in .project)
 
 		This project is self-contained on purpose: it does NOT depend on the
-		root Eclipse project, so Cursor users do not have to import the
-		root `.project`/`.classpath` (which targets the Windows Eclipse +
-		NXP JCOP plugin CAP workflow).
+		root Eclipse project, whose `.project`/`.classpath` targets the
+		Windows Eclipse + NXP JCOP plugin CAP workflow.
 	-->
 	<classpathentry kind="src" path=""/>
 	<classpathentry kind="src" path="src-main" excluding="coolbitx/sim/"/>

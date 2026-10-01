@@ -137,38 +137,6 @@ public class KeyAgreementX extends KeyAgreement {
             CryptoException.throwIt(CryptoException.INVALID_INIT);
         }
     }
-    // @Override
-    // public void init(Key key) throws CryptoException {
-    // if (!(key instanceof ECPrivateKey)) {
-    // CryptoException.throwIt(CryptoException.ILLEGAL_VALUE);
-    // }
-    // this.privateKey = (ECPrivateKey) key;
-
-    // // 設定橢圓曲線參數 (預設嘗試 secp256k1)
-    // ECNamedCurveParameterSpec spec =
-    // ECNamedCurveTable.getParameterSpec("secp256k1");
-    // if (spec == null) {
-    // spec = ECNamedCurveTable.getParameterSpec("secp256r1");
-    // }
-    // this.bcParams = new ECDomainParameters(spec.getCurve(), spec.getG(),
-    // spec.getN(), spec.getH());
-
-    // // 提取私鑰數值
-    // try {
-    // byte[] buffer = new byte[128];
-    // int len = privateKey.getS(buffer, (short) 0);
-
-    // byte[] sBytes = new byte[len];
-    // System.arraycopy(buffer, 0, sBytes, 0, len);
-
-    // this.d = new BigInteger(1, sBytes);
-    // System.out.println("DEBUG: KeyAgreementX init success.");
-
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // CryptoException.throwIt(CryptoException.UNINITIALIZED_KEY);
-    // }
-    // }
 
     @Override
     public short generateSecret(byte[] publicData, short publicOffset, short publicLength,
