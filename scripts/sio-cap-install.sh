@@ -85,6 +85,16 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+# Check before touching the card: the deletes below would otherwise wipe
+# BackupApplet and then fail to install. bin/ is wiped by scripts/build.sh
+# (also run by run-web-server.sh), so a missing CAP is a common case.
+SIO_CAP="${PROJECT_ROOT}/bin/coolbitx/sio/javacard/sio.cap"
+if [ ! -f "${SIO_CAP}" ]; then
+  echo -e "${COLOR_FAIL}✘ 找不到 CAP 檔：${SIO_CAP}${COLOR_RESET}"
+  echo "  請先執行 scripts/cap-build.sh"
+  exit 1
+fi
+
 # Only pass -r when a reader was explicitly requested — an empty "-r ''"
 # would fail differently than simply letting gp.jar auto-select.
 READER_ARGS=()
@@ -128,7 +138,7 @@ run_step_delete "刪除 sio package（若尚未安裝過則視為正常）" \
   || overall_status=$?
 
 if run_step "安裝 sio CAP" \
-  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/sio/javacard/sio.cap" "${READER_ARGS[@]}"; then
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${SIO_CAP}" "${READER_ARGS[@]}"; then
   run_step_apdu "選取 BackupApplet 並設定 card id（$1）" \
     java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -apdu 00a404000c4261636b75704170706c6574 -apdu "80000000${cardIdLen}${cardId}" "${READER_ARGS[@]}" -debug \
     || overall_status=$?

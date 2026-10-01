@@ -78,6 +78,16 @@ run_step_apdu() {
 
 overall_status=0
 
+# Check before touching the card, so a missing CAP doesn't delete the
+# installed applet first. bin/ is wiped by scripts/build.sh (also run by
+# run-web-server.sh), so this is a common case.
+MAIN_CAP="${PROJECT_ROOT}/bin/coolbitx/javacard/coolbitx.cap"
+if [ ! -f "${MAIN_CAP}" ]; then
+  echo -e "${COLOR_FAIL}✘ 找不到 CAP 檔：${MAIN_CAP}${COLOR_RESET}"
+  echo "  請先執行 scripts/cap-build.sh"
+  exit 1
+fi
+
 # Only pass -r when a reader was explicitly requested — an empty "-r ''"
 # would fail differently than simply letting gp.jar auto-select.
 READER_ARGS=()
@@ -98,12 +108,12 @@ run_step_delete "刪除舊 package（若尚未安裝過則視為正常）" \
 if [ "$1" == "1" ]; then
   install_desc="安裝 CAP（params c0）"
   run_step "${install_desc}" \
-    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/javacard/coolbitx.cap" -params c0 "${READER_ARGS[@]}" -default \
+    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${MAIN_CAP}" -params c0 "${READER_ARGS[@]}" -default \
     || overall_status=$?
 else
   install_desc="安裝 CAP（無 params）"
   run_step "${install_desc}" \
-    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/javacard/coolbitx.cap" "${READER_ARGS[@]}" -default \
+    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${MAIN_CAP}" "${READER_ARGS[@]}" -default \
     || overall_status=$?
 fi
 
