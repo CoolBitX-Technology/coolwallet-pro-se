@@ -53,6 +53,32 @@ run_step_delete() {
   return ${status}
 }
 
+# gp.jar's -apdu exits 0 regardless of the card's status word, so check the
+# "A<< (len+2) (time) [data] SW" lines from -debug: every response must be 9000.
+run_step_apdu() {
+  local desc="$1"
+  shift
+  echo "==> ${desc}"
+  local output
+  output="$("$@" 2>&1)"
+  local status=$?
+  echo "${output}"
+  local sws
+  sws="$(echo "${output}" | grep '^A<<' | awk '{print toupper($NF)}')"
+  if [ ${status} -eq 0 ] && [ -z "${sws}" ]; then
+    status=1
+  elif [ ${status} -eq 0 ] && echo "${sws}" | grep -qv '^9000$'; then
+    status=1
+  fi
+  if [ ${status} -eq 0 ]; then
+    echo -e "${COLOR_OK}[OK]${COLOR_RESET} ${desc}"
+  else
+    echo -e "${COLOR_FAIL}[FAIL]${COLOR_RESET} ${desc} (exit ${status}, SW: $(echo ${sws}))"
+  fi
+  echo
+  return ${status}
+}
+
 if [ -z "$1" ]; then
   echo "Please enter card id"
   echo "Usage: $0 <card id>"
@@ -66,15 +92,16 @@ if [ -n "${READER}" ]; then
   READER_ARGS=(-r "${READER}")
 fi
 
-# Lc must be the byte length (not character count) of the hex-encoded id.
+# Lc is the byte length (not character count) of the raw id, i.e. half the
+# length of its hex encoding.
 cardIdLen=$(printf "%02x" "$(printf '%s' "$1" | wc -c)")
 cardId=$(printf '%s' "$1" | xxd -p | tr -d '\n')
 
 overall_status=0
 
 # Main applet/package must be removed first since it depends on the sio
-# package. Each AID is deleted in its own call so that one being absent
-# doesn't stop the others; applets go before their packages.
+# package. Each AID is deleted in its own call so each gets its own
+# [OK]/[FAIL] result; applets go before their packages.
 run_step_delete "刪除 main applet（若尚未安裝過則視為正常）" \
   java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f "${READER_ARGS[@]}" \
   || overall_status=$?
@@ -82,6 +109,15 @@ run_step_delete "刪除 main applet（若尚未安裝過則視為正常）" \
 run_step_delete "刪除 main package（若尚未安裝過則視為正常）" \
   java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
   || overall_status=$?
+
+# If main is still on the card, the sio package can't be deleted or
+# reinstalled — stop here rather than wipe BackupApplet's card id and
+# genuine key with no way to restore them.
+if [ ${overall_status} -ne 0 ]; then
+  echo "========================================"
+  echo -e "${COLOR_FAIL}✘ main applet/package 刪除失敗，已中止（未動到 BackupApplet）${COLOR_RESET}"
+  exit ${overall_status}
+fi
 
 run_step_delete "刪除 sio applet（若尚未安裝過則視為正常）" \
   java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 4261636b75704170706c6574 "${READER_ARGS[@]}" \
@@ -93,7 +129,7 @@ run_step_delete "刪除 sio package（若尚未安裝過則視為正常）" \
 
 if run_step "安裝 sio CAP" \
   java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${PROJECT_ROOT}/bin/coolbitx/sio/javacard/sio.cap" "${READER_ARGS[@]}"; then
-  run_step "選取 BackupApplet 並設定 card id（$1）" \
+  run_step_apdu "選取 BackupApplet 並設定 card id（$1）" \
     java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -apdu 00a404000c4261636b75704170706c6574 -apdu "80000000${cardIdLen}${cardId}" "${READER_ARGS[@]}" -debug \
     || overall_status=$?
 else
