@@ -40,7 +40,7 @@ run_step_delete() {
   output="$("$@" 2>&1)"
   local status=$?
   echo "${output}"
-  if [ ${status} -eq 0 ] || ! echo "${output}" | grep -qv "not present on card"; then
+  if [ ${status} -eq 0 ] || echo "${output}" | grep -q "not present on card"; then
     echo -e "${COLOR_OK}[OK]${COLOR_RESET} ${desc}"
     status=0
   else
@@ -59,8 +59,14 @@ if [ -n "${READER}" ]; then
   READER_ARGS=(-r "${READER}")
 fi
 
-run_step_delete "刪除舊 applet/package（若尚未安裝過則視為正常）" \
-  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
+# Delete applet and package in separate calls so that one AID being absent
+# doesn't stop the other from being deleted. Applet must go first.
+run_step_delete "刪除舊 applet（若尚未安裝過則視為正常）" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f "${READER_ARGS[@]}" \
+  || overall_status=$?
+
+run_step_delete "刪除舊 package（若尚未安裝過則視為正常）" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
   || overall_status=$?
 
 if [ "$1" == "1" ]; then

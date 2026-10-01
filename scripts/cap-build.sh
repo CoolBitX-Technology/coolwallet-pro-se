@@ -3,8 +3,8 @@
 #
 # This matches the actual toolchain the team's Windows Eclipse + JCOP Tools
 # build uses (verified via JCOP_DEBUG converter-arg tracing against a real
-# Windows build, and confirmed correct on physical hardware — see memory:
-# project-tric-shift-bug.md). Two things are required for this to work:
+# Windows build, and confirmed correct on physical hardware). Two things are
+# required for this to work:
 #
 #   1. Sources must be compiled with -g (scripts/build.sh does this).
 #      ECJ's debug info (LineNumberTable/LocalVariableTable) works around
