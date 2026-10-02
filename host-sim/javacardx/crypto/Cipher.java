@@ -40,13 +40,14 @@ public abstract class Cipher {
         public static final byte ALG_DES_ECB_ISO9797_M2 = 7;
         public static final byte ALG_DES_ECB_PKCS5 = 8;
 
+        public static final byte ALG_RSA_ISO14888 = 9;
         public static final byte ALG_RSA_PKCS1 = 10;
-        public static final byte ALG_RSA_ISO14888 = 11;
-        public static final byte ALG_RSA_PKCS1_OAEP = 12;
+        public static final byte ALG_RSA_ISO9796 = 11;
         public static final byte ALG_RSA_NOPAD = 12;
 
         public static final byte ALG_AES_BLOCK_128_CBC_NOPAD = 13;
         public static final byte ALG_AES_BLOCK_128_ECB_NOPAD = 14;
+        public static final byte ALG_RSA_PKCS1_OAEP = 15;
 
         // 你的目標演算法
         public static final byte ALG_AES_CBC_PKCS5 = (byte) 24;
@@ -63,6 +64,7 @@ public abstract class Cipher {
                 // 1. 非對稱加密
                 if (algorithm == ALG_RSA_PKCS1 ||
                                 algorithm == ALG_RSA_ISO14888 ||
+                                algorithm == ALG_RSA_ISO9796 ||
                                 algorithm == ALG_RSA_PKCS1_OAEP ||
                                 algorithm == ALG_RSA_NOPAD) {
                         // Use PaddedAsymmetricCipher to ensure RSA NOPAD output is always

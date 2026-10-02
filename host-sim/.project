@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>CoolWalletS_Sim</name>
+	<name>CoolWalletPro_Sim</name>
 	<comment>
-		Cursor / VS Code IDE project for this repository.
-		Used together with `coolwallet.code-workspace` so that JDT.LS uses
-		this self-contained project instead of the root `.project`
-		(which is reserved for the Windows Eclipse + NXP JCOP CAP workflow).
+		VS Code / Cursor IDE project for the CoolWallet Pro jCardSim host simulator.
+		Kept separate from the root `.project`, which is reserved for the
+		Windows Eclipse + NXP JCOP CAP workflow.
 		The applet sources under `../src` are exposed via a linked resource
 		called `src-main` so they show up as part of this project.
 	</comment>
