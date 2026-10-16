@@ -3,6 +3,7 @@
 - `ErrorMessage` **BREAKING:** renumber custom status words into module-based ranges (SW1 = module, SW2 high nibble = file/feature). Most custom codes changed; SDK/App error mapping must be updated.
   - `69xx` command auth / device / backup, `6Axx` ScriptInterpreter, `6Bxx` NumberUtil, `6Dxx` key derivation / crypto, `6Exx` parsers, `6Fxx` internal state.
   - Codes reused for different errors were split (`6A00`, `6A76`, `6205`, `6D63`); codes in `60xx` / `61xx` / `62xx` were moved out of ISO-reserved ranges.
+  - Some old values now carry a different meaning (e.g. `6A01` was "unknown command", now "script signature invalid"; `6A05` was "bit array length invalid", now "script abort"; also `6A03`, `6A04`, `6A10`-`6A12`, `6B04`). The SDK must pick the error table by card version (`getVersion` <= 346: old table, >= 347: new table) and cannot decode by status word alone.
 - `ScriptInterpreter` reset segment digests at the start of every script execution, so an aborted segmented transaction cannot corrupt the next transaction's hash.
 
 ## [341] - 2024-08-30
