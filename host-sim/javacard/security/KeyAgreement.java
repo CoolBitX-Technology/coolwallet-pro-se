@@ -15,7 +15,10 @@ public abstract class KeyAgreement {
     public static final byte ALG_EC_SVDP_DH_PLAIN = 3;
     public static final byte ALG_EC_SVDP_DHC_PLAIN = 4;
     public static final byte ALG_EC_PACE_GM = 5;
-    public static final byte ALG_EC_SVDP_DH_PLAIN_XY = 126;
+    // Must match the JavaCard API value (6): applet code is compiled against
+    // api_classic.jar, which inlines this constant. NXP's own value (126)
+    // lives on KeyAgreementX.
+    public static final byte ALG_EC_SVDP_DH_PLAIN_XY = 6;
     public static final byte ALG_DH_PLAIN = 7;
 
     protected KeyAgreement() {
@@ -23,8 +26,11 @@ public abstract class KeyAgreement {
 
     public static KeyAgreement getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
-        // 攔截 NXP 演算法 ID -> 轉發給 KeyAgreementX
-        if (algorithm == KeyAgreementX.ALG_EC_SVDP_DH_PLAIN_XY ||
+        // 攔截標準與 NXP 演算法 ID -> 轉發給 KeyAgreementX
+        // jcardsim's KeyAgreementImpl computes a wrong secret when the private
+        // key S has a leading zero byte (getS returns 31 bytes).
+        if (algorithm == ALG_EC_SVDP_DH_PLAIN_XY ||
+                algorithm == KeyAgreementX.ALG_EC_SVDP_DH_PLAIN_XY ||
                 algorithm == KeyAgreementX.ALG_EC_SVDP_DH_PLAIN) {
             return KeyAgreementX.getInstance(algorithm, externalAccess);
         }
