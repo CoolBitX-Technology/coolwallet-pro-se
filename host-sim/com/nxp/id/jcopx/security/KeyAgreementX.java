@@ -20,6 +20,9 @@ import java.math.BigInteger;
  */
 public class KeyAgreementX extends KeyAgreement {
 
+    // NXP JCOPx value; hides KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY (6, standard API).
+    public static final byte ALG_EC_SVDP_DH_PLAIN_XY = 126;
+
     private byte algorithm;
     private ECPrivateKey privateKey;
     private ECDomainParameters bcParams;
@@ -34,12 +37,18 @@ public class KeyAgreementX extends KeyAgreement {
     public static KeyAgreementX getInstance(byte algorithm, boolean externalAccess)
             throws CryptoException {
 
-        if (algorithm == ALG_EC_SVDP_DH_PLAIN_XY || algorithm == ALG_EC_SVDP_DH_PLAIN) {
+        if (isPlainXY(algorithm) || algorithm == ALG_EC_SVDP_DH_PLAIN) {
             return new KeyAgreementX(algorithm);
         }
 
         CryptoException.throwIt(CryptoException.NO_SUCH_ALGORITHM);
         return null;
+    }
+
+    // Accept both the standard API id (6) and the NXP id (126).
+    private static boolean isPlainXY(byte algorithm) {
+        return algorithm == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY // 6, standard API
+                || algorithm == KeyAgreementX.ALG_EC_SVDP_DH_PLAIN_XY; // 126, NXP
     }
 
     // --- 4. 實作標準抽象方法 (Override KeyAgreement) ---
@@ -160,7 +169,7 @@ public class KeyAgreementX extends KeyAgreement {
 
             int outputLen = 0;
 
-            if (algorithm == ALG_EC_SVDP_DH_PLAIN_XY) {
+            if (isPlainXY(algorithm)) {
                 // 輸出 0x04 || X || Y
                 if (secret.length - secretOffset < 1 + xBytes.length + yBytes.length) {
                     CryptoException.throwIt(CryptoException.ILLEGAL_VALUE);
