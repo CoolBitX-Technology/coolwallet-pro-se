@@ -47,8 +47,8 @@ public class KeyAgreementX extends KeyAgreement {
 
     // Accept both the standard API id (6) and the NXP id (126).
     private static boolean isPlainXY(byte algorithm) {
-        return algorithm == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY
-                || algorithm == ALG_EC_SVDP_DH_PLAIN_XY;
+        return algorithm == KeyAgreement.ALG_EC_SVDP_DH_PLAIN_XY // 6, standard API
+                || algorithm == KeyAgreementX.ALG_EC_SVDP_DH_PLAIN_XY; // 126, NXP
     }
 
     // --- 4. 實作標準抽象方法 (Override KeyAgreement) ---
