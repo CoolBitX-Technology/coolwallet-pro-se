@@ -1,3 +1,10 @@
+## [347] - 2026-10-16
+
+- `ErrorMessage` **BREAKING:** renumber custom status words into module-based ranges (SW1 = module, SW2 high nibble = file/feature). Most custom codes changed; SDK/App error mapping must be updated.
+  - `69xx` command auth / device / backup, `6Axx` ScriptInterpreter, `6Bxx` NumberUtil, `6Dxx` key derivation / crypto, `6Exx` parsers, `6Fxx` internal state.
+  - Codes reused for different errors were split (`6A00`, `6A76`, `6205`, `6D63`); codes in `60xx` / `61xx` / `62xx` were moved out of ISO-reserved ranges.
+- `ScriptInterpreter` reset segment digests at the start of every script execution, so an aborted segmented transaction cannot corrupt the next transaction's hash.
+
 ## [341] - 2024-08-30
 
 - `Blake2b` fix blake2b with key bug.

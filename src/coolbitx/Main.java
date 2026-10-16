@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 346;
+	private static final short ver = 347;
 
 	private static boolean isInit = false;
 
