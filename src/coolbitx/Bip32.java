@@ -98,7 +98,7 @@ public class Bip32 {
 					(short) (workspaceOffset + 1), Common.LENGTH_PRIVATEKEY);
 		} else {
 			if (isEd25519) {
-				ISOException.throwIt(ErrorMessage._6D6C);
+				ISOException.throwIt(ErrorMessage.BIP32_SLIP0010_NON_HARDENED);
 			}
 			// put compress public key
 			KeyUtil.privToPubKey(buf, offset, workspace, workspaceOffset);
@@ -138,10 +138,10 @@ public class Bip32 {
 			short chainCodeOffset, byte[] index, short indexOffset,
 			byte[] destBuf, short destOffset) {
 		if (publicKeyLength != Common.LENGTH_PUBLICKEY) {
-			ISOException.throwIt(ErrorMessage._6D70);
+			ISOException.throwIt(ErrorMessage.BIP32_PUBKEY_LENGTH_INVALID);
 		}
 		if ((index[indexOffset] & (byte) 0x80) != 0) {
-			ISOException.throwIt(ErrorMessage._6D71);
+			ISOException.throwIt(ErrorMessage.BIP32_PUBLIC_DERIVE_HARDENED);
 		}
 
 		byte[] data = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
@@ -169,7 +169,7 @@ public class Bip32 {
 			short pathOffset, short pathLength, byte[] destBuf, short destOffset) {
 		if (pathLength < 1 || (short) (pathLength - 1) % 4 != 0
 				|| pathLength > 21) {
-			ISOException.throwIt(ErrorMessage._6D63);
+			ISOException.throwIt(ErrorMessage.BIP32_PATH_LENGTH_INVALID);
 		}
 		byte[] seed = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 		short seedOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_SEED);
@@ -189,7 +189,7 @@ public class Bip32 {
 						(short) 64, destBuf, destOffset, ShaUtil.m_sha_512);
 				break;
 			default:
-				ISOException.throwIt(ErrorMessage._6D65);
+				ISOException.throwIt(ErrorMessage.BIP32_DERIVE_UNSUPPORTED_SCHEME);
 		}
 		for (byte derivedPathLength = 1; derivedPathLength < pathLength; derivedPathLength += 4) {
 			deriveChildKeyFromPrivate(destBuf, destOffset, path,
@@ -238,7 +238,7 @@ public class Bip32 {
 				ret = 32;
 				break;
 			default:
-				ISOException.throwIt(ErrorMessage._6D60);
+				ISOException.throwIt(ErrorMessage.BIP32_PUBKEY_UNSUPPORTED_SCHEME);
 				break;
 		}
 
@@ -286,7 +286,7 @@ public class Bip32 {
 						destBuf, destOffset);
 				break;
 			default:
-				ISOException.throwIt(ErrorMessage._6D61);
+				ISOException.throwIt(ErrorMessage.BIP32_SIGN_TYPE_UNSUPPORTED);
 				ret = 0;
 				break;
 		}

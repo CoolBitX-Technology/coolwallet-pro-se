@@ -70,7 +70,7 @@ public class KeyManager {
 						pathLength, needChainCode, destBuf, destOffset);
 				break;
 			default:
-				ISOException.throwIt(ErrorMessage._6D67);
+				ISOException.throwIt(ErrorMessage.KEY_SIGN_TYPE_UNSUPPORTED);
 				break;
 		}
 		return ret;
@@ -93,7 +93,7 @@ public class KeyManager {
 						pathOffset, pathLength, signType, destBuf, destOffset);
 				break;
 			default:
-				ISOException.throwIt(ErrorMessage._6D68);
+				ISOException.throwIt(ErrorMessage.KEY_PUBKEY_UNSUPPORTED_SCHEME);
 				ret = 0;
 				break;
 		}

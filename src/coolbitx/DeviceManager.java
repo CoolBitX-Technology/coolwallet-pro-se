@@ -41,7 +41,7 @@ public class DeviceManager {
 
 		public void update(byte[] buf, short offset, byte len) {
 			if (len > maxPINSize) {
-				ISOException.throwIt(ErrorMessage._6A00);
+				ISOException.throwIt(ErrorMessage.DEVICE_PIN_TOO_LONG);
 			}
 			super.update(buf, offset, len);
 			password = new byte[len];
@@ -412,10 +412,10 @@ public class DeviceManager {
 
 	public static short getPassword(byte[] destBuf, short destOffset) {
 		if (!isPaired()) {
-			ISOException.throwIt((short) 0x6B0C);
+			ISOException.throwIt(ErrorMessage.DEVICE_NOT_PAIRED);
 		}
 		if (pinCode.isFreezed()) {
-			ISOException.throwIt((short) 0x6B0D);
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_FROZEN);
 		}
 		byte[] password = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short passwordOffset = WorkCenter
@@ -471,14 +471,14 @@ public class DeviceManager {
 
 	private static Device getDevice(byte index) {
 		if (index > DEVICE_NUM) {
-			ISOException.throwIt(ErrorMessage._6fff);
+			ISOException.throwIt(ErrorMessage.DEVICE_INDEX_OUT_OF_RANGE);
 		}
 		return devices[index - 1];
 	}
 
 	private static Device getCurrentDevice() {
 		if (state[CURRENT_DEVICE] == 0) {
-			ISOException.throwIt(ErrorMessage._6fff);
+			ISOException.throwIt(ErrorMessage.DEVICE_NO_CURRENT_DEVICE);
 		}
 		return devices[state[CURRENT_DEVICE] - 1];
 	}

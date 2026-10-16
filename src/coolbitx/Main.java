@@ -145,7 +145,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				} while (received != 0);
 			}
 		} else {
-			ISOException.throwIt((short) 0x6091);
+			ISOException.throwIt(ErrorMessage.APDU_DATA_OFFSET_INVALID);
 		}
 		short processLength;
 		short destOffset = 0;

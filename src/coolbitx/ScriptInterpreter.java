@@ -97,7 +97,7 @@ public class ScriptInterpreter {
 		length -= 72;
 		if (!SignUtil.isVerifiedFixedLength(buf, offset, length, buf, (short) (offset + length),
 				KeyUtil.getPubKey(KeyStore.ScriptPubKey, Common.OFFSET_ZERO))) {
-			ISOException.throwIt((short) 0x6ACC);
+			ISOException.throwIt(ErrorMessage.SCRIPT_SIGNATURE_INVALID);
 		}
 		Util.arrayFillNonAtomic(script, (short) 0, scriptMax, (byte) 0);
 		Util.arrayCopyNonAtomic(buf, offset, script, (short) 0, length);
@@ -143,11 +143,11 @@ public class ScriptInterpreter {
 		reset();
 		short headerLength = script[si++];
 		if (headerLength < 3) {
-			ISOException.throwIt((short) 0x6ACA);
+			ISOException.throwIt(ErrorMessage.SCRIPT_HEADER_TOO_SHORT);
 		}
 		byte version = script[si++];
 		if (version > scriptVersion) {
-			ISOException.throwIt((short) 0x6A02);
+			ISOException.throwIt(ErrorMessage.SCRIPT_VERSION_UNSUPPORTED);
 		}
 		hashType = script[si++];
 		signType = script[si++];
@@ -253,7 +253,7 @@ public class ScriptInterpreter {
 					// (data,offset,caseNumber,dest)
 					byte index = dataBuf[dataOffset];
 					if (index < 0 || index >= argInt0) {
-						ISOException.throwIt((short) 0x6A0D);
+						ISOException.throwIt(ErrorMessage.SCRIPT_CASE_INDEX_OUT_OF_RANGE);
 					}
 					for (short i = 0; i < argInt0; i++) {
 						dataLength = (short) (script[si++] & 0x00FF);
@@ -353,7 +353,7 @@ public class ScriptInterpreter {
 					} else if (dataLength == 2) {
 						bufferInt = Util.getShort(dataBuf, dataOffset);
 					} else {
-						ISOException.throwIt((short) 0x6A76);
+						ISOException.throwIt(ErrorMessage.SCRIPT_BUFFER_INT_LENGTH_INVALID);
 					}
 					break;
 				case (byte) 0xB1:
@@ -444,7 +444,7 @@ public class ScriptInterpreter {
 							si += argInt0;
 						}
 					} else {
-						ISOException.throwIt((short) 0x6A77);
+						ISOException.throwIt(ErrorMessage.SCRIPT_VERIFY_MODE_INVALID);
 					}
 					break;
 				case (byte) 0x25:
@@ -464,7 +464,7 @@ public class ScriptInterpreter {
 					for (short i = 0; i < dataLength; i++) {
 						short c = dataBuf[(short) (dataOffset + i)];
 						if (c < 0x20 || c > 0x7E || c == '\"') {
-							ISOException.throwIt((short) 0x6A74);
+							ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_STRING_CHAR);
 						}
 					}
 					break;
@@ -538,7 +538,7 @@ public class ScriptInterpreter {
 
 					if (argInt0 % 2 != 0) {
 						if ((temp[tempOffset] & 0x00F0) != 0) {
-							ISOException.throwIt((short) 0x6A71);
+							ISOException.throwIt(ErrorMessage.SCRIPT_AMOUNT_ODD_DIGIT);
 						}
 						MathUtil.shiftLeftFixed(temp, tempOffset, amountLength, temp, tempOffset,
 								(byte) 4);
@@ -548,7 +548,7 @@ public class ScriptInterpreter {
 					short showLength = limitLength >= 8 ? 8 : limitLength;
 					for (short i = amountLength; i > limitLength; i--)
 						if (temp[(short) (tempOffset + amountLength - i)] != 0) {
-							ISOException.throwIt((short) 0x6A72);
+							ISOException.throwIt(ErrorMessage.SCRIPT_AMOUNT_OVERFLOW);
 						}
 					Util.arrayCopyNonAtomic(temp, (short) (tempOffset + amountLength - limitLength),
 							detail, di, showLength);
@@ -558,7 +558,7 @@ public class ScriptInterpreter {
 				}
 					break;
 				case (byte) 0xFF:
-					ISOException.throwIt((short) 0x6AE2);
+					ISOException.throwIt(ErrorMessage.SCRIPT_ABORT);
 					break;
 				// ================ script verion 1 ================
 				case (byte) 0xA1:
@@ -585,7 +585,7 @@ public class ScriptInterpreter {
 						addDestOffset(destBuf, (short) (destLength + dataLength));
 						WorkCenter.release(WorkCenter.WORK, (short) 2);
 					} else {
-						ISOException.throwIt((short) 0x6A73);
+						ISOException.throwIt(ErrorMessage.SCRIPT_PROTOBUF_WIRE_TYPE_UNSUPPORTED);
 					}
 					break;
 				case (byte) 0xA0: {
@@ -597,18 +597,18 @@ public class ScriptInterpreter {
 					}
 					ai++;
 					if (ai > arrayMax) {
-						ISOException.throwIt((short) 0x6205);
+						ISOException.throwIt(ErrorMessage.SCRIPT_ARRAY_TOO_DEEP);
 					}
 					break;
 				}
 				case (byte) 0xBE: {
 					if (ai <= 0) {
-						ISOException.throwIt((short) 0x6A75);
+						ISOException.throwIt(ErrorMessage.SCRIPT_ARRAY_UNDERFLOW);
 					}
 					short arrayOffset = array[--ai];
 					short arrayLen = (short) (ti - arrayOffset);
 					if (arrayLen < 0) {
-						ISOException.throwIt((short) 0x6A76);
+						ISOException.throwIt(ErrorMessage.SCRIPT_ARRAY_LENGTH_NEGATIVE);
 					}
 
 					if (argInt0 == 0) { // protocol buffer array end
@@ -693,7 +693,7 @@ public class ScriptInterpreter {
 				case (byte) 0xC4: {
 					placeholderOffset = destOffset;
 					if (dataLength != 4 && dataLength != 0) {
-						ISOException.throwIt((short) 0x6701);
+						ISOException.throwIt(ErrorMessage.SCRIPT_PLACEHOLDER_LENGTH_INVALID);
 					}
 					placeholderLength = NumberUtil.byteArrayToInt(dataBuf, dataOffset, dataLength);
 					// RLP
@@ -736,13 +736,13 @@ public class ScriptInterpreter {
 					// message pack
 					byte type = (byte) argInt0;
 					if (type < 0 || type > 3) {
-						ISOException.throwIt((short) 0x6A0E);
+						ISOException.throwIt(ErrorMessage.SCRIPT_MSGPACK_TYPE_INVALID);
 					}
 					destLength = NumberUtil.messagePack(dataBuf, dataOffset, dataLength, type,
 							destBuf, destOffset);
 					addDestOffset(destBuf, destLength);
 					if (ai == 0) {
-						ISOException.throwIt((short) 0x6A0F);
+						ISOException.throwIt(ErrorMessage.SCRIPT_MSGPACK_NOT_IN_ARRAY);
 					}
 					count[(short) (ai - 1)]++;
 					break;
@@ -754,7 +754,7 @@ public class ScriptInterpreter {
 					si += argInt0;
 					addDestOffset(destBuf, destLength);
 					if (ai == 0) {
-						ISOException.throwIt((short) 0x6A0F);
+						ISOException.throwIt(ErrorMessage.SCRIPT_MSGPACK_NOT_IN_ARRAY);
 					}
 					count[(short) (ai - 1)]++;
 					break;
@@ -789,14 +789,14 @@ public class ScriptInterpreter {
 									destBuf, destOffset, ShaUtil.m_sha_256);
 							break;
 						default:
-							ISOException.throwIt((short) 0x6A04);
+							ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_TAGGED_HASH_TYPE);
 					}
 					break;
 				// ================ script verion 8 ================
 				case (byte) 0xbb:
 					// bit array to byte array
 					if ((dataLength % 8) != 0) {
-						ISOException.throwIt((short) 0x6A05);
+						ISOException.throwIt(ErrorMessage.SCRIPT_BIT_ARRAY_LENGTH_INVALID);
 					}
 					destLength = (short) (dataLength / 8);
 					for (short i = 0; i < destLength; i++) {
@@ -851,7 +851,7 @@ public class ScriptInterpreter {
 							(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset, dataLength);
 					break;
 				default:
-					ISOException.throwIt((short) 0x6A01);
+					ISOException.throwIt(ErrorMessage.SCRIPT_UNKNOWN_COMMAND);
 					break;
 			}
 		}
@@ -863,18 +863,18 @@ public class ScriptInterpreter {
 
 	public static boolean validateSignState(byte[] path, short pathOffset, short pathLength) {
 		if (!isExecuted) {
-			ISOException.throwIt((short) 0x6AC0);
+			ISOException.throwIt(ErrorMessage.SCRIPT_NOT_EXECUTED);
 		}
 		if (signType == 0) {
 			return false;
 		}
 		if (isCoinTypeExist) {
 			if (pathLength < 9) {
-				ISOException.throwIt((short) 0x6A0B);
+				ISOException.throwIt(ErrorMessage.SCRIPT_PATH_TOO_SHORT);
 			}
 			if ((path[(short) (pathOffset + 5)] & 0x7F) != coinType[0] || Util.arrayCompare(path,
 					(short) (pathOffset + 6), coinType, (short) 1, (short) 3) != 0) {
-				ISOException.throwIt((short) 0x6A0C);
+				ISOException.throwIt(ErrorMessage.SCRIPT_COIN_TYPE_MISMATCH);
 			}
 		}
 		return true;
@@ -977,7 +977,7 @@ public class ScriptInterpreter {
 				endLength = 1;
 				break;
 			default:
-				ISOException.throwIt((short) 0x6AC5);
+				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SCRIPT_TYPE_UNSUPPORTED);
 		}
 		if (type == 0x13) {
 			headOffset += 10;
@@ -1000,15 +1000,15 @@ public class ScriptInterpreter {
 			byte[] path, short pathOffset, short pathLength, byte type, byte[] destBuf,
 			short destOffset) {
 		if (!isExecuted) {
-			ISOException.throwIt((short) 0x6AC0);
+			ISOException.throwIt(ErrorMessage.SCRIPT_NOT_EXECUTED);
 		}
 		if (isCoinTypeExist) {
 			if (pathLength < 9) {
-				ISOException.throwIt((short) 0x6A0B);
+				ISOException.throwIt(ErrorMessage.SCRIPT_PATH_TOO_SHORT);
 			}
 			if ((path[(short) (pathOffset + 5)] & 0x7F) != coinType[0] || Util.arrayCompare(path,
 					(short) (pathOffset + 6), coinType, (short) 1, (short) 3) != 0) {
-				ISOException.throwIt((short) 0x6A00);
+				ISOException.throwIt(ErrorMessage.SCRIPT_COIN_TYPE_MISMATCH);
 			}
 		}
 		short workLength = 32;
@@ -1021,7 +1021,7 @@ public class ScriptInterpreter {
 			case 0x13: // ZEN
 			case 0x14: { // RBF legacyBTC
 				if (remainDataType != 0x10) {
-					ISOException.throwIt((short) 0x6AC2);
+					ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_REMAIN_DATA_TYPE_INVALID);
 				}
 				boolean isRBF = type == 0x14;
 
@@ -1042,7 +1042,7 @@ public class ScriptInterpreter {
 			case 0x12: // BCH
 			case 0x15: { // RBF SegwitBTC
 				if (remainDataType != 0x10) {
-					ISOException.throwIt((short) 0x6AC2);
+					ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_REMAIN_DATA_TYPE_INVALID);
 				}
 				boolean isSegwit = type == 0x11 || type == 0x15;
 				boolean isRBF = type == 0x15;
@@ -1071,7 +1071,7 @@ public class ScriptInterpreter {
 			}
 			case 0x26: // any data (for ERC20 approve to 0x)
 				if (remainDataType != 0x20) {
-					ISOException.throwIt((short) 0x6AC2);
+					ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_REMAIN_DATA_TYPE_INVALID);
 				}
 				ShaUtil.Keccak256(cache2, (short) 0, c2i, workspace, workspaceOffset);
 				ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset, Common.LENGTH_SHA256,
@@ -1079,7 +1079,7 @@ public class ScriptInterpreter {
 						destOffset);
 				break;
 			default:
-				ISOException.throwIt((short) 0x6AC7);
+				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SIGN_TYPE_UNSUPPORTED);
 		}
 		// Util.arrayCopyNonAtomic(transaction, (short) 0, destBuf, destOffset,
 		// ti);ret = ti;
@@ -1112,7 +1112,7 @@ public class ScriptInterpreter {
 				argType = ARG_TYPE_CONCATENATED;
 				return transaction;
 			default:
-				ISOException.throwIt((short) 0x6A03);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_DATA_SOURCE);
 				return null;
 		}
 	}
@@ -1128,7 +1128,7 @@ public class ScriptInterpreter {
 			case 7:
 				return transaction;
 			default:
-				ISOException.throwIt((short) 0x6A03);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_DATA_SOURCE);
 				return null;
 		}
 	}
@@ -1192,7 +1192,7 @@ public class ScriptInterpreter {
 				intCache = bufferInt;
 				break;
 			default:
-				ISOException.throwIt((short) 0x6A07);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_INT_SOURCE);
 				intCache = 0;
 		}
 		return intCache;
@@ -1222,7 +1222,7 @@ public class ScriptInterpreter {
 						dataLength);
 				break;
 			default:
-				ISOException.throwIt((short) 0x6A10);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_UPDATE_HASH_TYPE);
 		}
 	}
 
@@ -1250,7 +1250,7 @@ public class ScriptInterpreter {
 						.update(dataBuf, dataOffset, dataLength);
 				break;
 			default:
-				ISOException.throwIt((short) 0x6A11);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_PERSONAL_HASH_TYPE);
 		}
 	}
 
@@ -1327,7 +1327,7 @@ public class ScriptInterpreter {
 						destOffset);
 				break;
 			default:
-				ISOException.throwIt((short) 0x6A12);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_CHECKSUM_TYPE);
 		}
 		addDestOffset(destBuf, length);
 	}
@@ -1354,7 +1354,7 @@ public class ScriptInterpreter {
 						contextOffset, contextLength, destBuf, destOffset);
 				break;
 			default:
-				ISOException.throwIt((short) 0x6A0A);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_HASH_TYPE);
 		}
 		addDestOffset(destBuf, length);
 	}
@@ -1378,7 +1378,7 @@ public class ScriptInterpreter {
 			case 0x1:
 				return cache1;
 			default:
-				ISOException.throwIt((short) 0x6A08);
+				ISOException.throwIt(ErrorMessage.SCRIPT_INVALID_CHARSET);
 				return null;
 		}
 	}

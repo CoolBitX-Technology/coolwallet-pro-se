@@ -34,7 +34,7 @@ public class FlowCounter {
 
 	public static void checkValue(short counterOffset) {
 		Check.checkValue(flow[0], (short) (initValue + counterOffset),
-				(short) 0x6f10);
+				ErrorMessage.FLOW_COUNTER_MISMATCH);
 	}
 
 }

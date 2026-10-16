@@ -92,10 +92,10 @@ public class RlpDataParser {
 						}
 						listIndex += childLength;
 					} else {
-						ISOException.throwIt(ErrorMessage._6EB0);
+						ISOException.throwIt(ErrorMessage.RLP_INVALID_CHILD_PREFIX);
 					}
 					if (listIndex >= rlpListOffset + rlpListLength) {
-						ISOException.throwIt(ErrorMessage._6EB1);
+						ISOException.throwIt(ErrorMessage.RLP_INDEX_OUT_OF_RANGE);
 					}
 				}
 			} else if ((prefix & 0xFF) >= 0xF8 && (prefix & 0xFF) <= 0xFF) {
@@ -109,7 +109,7 @@ public class RlpDataParser {
 				}
 
 				if (listIndex + length > rlpListOffset + rlpListLength) {
-					ISOException.throwIt(ErrorMessage._6EB2);
+					ISOException.throwIt(ErrorMessage.RLP_LIST_LENGTH_EXCEEDED);
 				}
 				// Navigate through list items
 				for (byte i = 0; i < pathSegment; i++) {
@@ -150,11 +150,11 @@ public class RlpDataParser {
 
 					}
 					if (listIndex >= rlpListOffset + rlpListLength) {
-						ISOException.throwIt(ErrorMessage._6EB4);
+						ISOException.throwIt(ErrorMessage.RLP_LONG_LIST_INDEX_OUT_OF_RANGE);
 					}
 				}
 			} else {
-				ISOException.throwIt(ErrorMessage._6EB5);
+				ISOException.throwIt(ErrorMessage.RLP_NOT_A_LIST);
 			}
 		}
 		// Decode the final element at the resolved path
@@ -177,7 +177,7 @@ public class RlpDataParser {
 				listIndex++;
 			}
 			if (length > 32767) {
-				ISOException.throwIt(ErrorMessage._6EB6);
+				ISOException.throwIt(ErrorMessage.RLP_LENGTH_TOO_LARGE);
 			}
 			dataOffset = listIndex;
 			dataLength = (short) length;
@@ -196,12 +196,12 @@ public class RlpDataParser {
 				listIndex++;
 			}
 			if (length > 32767) {
-				ISOException.throwIt(ErrorMessage._6EB6);
+				ISOException.throwIt(ErrorMessage.RLP_LENGTH_TOO_LARGE);
 			}
 			dataOffset = listIndex;
 			dataLength = (short) length;
 		} else {
-			ISOException.throwIt(ErrorMessage._6EB7);
+			ISOException.throwIt(ErrorMessage.RLP_INVALID_FINAL_PREFIX);
 		}
 	}
 
@@ -225,7 +225,7 @@ public class RlpDataParser {
 		for (byte i = 0; i < index; i++) {
 			elementOffset = skipElement(listContent, elementOffset);
 			if (elementOffset >= contentEnd) {
-				ISOException.throwIt(ErrorMessage._6EB1);
+				ISOException.throwIt(ErrorMessage.RLP_INDEX_OUT_OF_RANGE);
 			}
 		}
 		decodeElement(listContent, elementOffset);
@@ -275,7 +275,7 @@ public class RlpDataParser {
 				length = (length << 8) | (data[(short) (offset + 1 + i)] & 0xFF);
 			}
 			if (length > 32767) {
-				ISOException.throwIt(ErrorMessage._6EB6);
+				ISOException.throwIt(ErrorMessage.RLP_LENGTH_TOO_LARGE);
 			}
 			dataOffset = (short) (offset + 1 + lengthOfLength);
 			dataLength = (short) length;
@@ -289,7 +289,7 @@ public class RlpDataParser {
 				length = (length << 8) | (data[(short) (offset + 1 + i)] & 0xFF);
 			}
 			if (length > 32767) {
-				ISOException.throwIt(ErrorMessage._6EB6);
+				ISOException.throwIt(ErrorMessage.RLP_LENGTH_TOO_LARGE);
 			}
 			dataOffset = (short) (offset + 1 + lengthOfLength);
 			dataLength = (short) length;

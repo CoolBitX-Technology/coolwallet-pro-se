@@ -74,7 +74,7 @@ public class CardInfo {
 		} else if (stateBoolean[type] == ConstantX.FALSE16) {
 			result = false;
 		} else {
-			ISOException.throwIt((short) 0x6f11);
+			ISOException.throwIt(ErrorMessage.CARD_INFO_STATE_CORRUPTED);
 		}
 		return result;
 	}
