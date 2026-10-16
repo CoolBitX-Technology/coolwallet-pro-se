@@ -151,6 +151,12 @@ public class ErrorMessage {
 
 	// ================ 0x6D Key derivation / crypto ================
 
+	// ------------ 0x6D0x Blake2b
+	/* MAC key is longer than 64 bytes. */
+	public static final short BLAKE2B_KEY_TOO_LONG = 0x6D01;
+	/* Personalization is longer than MAX_PERSONALIZATION_BYTES. */
+	public static final short BLAKE2B_PERSONAL_TOO_LONG = 0x6D02;
+
 	// ------------ 0x6D1x Bip32
 	/*
 	 * The path uses an unsupported scheme in the `getDerivedPublicKey` method;
