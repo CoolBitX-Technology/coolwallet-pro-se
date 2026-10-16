@@ -55,6 +55,15 @@ public final class ShaUtil {
 		m_keccak_512 = null;
 	}
 
+	// Clear digests that getUpdateHash feeds across APDUs, so an aborted
+	// segmented transaction cannot leak into the next script's hashes.
+	public static void resetScriptDigests() {
+		m_s_sha_256.reset();
+		m_keccak_256.reset();
+		m_blake3_256.reset();
+		m_blake2b.reset();
+	}
+
 	public final static short SHA1(byte[] buf, short offset, short length,
 			byte[] destbuf, short destOffset) {
 		return m_sha_1.doFinal(buf, offset, length, destbuf, destOffset);

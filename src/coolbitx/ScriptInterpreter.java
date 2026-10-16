@@ -141,6 +141,8 @@ public class ScriptInterpreter {
 
 	public static void execute() {
 		reset();
+		// Not in reset(): init() calls it before ShaUtil.init().
+		ShaUtil.resetScriptDigests();
 		short headerLength = script[si++];
 		if (headerLength < 3) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_HEADER_TOO_SHORT);
