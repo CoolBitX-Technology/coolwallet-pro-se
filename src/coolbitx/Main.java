@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 346;
+	private static final short ver = 347;
 
 	private static boolean isInit = false;
 
@@ -145,7 +145,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				} while (received != 0);
 			}
 		} else {
-			ISOException.throwIt((short) 0x6091);
+			ISOException.throwIt(ErrorMessage.APDU_DATA_OFFSET_INVALID);
 		}
 		short processLength;
 		short destOffset = 0;

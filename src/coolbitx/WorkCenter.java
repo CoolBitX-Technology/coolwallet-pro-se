@@ -51,14 +51,14 @@ public class WorkCenter {
 			ASSIGN_ARRAY = WORK1;
 			return workspace1;
 		default:
-			ISOException.throwIt((short) 0x6F12);
+			ISOException.throwIt(ErrorMessage.WORKSPACE_INVALID);
 			return null;
 		}
 	}
 
 	public final static short getWorkspaceOffset(short length) {
 		if (ASSIGN_ARRAY == NOT_ASSIGN) {
-			ISOException.throwIt((short) 0x6F13);
+			ISOException.throwIt(ErrorMessage.WORKSPACE_NOT_ASSIGNED);
 		}
 		short offset = workOffset[(short) (ASSIGN_ARRAY)];
 		Util.arrayFillNonAtomic(getWorkspaceArray(ASSIGN_ARRAY), offset,
@@ -74,7 +74,7 @@ public class WorkCenter {
 
 	public static void checkAPDUEmpty() {
 		if (workOffset[0] > 0) {
-			ISOException.throwIt((short) 0x6EA5);
+			ISOException.throwIt(ErrorMessage.WORKSPACE_APDU_NOT_EMPTY);
 		}
 	}
 
