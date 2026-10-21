@@ -43,10 +43,17 @@ public class DeviceManager {
 			if (len > maxPINSize) {
 				ISOException.throwIt(ErrorMessage.DEVICE_PIN_TOO_LONG);
 			}
+			// Reuse the mirror array: there is no GC, so a new array on every
+			// update leaks EEPROM.
+			if (len != password.length) {
+				password = new byte[len];
+			}
+			// Keep the OwnerPIN and its mirror (used by backupData) in sync
+			// across a tear.
+			JCSystem.beginTransaction();
 			super.update(buf, offset, len);
-			password = new byte[len];
-			Util.arrayCopyNonAtomic(buf, offset, password, Common.OFFSET_ZERO,
-					len);
+			Util.arrayCopy(buf, offset, password, Common.OFFSET_ZERO, len);
+			JCSystem.commitTransaction();
 		}
 
 		public byte getTriesRemaining() {

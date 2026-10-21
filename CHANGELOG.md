@@ -1,6 +1,7 @@
 ## [348] - 2026-10-21
 
 - `DeviceManager` `getPassword` use the allocated workspace offset instead of `OFFSET_ZERO`, and release the workspace after use. No behavior change.
+- `DeviceManager` `PinCode.update` reuse the password mirror array instead of allocating a new one on every update (EEPROM leak), and update the `OwnerPIN` and the mirror in one transaction so a tear cannot leave them out of sync.
 
 ## [347] - 2026-10-16
 
