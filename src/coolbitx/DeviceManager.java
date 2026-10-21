@@ -432,9 +432,10 @@ public class DeviceManager {
 		if ((password[passwordOffset] & 0xF0) == 0) {
 			password[passwordOffset] |= 0xF0;
 		}
-		pinCode.update(password, Common.OFFSET_ZERO, Common.LENGTH_PASSWORD);
-		Util.arrayCopyNonAtomic(password, Common.OFFSET_ZERO, destBuf,
+		pinCode.update(password, passwordOffset, Common.LENGTH_PASSWORD);
+		Util.arrayCopyNonAtomic(password, passwordOffset, destBuf,
 				destOffset, Common.LENGTH_PASSWORD);
+		WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PASSWORD);
 		return Common.LENGTH_PASSWORD;
 	}
 
