@@ -187,6 +187,17 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					DeviceManager.setDevice(buf, dataOffset, destBuf, destOffset);
 					resultLength = Common.LENGTH_APP_ID;
 					break;
+				case (byte) 0x12:// changePairPwd
+					// data=ECIES_SE_TRANS(oldPwd(4B)||newPwd(4B))
+					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+					dataLength -= 92;
+					dataLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, buf, dataOffset,
+							KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
+					if (dataLength != (short) (Common.LENGTH_PASSWORD * 2)) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					DeviceManager.changePassword(buf, dataOffset);
+					break;
 				case (byte) 0x14:// changePairingStatus
 					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 					dataLength -= 92;

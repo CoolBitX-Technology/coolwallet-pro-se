@@ -1,5 +1,7 @@
 ## [348] - 2026-10-21
 
+- `Main` add `0x12` changePairPwd: a paired app changes the pairing password with `ECIES_SE_TRANS(oldPwd(4B) || newPwd(4B))`, authorized by `Check.verifyCommand`. The new password must be 6-8 BCD digits left-padded with `F` nibbles (e.g. `FF123456`, `F1234567`, `12345678`) and differ from the old one. A wrong old password consumes a try from the same counter as register; a malformed new password does not.
+  - New status words: `6915` old password wrong, `6916` new password format invalid, `6917` new password same as old. A frozen card (5 wrong tries or `changePairingStatus`) returns `6914`.
 - `DeviceManager` `getPassword` use the allocated workspace offset instead of `OFFSET_ZERO`, and release the workspace after use. No behavior change.
 - `DeviceManager` `PinCode.update` reuse the password mirror array instead of allocating a new one on every update (EEPROM leak), and update the `OwnerPIN` and the mirror in one transaction so a tear cannot leave them out of sync.
 

@@ -22,6 +22,8 @@ public class DeviceManager {
 	private static final short STATE_LENGTH = 1;
 	private static final short CURRENT_DEVICE = 0;
 
+	private static final byte PASSWORD_MIN_DIGITS = 6;
+
 	private static byte[] defaultPassword = { (byte) 0xff, (byte) 0xff,
 			(byte) 0xff, (byte) 0xff };
 
@@ -448,6 +450,50 @@ public class DeviceManager {
 
 	public static void setPassword(byte[] buf, short offset) {
 		pinCode.update(buf, offset, Common.LENGTH_PASSWORD);
+	}
+
+	/*
+	 * buf: [oldPassword(4B)][newPassword(4B)]. The new password is validated
+	 * before the old one is checked, so a malformed request does not consume a
+	 * try.
+	 */
+	public static void changePassword(byte[] buf, short offset) {
+		short newOffset = (short) (offset + Common.LENGTH_PASSWORD);
+
+		if (pinCode.isFreezed() || pinCode.getTriesRemaining() <= 0) {
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_FROZEN);
+		}
+		if (!isValidPassword(buf, newOffset)) {
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_FORMAT_INVALID);
+		}
+		if (Util.arrayCompare(buf, offset, buf, newOffset,
+				Common.LENGTH_PASSWORD) == 0) {
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_SAME_AS_OLD);
+		}
+		if (!pinCode.check(buf, offset, Common.LENGTH_PASSWORD)) {
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_WRONG);
+		}
+		setPassword(buf, newOffset);
+	}
+
+	/*
+	 * A password is PASSWORD_MIN_DIGITS to 8 BCD digits, left-padded with F
+	 * nibbles, e.g. FF123456, F1234567, 12345678.
+	 */
+	private static boolean isValidPassword(byte[] buf, short offset) {
+		byte digits = 0;
+		for (short i = 0; i < (short) (Common.LENGTH_PASSWORD * 2); i++) {
+			byte b = buf[(short) (offset + (short) (i >> 1))];
+			byte nibble = (byte) (((i & 1) == 0 ? (b >> 4) : b) & 0x0F);
+			if (nibble == 0x0F && digits == 0) {
+				continue;
+			}
+			if (nibble > 9) {
+				return false;
+			}
+			digits++;
+		}
+		return digits >= PASSWORD_MIN_DIGITS;
 	}
 
 	public static void getAppPublicKeyAsByteArray(byte[] destBuf,
