@@ -1,3 +1,7 @@
+## [348] - 2026-10-21
+
+- `DeviceManager` `getPassword` use the allocated workspace offset instead of `OFFSET_ZERO`, and release the workspace after use. No behavior change.
+
 ## [347] - 2026-10-16
 
 - `ErrorMessage` **BREAKING:** renumber custom status words into module-based ranges (SW1 = module, SW2 high nibble = file/feature). Most custom codes changed; SDK/App error mapping must be updated.
