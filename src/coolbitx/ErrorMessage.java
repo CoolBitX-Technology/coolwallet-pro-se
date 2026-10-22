@@ -257,10 +257,9 @@ public class ErrorMessage {
 	public static final short APDU_DATA_OFFSET_INVALID = 0x6F15;
 
 	// ------------ 0x6F2x Check
-	public static final short CHECK_STRING_MISMATCH = 0x6F20;
-	public static final short CHECK_ARRAY_MISMATCH = 0x6F21;
-	public static final short CHECK_NOT_ZERO = 0x6F22;
-	public static final short CHECK_VALUE_MISMATCH = 0x6F23;
+	// 0x6F20-0x6F23 are reserved: they belonged to Check helpers that nothing
+	// called and were removed; do not reuse them for other errors.
+	/* Value is out of the expected range. */
 	public static final short CHECK_OUT_OF_RANGE = 0x6F24;
 
 }
