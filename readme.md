@@ -64,6 +64,20 @@ $ java Installation
 >
 >You only need elevated privileges at the moment the links are *created* — once the symlinks exist, opening and building the project in Eclipse afterwards works normally with a regular user account. If you ever re-run `java Installation` (e.g. after new files are added to the crypto library), repeat this with an elevated/Developer Mode session.
 
+### Updating the Crypto Library
+`java Installation` only links the files the crypto library has at the time you run it. After pulling a commit that moves the `coolwallet-pro-se-crypto` submodule, update it and run the script again, so files added to the library are linked too:
+```shell
+$ git submodule update
+$ cd coolwallet-pro-se-crypto
+$ javac Installation.java
+$ java Installation
+```
+
+If a link is missing, the build fails with errors such as `CryptoError cannot be resolved to a variable`.
+
+- **CLI (macOS / Linux / WSL):** `scripts/build.sh` (also run by `scripts/cap-build.sh` and `scripts/run-web-server.sh`) checks the links before compiling and runs `Installation` itself when one is missing, so only `git submodule update` is needed.
+- **Windows (Eclipse):** Eclipse does not run that check. Re-run `java Installation` yourself, from an elevated or Developer Mode session (see the Windows Note above), then refresh the project.
+
 ## Environment Setup
 
 This project supports two development workflows:

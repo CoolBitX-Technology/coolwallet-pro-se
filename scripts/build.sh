@@ -58,11 +58,47 @@ fi
 
 CLASSPATH="$API_JAR:$JCOPX_JAR:$BC_JAR"
 
-echo "[1/2] Clean bin directory..."
+CRYPTO_DIR="$PROJECT_ROOT/coolwallet-pro-se-crypto"
+
+echo "[1/3] Check crypto source links..."
+if [ ! -f "$CRYPTO_DIR/Installation.java" ]; then
+  echo "ERROR: $CRYPTO_DIR is empty or missing."
+  echo "Run: git submodule update --init"
+  exit 1
+fi
+# Installation.java links every file in the submodule's src/ into src/coolbitx/.
+# A submodule update that adds a file leaves it unlinked, which shows up as
+# "cannot be resolved" compile errors, so relink whenever one is missing.
+MISSING=""
+for f in "$CRYPTO_DIR"/src/*.java; do
+  name="$(basename "$f")"
+  [ -e "$SRC_DIR/coolbitx/$name" ] || MISSING="$MISSING $name"
+done
+if [ -n "$MISSING" ]; then
+  echo "  Not linked:$MISSING"
+  echo "  Running coolwallet-pro-se-crypto/Installation.java..."
+  INSTALL_TMP="$(mktemp -d)"
+  "$JAVAC" -d "$INSTALL_TMP" "$CRYPTO_DIR/Installation.java"
+  # Installation prints every link it makes and reports failures without a
+  # non-zero exit status, so keep only its errors and check the result below.
+  (cd "$CRYPTO_DIR" && "$JAVA8" -cp "$INSTALL_TMP" Installation) | grep -i "error" || true
+  rm -rf "$INSTALL_TMP"
+  for name in $MISSING; do
+    if [ ! -e "$SRC_DIR/coolbitx/$name" ]; then
+      echo "ERROR: $name is still not linked into src/coolbitx/."
+      exit 1
+    fi
+  done
+  echo "  Linked."
+else
+  echo "  All crypto sources are linked."
+fi
+
+echo "[2/3] Clean bin directory..."
 rm -rf "$BIN_DIR"
 mkdir -p "$BIN_DIR"
 
-echo "[2/2] Compile sources with Java 8 (JavaCard-compatible bytecode)..."
+echo "[3/3] Compile sources with Java 8 (JavaCard-compatible bytecode)..."
 # Exclude coolbitx/sim/ — simulation-only code, mirrors .classpath excluding="coolbitx/sim/"
 SRC_FILES=$(find "$SRC_DIR" -name "*.java" -not -path "*/coolbitx/sim/*")
 if [ -n "$ECJ_JAR" ]; then
