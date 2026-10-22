@@ -20,6 +20,9 @@ package coolbitx;
  * Never use SW1 = 60 (T=0 NULL procedure byte), 61 / 6C (SW2 is read as a
  * length by the host), or 62 / 63 / 64 / 66 (warnings / ISO reserved).
  *
+ * The crypto sources from coolwallet-pro-se-crypto throw their own codes from
+ * CryptoError (6D0x, 6D2x, 6D4x), so they do not depend on this class.
+ *
  * Main.process() maps an uncaught CryptoException to 0x6F00 | reason, so
  * 0x6F01-0x6F0F are taken by CryptoException reasons (RlpDecoder uses 6).
  */
@@ -153,11 +156,8 @@ public class ErrorMessage {
 
 	// ================ 0x6D Key derivation / crypto ================
 
-	// ------------ 0x6D0x Blake2b
-	/* MAC key is longer than 64 bytes. */
-	public static final short BLAKE2B_KEY_TOO_LONG = 0x6D01;
-	/* Personalization is longer than MAX_PERSONALIZATION_BYTES. */
-	public static final short BLAKE2B_PERSONAL_TOO_LONG = 0x6D02;
+	// 0x6D0x Blake2b, 0x6D2x Bip32Ed25519 and 0x6D4x KeyGenerate are defined in
+	// CryptoError (coolwallet-pro-se-crypto); do not use those blocks here.
 
 	// ------------ 0x6D1x Bip32
 	/*
@@ -186,17 +186,6 @@ public class ErrorMessage {
 	/* Hardened index cannot be derived from a public key. */
 	public static final short BIP32_PUBLIC_DERIVE_HARDENED = 0x6D16;
 
-	// ------------ 0x6D2x Bip32Ed25519
-	/* The path length is incorrect. */
-	public static final short BIP32ED25519_PATH_LENGTH_INVALID = 0x6D20;
-	/* The master key has not been initialized. */
-	public static final short BIP32ED25519_MASTER_KEY_NOT_INIT = 0x6D21;
-	/*
-	 * The signType uses an unsupported type in the `deriveKeyAndSign` method;
-	 * it should be limited to SIGN_BIP32ED25519.
-	 */
-	public static final short BIP32ED25519_SIGN_TYPE_UNSUPPORTED = 0x6D22;
-
 	// ------------ 0x6D3x KeyManager
 	/*
 	 * The signType uses an unsupported type in the `deriveKeyAndSign` method;
@@ -210,15 +199,6 @@ public class ErrorMessage {
 	 * or BIP32ED25519.
 	 */
 	public static final short KEY_PUBKEY_UNSUPPORTED_SCHEME = 0x6D31;
-
-	// ------------ 0x6D4x KeyGenerate
-	/* Invalid cardType parameter; it should be either CARD_PRO or CARD_LITE. */
-	public static final short KEYGEN_CARD_TYPE_INVALID = 0x6D40;
-	/*
-	 * Invalid keyType parameter; it should be either KEY_SE_ENC or
-	 * KEY_SE_TRANS.
-	 */
-	public static final short KEYGEN_KEY_TYPE_INVALID = 0x6D41;
 
 	// ------------ 0x6D5x EcdhUtil
 	/* ECDH shared-secret decryption failed. */
