@@ -1,23 +1,8 @@
 package coolbitx;
 
 import javacard.framework.ISOException;
-import javacard.framework.Util;
 
 public class Check {
-
-	public static short takeString(byte[] buf, short offset, byte[] string) {
-		if (Util.arrayCompare(buf, offset, string, Common.OFFSET_ZERO,
-				(short) string.length) != 0) {
-			ISOException.throwIt((short) 0x6201);
-		}
-		return (short) (offset + string.length);
-	}
-
-	public static void checkValue(short testee, short expect) {
-		if (testee != expect) {
-			ISOException.throwIt((short) 0x6204);
-		}
-	}
 
 	public static void checkValue(short testee, short expect, short errorCode) {
 		if (testee != expect) {
@@ -25,28 +10,10 @@ public class Check {
 		}
 	}
 
-	public static void checkValue(byte[] buf, short offset, byte expect) {
-		checkValue(buf[(short) (offset)], expect);
-	}
-
-	public static void checkArray(byte[] buf, short offset, byte[] buf2,
-			short offset2, short length) {
-		if (Util.arrayCompare(buf, offset, buf2, offset2, length) != 0) {
-			ISOException.throwIt((short) 0x6202);
-		}
-	}
-
-	public static void checkZero(byte[] buf, short offset, short length) {
-		short endOffset = (short) (offset + length);
-		for (short i = offset; i < endOffset; i++)
-			if (buf[(short) (i)] != 0) {
-				ISOException.throwIt((short) 0x6203);
-			}
-	}
-
-	public static void checkRange(short min, short testee, short max) {
+	public static void checkRange(short min, short testee, short max,
+			short errorCode) {
 		if (testee < min || testee > max) {
-			ISOException.throwIt((short) 0x6205);
+			ISOException.throwIt(errorCode);
 		}
 	}
 	
@@ -54,17 +21,17 @@ public class Check {
 			short dataOffset, short dataLength) {
 		// data=[apduData(Variety)][appId(20B)[rightJustifiedSignature(72B)]
 		if (dataLength < 92) {
-			ISOException.throwIt((short) 0x609C);
+			ISOException.throwIt(ErrorMessage.CMD_DATA_TOO_SHORT);
 		}
 		if (!CardInfo.is(CardInfo.NONCE_ACTI)) {
-			ISOException.throwIt((short) 0x609F);
+			ISOException.throwIt(ErrorMessage.CMD_NONCE_NOT_ACTIVATED);
 		}
 		short signOffset = (short) (dataOffset + dataLength - 72);
 		short appIdOffset = (short) (signOffset - 20);
 		dataLength -= 92;
 		byte currentDevice = DeviceManager.isRegistered(buf, appIdOffset);
 		if (currentDevice == 0) {
-			ISOException.throwIt((short) 0x609D);
+			ISOException.throwIt(ErrorMessage.CMD_APP_NOT_REGISTERED);
 		}
 		DeviceManager.setCurrentDevice(currentDevice);
 		CardInfo.set(CardInfo.NONCE_ACTI, false);
@@ -75,7 +42,7 @@ public class Check {
 						signOffset, DeviceManager.getAppPublicKey());
 		Common.clearArray(Main.nonce);
 		if (!isVerified) {
-			ISOException.throwIt((short) 0x609E);
+			ISOException.throwIt(ErrorMessage.CMD_SIGNATURE_INVALID);
 		}
 	}
 }

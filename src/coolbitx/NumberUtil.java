@@ -149,7 +149,7 @@ public class NumberUtil {
 				&& charsetLength == destCharsetLength
 				&& (argument & bitLeftJustify8to5) == 0) {
 			if (inLength > outLength) {
-				ISOException.throwIt((short) 0x6B04);
+				ISOException.throwIt(ErrorMessage.NUM_OUTPUT_TOO_SHORT);
 			}
 			Util.arrayFillNonAtomic(outBuf, outOffset, outLength,
 					destCharset[destCharsetOffset]);
@@ -176,7 +176,7 @@ public class NumberUtil {
 				for (short oi = inOffset; oi < inEndOffset; oi++) {
 					short c = (short) (workspace[(short) (workOffset + (inBuf[oi] & 0x00FF))] & 0x00FF);
 					if (c >= charsetLength) {
-						ISOException.throwIt((short) 0x6B01);
+						ISOException.throwIt(ErrorMessage.NUM_CHAR_NOT_IN_CHARSET);
 					}
 					multiplyAndAdd(outBuf, outOffset, outLength,
 							destCharsetLength, charsetLength, c);
@@ -186,7 +186,7 @@ public class NumberUtil {
 
 			if ((argument & bitLeftJustify8to5) != 0) {
 				if (charsetLength != 256 || destCharsetLength != 32) {
-					ISOException.throwIt((short) 0x6B85);
+					ISOException.throwIt(ErrorMessage.NUM_LEFT_JUSTIFY_CHARSET_INVALID);
 				}
 				short multiplier = (short) ((short) (length * 2) % 5);
 				NumberUtil.multiplyAndAdd(outBuf, outOffset, outLength,
@@ -257,7 +257,7 @@ public class NumberUtil {
 			temp = (short) (temp / base);
 		}
 		if (temp != 0) {
-			ISOException.throwIt((short) 0x6B03);
+			ISOException.throwIt(ErrorMessage.NUM_OVERFLOW);
 		}
 	}
 
@@ -519,7 +519,7 @@ public class NumberUtil {
 			}
 			if (resultLength == 0) {
 				// System.out.println("Integer too long");
-				ISOException.throwIt((short) 0x6B05);
+				ISOException.throwIt(ErrorMessage.MSGPACK_INT_TOO_LONG);
 			}
 			break;
 		case typeString:
@@ -548,7 +548,7 @@ public class NumberUtil {
 			}
 			if (resultLength == 0) {
 				// System.out.println("String too long");
-				ISOException.throwIt((short) 0x6B06);
+				ISOException.throwIt(ErrorMessage.MSGPACK_STRING_TOO_LONG);
 			}
 			break;
 		case typeBoolean:
@@ -560,7 +560,7 @@ public class NumberUtil {
 				}
 				resultLength = 1;
 			} else {
-				ISOException.throwIt((short) 0x6B09);
+				ISOException.throwIt(ErrorMessage.MSGPACK_BOOLEAN_LENGTH_INVALID);
 			}
 			break;
 		case typeBinary:
@@ -579,7 +579,7 @@ public class NumberUtil {
 				}
 			}
 			if (resultLength == 0) {
-				ISOException.throwIt((short) 0x6B0B);
+				ISOException.throwIt(ErrorMessage.MSGPACK_BINARY_TOO_LONG);
 			}
 			break;
 		case typeArray:
@@ -605,7 +605,7 @@ public class NumberUtil {
 			}
 			if (resultLength == 0) {
 				// System.out.println("Array too long");
-				ISOException.throwIt((short) 0x6B07);
+				ISOException.throwIt(ErrorMessage.MSGPACK_ARRAY_TOO_LONG);
 			}
 			break;
 		case typeMap:
@@ -631,11 +631,11 @@ public class NumberUtil {
 			}
 			if (resultLength == 0) {
 				// System.out.println("Map too long");
-				ISOException.throwIt((short) 0x6B08);
+				ISOException.throwIt(ErrorMessage.MSGPACK_MAP_TOO_LONG);
 			}
 			break;
 		default:
-			ISOException.throwIt((short) 0x6B0A);
+			ISOException.throwIt(ErrorMessage.MSGPACK_TYPE_INVALID);
 		}
 		return resultLength;
 	}

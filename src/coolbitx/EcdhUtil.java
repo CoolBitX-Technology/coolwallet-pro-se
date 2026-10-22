@@ -38,7 +38,7 @@ public class EcdhUtil {
 			resultLength = cipher.doFinal(cipherBuf, cipherOffset,
 					cipherLength, destBuf, destOffset);
 		} catch (CryptoException e) {
-			ISOException.throwIt((short) 0x6BAC);
+			ISOException.throwIt(ErrorMessage.ECDH_DECRYPT_FAILED);
 		}
 		return resultLength;
 	}

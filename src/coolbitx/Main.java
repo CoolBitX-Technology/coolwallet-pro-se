@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 346;
+	private static final short ver = 347;
 
 	private static boolean isInit = false;
 
@@ -145,7 +145,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 				} while (received != 0);
 			}
 		} else {
-			ISOException.throwIt((short) 0x6091);
+			ISOException.throwIt(ErrorMessage.APDU_DATA_OFFSET_INVALID);
 		}
 		short processLength;
 		short destOffset = 0;
@@ -153,6 +153,11 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		FlowCounter.reset();
 		WorkCenter.reset();
 		CardInfo.reset();
+		// m_sha_256 is shared and only used within one command. A command that
+		// throws (or returns early) before doFinal leaves data in it, which
+		// would corrupt the next command's hash. The script digests are not
+		// reset here: segmented signing hashes across commands.
+		ShaUtil.m_sha_256.reset();
 
 		try {
 			switch (buf[ISO7816.OFFSET_INS]) {

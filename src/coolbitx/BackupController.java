@@ -82,7 +82,7 @@ public class BackupController {
 					Bip32Ed25519.recoverData(buf, offset);
 					break;
 				default:
-					ISOException.throwIt((short) 0x6111);
+					ISOException.throwIt(ErrorMessage.BACKUP_UNKNOWN_KEY_TYPE);
 					break;
 				}
 				offset += dataLength;
