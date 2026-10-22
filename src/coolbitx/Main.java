@@ -153,6 +153,11 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		FlowCounter.reset();
 		WorkCenter.reset();
 		CardInfo.reset();
+		// m_sha_256 is shared and only used within one command. A command that
+		// throws (or returns early) before doFinal leaves data in it, which
+		// would corrupt the next command's hash. The script digests are not
+		// reset here: segmented signing hashes across commands.
+		ShaUtil.m_sha_256.reset();
 
 		try {
 			switch (buf[ISO7816.OFFSET_INS]) {
