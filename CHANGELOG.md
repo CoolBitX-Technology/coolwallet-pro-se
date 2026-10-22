@@ -4,7 +4,9 @@
   - `69xx` command auth / device / backup, `6Axx` ScriptInterpreter, `6Bxx` NumberUtil, `6Dxx` key derivation / crypto, `6Exx` parsers, `6Fxx` internal state.
   - Codes reused for different errors were split (`6A00`, `6A76`, `6205`, `6D63`); codes in `60xx` / `61xx` / `62xx` were moved out of ISO-reserved ranges.
   - Some old values now carry a different meaning (e.g. `6A01` was "unknown command", now "script signature invalid"; `6A05` was "bit array length invalid", now "script abort"; also `6A02`-`6A04`, `6A10`-`6A12`, `6B04`; 9 values in total). The SDK must pick the error table by card version (`getVersion` <= 346: old table, >= 347: new table) and cannot decode by status word alone.
-- `Check` remove the unused helpers `takeString`, `checkArray`, `checkZero` and the two-argument `checkValue` overloads. Their status words (old `6201`-`6204`) could never be returned; `6F20`-`6F23` stay reserved.
+- `Check` remove the unused helpers `takeString`, `checkArray`, `checkZero` and the two-argument `checkValue` overloads. Their status words (old `6201`-`6204`) could never be returned.
+- `Check.checkRange` throws the status word its caller passes in. Its only caller, the script wrap page command (`0xD2`), now returns `6A16` `SCRIPT_WRAP_PAGE_OUT_OF_RANGE` (old `6205`). `6F20`-`6F24` stay reserved.
+- `ErrorMessage` split the `6F1x` runtime state group by file, so the high nibble of SW2 identifies the file: `6F10` FlowCounter (unchanged), `6F30` CardInfo (old `6F11`), `6F40`-`6F42` WorkCenter (old `6F12`, `6F13`, `6EA5`), `6F50` Main (old `6091`). `6F11`-`6F15` stay reserved.
 - `ScriptInterpreter` reset segment digests at the start of every script execution, so an aborted segmented transaction cannot corrupt the next transaction's hash.
 
 ## [341] - 2024-08-30

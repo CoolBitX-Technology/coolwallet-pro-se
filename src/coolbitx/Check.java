@@ -10,9 +10,10 @@ public class Check {
 		}
 	}
 
-	public static void checkRange(short min, short testee, short max) {
+	public static void checkRange(short min, short testee, short max,
+			short errorCode) {
 		if (testee < min || testee > max) {
-			ISOException.throwIt(ErrorMessage.CHECK_OUT_OF_RANGE);
+			ISOException.throwIt(errorCode);
 		}
 	}
 	

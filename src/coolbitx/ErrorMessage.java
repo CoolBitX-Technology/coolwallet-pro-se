@@ -80,6 +80,8 @@ public class ErrorMessage {
 	public static final short SCRIPT_BUFFER_INT_LENGTH_INVALID = 0x6A14;
 	/* Unsupported signature verification mode. */
 	public static final short SCRIPT_VERIFY_MODE_INVALID = 0x6A15;
+	/* Wrap page (0xD2) argument is out of range (argInt0 0-8, argInt1 0-7). */
+	public static final short SCRIPT_WRAP_PAGE_OUT_OF_RANGE = 0x6A16;
 
 	// ------------ 0x6A2x Hash / checksum types
 	public static final short SCRIPT_INVALID_HASH_TYPE = 0x6A20;
@@ -242,24 +244,30 @@ public class ErrorMessage {
 
 	// ================ 0x6F System internal state ================
 
-	// ------------ 0x6F1x Runtime state
+	// ------------ 0x6F1x FlowCounter
 	/* Flow counter does not match the expected step. */
 	public static final short FLOW_COUNTER_MISMATCH = 0x6F10;
-	/* CardInfo boolean state is neither TRUE16 nor FALSE16. */
-	public static final short CARD_INFO_STATE_CORRUPTED = 0x6F11;
-	/* Unknown workspace id. */
-	public static final short WORKSPACE_INVALID = 0x6F12;
-	/* Workspace offset requested before a workspace is assigned. */
-	public static final short WORKSPACE_NOT_ASSIGNED = 0x6F13;
-	/* APDU workspace is not released at the end of a command. */
-	public static final short WORKSPACE_APDU_NOT_EMPTY = 0x6F14;
-	/* APDU data offset is neither short nor extended format. */
-	public static final short APDU_DATA_OFFSET_INVALID = 0x6F15;
+	// 0x6F11-0x6F15 are reserved: they held the CardInfo / WorkCenter / Main
+	// codes below before those were split by file; do not reuse them.
 
-	// ------------ 0x6F2x Check
-	// 0x6F20-0x6F23 are reserved: they belonged to Check helpers that nothing
-	// called and were removed; do not reuse them for other errors.
-	/* Value is out of the expected range. */
-	public static final short CHECK_OUT_OF_RANGE = 0x6F24;
+	// ------------ 0x6F2x (reserved)
+	// 0x6F20-0x6F24 belonged to Check, which now throws only the error code
+	// its caller passes in; do not reuse them for other errors.
+
+	// ------------ 0x6F3x CardInfo
+	/* CardInfo boolean state is neither TRUE16 nor FALSE16. */
+	public static final short CARD_INFO_STATE_CORRUPTED = 0x6F30;
+
+	// ------------ 0x6F4x WorkCenter
+	/* Unknown workspace id. */
+	public static final short WORKSPACE_INVALID = 0x6F40;
+	/* Workspace offset requested before a workspace is assigned. */
+	public static final short WORKSPACE_NOT_ASSIGNED = 0x6F41;
+	/* APDU workspace is not released at the end of a command. */
+	public static final short WORKSPACE_APDU_NOT_EMPTY = 0x6F42;
+
+	// ------------ 0x6F5x Main
+	/* APDU data offset is neither short nor extended format. */
+	public static final short APDU_DATA_OFFSET_INVALID = 0x6F50;
 
 }

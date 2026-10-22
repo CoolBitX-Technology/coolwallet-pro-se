@@ -475,8 +475,10 @@ public class ScriptInterpreter {
 					break;
 				case (byte) 0xD2:
 					// add wrapPage from script to detail (constLength,constLength)
-					Check.checkRange((short) 0, argInt0, (short) 8);
-					Check.checkRange((short) 0, argInt1, (short) 7);
+					Check.checkRange((short) 0, argInt0, (short) 8,
+							ErrorMessage.SCRIPT_WRAP_PAGE_OUT_OF_RANGE);
+					Check.checkRange((short) 0, argInt1, (short) 7,
+							ErrorMessage.SCRIPT_WRAP_PAGE_OUT_OF_RANGE);
 					detail[(short) (di++)] = 17;
 					detail[(short) (di++)] = detailIcon;
 					detail[(short) (di++)] = type_wrap;
