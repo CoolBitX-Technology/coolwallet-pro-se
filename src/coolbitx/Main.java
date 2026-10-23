@@ -191,6 +191,14 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					// data=ECIES_SE_TRANS(oldPwd(4B)||newPwd(4B))
 					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 					dataLength -= 92;
+					// 8 bytes of passwords are one AES block after PKCS#5 padding.
+					// Check before decrypting: a longer ciphertext would not fit
+					// the workspace next to the password buffer, and its plaintext
+					// would overrun it.
+					if (dataLength != (short) (Common.LENGTH_PUBLICKEY
+							+ Common.LENGTH_MAC + Common.LENGTH_IV)) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
 					// Decrypt into the RAM workspace, not in place: buf is the
 					// persistent longBuf for an extended APDU, which would keep
 					// the passwords in EEPROM.

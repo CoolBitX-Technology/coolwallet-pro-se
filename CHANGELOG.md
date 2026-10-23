@@ -4,7 +4,7 @@
   - New status words: `6915` old password wrong, `6916` new password format invalid, `6917` new password same as old. A frozen card (5 wrong tries or `changePairingStatus`) returns `6914`.
 - `DeviceManager` `getPassword` use the allocated workspace offset instead of `OFFSET_ZERO`, and release the workspace after use. No behavior change.
 - `EcdhUtil` `decrypt` reject a ciphertext shorter than one AES block, longer than 640 bytes or not a multiple of 16 with `6700`. A short payload used to throw an uncaught runtime exception (`6F00`), reachable without authorization through `0x10` P1=1.
-- `Main` `0x12` decrypts the passwords into the RAM workspace and clears them, instead of in place: for an extended APDU the command buffer is persistent.
+- `Main` `0x12` decrypts the passwords into the RAM workspace and clears them, instead of in place: for an extended APDU the command buffer is persistent. It requires exactly one AES block of ciphertext (101 bytes of ECIES data) before decrypting, since the password buffer leaves less workspace than `EcdhUtil.decrypt` allows for (a 640-byte ciphertext returned `6F00`).
 - `DeviceManager` `PinCode.update` reuse the password mirror array instead of allocating a new one on every update (EEPROM leak), and update the `OwnerPIN` and the mirror in one transaction so a tear cannot leave them out of sync.
 
 ## [347] - 2026-10-16
