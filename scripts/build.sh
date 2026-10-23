@@ -68,28 +68,22 @@ if [ ! -f "$CRYPTO_DIR/Installation.java" ]; then
 fi
 # Installation.java links every file in the submodule's src/ into src/coolbitx/.
 # A submodule update that adds a file leaves it unlinked, which shows up as
-# "cannot be resolved" compile errors, so relink whenever one is missing.
-MISSING=""
+# "cannot be resolved" compile errors, so link whatever is missing. Only
+# missing or dangling entries are touched: a regular file (e.g. a local copy
+# being edited) is never replaced, unlike re-running Installation.java.
+LINKED=""
 for f in "$CRYPTO_DIR"/src/*.java; do
+  [ -f "$f" ] || continue
   name="$(basename "$f")"
-  [ -e "$SRC_DIR/coolbitx/$name" ] || MISSING="$MISSING $name"
+  dest="$SRC_DIR/coolbitx/$name"
+  [ -e "$dest" ] && continue
+  # A dangling symlink fails -e but still exists as a link
+  [ -L "$dest" ] && rm "$dest"
+  ln -s "../../coolwallet-pro-se-crypto/src/$name" "$dest"
+  LINKED="$LINKED $name"
 done
-if [ -n "$MISSING" ]; then
-  echo "  Not linked:$MISSING"
-  echo "  Running coolwallet-pro-se-crypto/Installation.java..."
-  INSTALL_TMP="$(mktemp -d)"
-  "$JAVAC" -d "$INSTALL_TMP" "$CRYPTO_DIR/Installation.java"
-  # Installation prints every link it makes and reports failures without a
-  # non-zero exit status, so keep only its errors and check the result below.
-  (cd "$CRYPTO_DIR" && "$JAVA8" -cp "$INSTALL_TMP" Installation) | grep -i "error" || true
-  rm -rf "$INSTALL_TMP"
-  for name in $MISSING; do
-    if [ ! -e "$SRC_DIR/coolbitx/$name" ]; then
-      echo "ERROR: $name is still not linked into src/coolbitx/."
-      exit 1
-    fi
-  done
-  echo "  Linked."
+if [ -n "$LINKED" ]; then
+  echo "  Linked:$LINKED"
 else
   echo "  All crypto sources are linked."
 fi

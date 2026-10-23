@@ -187,17 +187,25 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					DeviceManager.setDevice(buf, dataOffset, destBuf, destOffset);
 					resultLength = Common.LENGTH_APP_ID;
 					break;
-				case (byte) 0x12:// changePairPwd
+				case (byte) 0x12: {// changePairPwd
 					// data=ECIES_SE_TRANS(oldPwd(4B)||newPwd(4B))
 					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 					dataLength -= 92;
-					dataLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, buf, dataOffset,
-							KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
-					if (dataLength != (short) (Common.LENGTH_PASSWORD * 2)) {
+					// Decrypt into the RAM workspace, not in place: buf is the
+					// persistent longBuf for an extended APDU, which would keep
+					// the passwords in EEPROM.
+					byte[] password = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+					short passwordOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_IV);
+					processLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, password,
+							passwordOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
+					if (processLength != (short) (Common.LENGTH_PASSWORD * 2)) {
 						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 					}
-					DeviceManager.changePassword(buf, dataOffset);
+					DeviceManager.changePassword(password, passwordOffset);
+					Util.arrayFillNonAtomic(password, passwordOffset, Common.LENGTH_IV, (byte) 0);
+					WorkCenter.release(WorkCenter.WORK, Common.LENGTH_IV);
 					break;
+				}
 				case (byte) 0x14:// changePairingStatus
 					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 					dataLength -= 92;

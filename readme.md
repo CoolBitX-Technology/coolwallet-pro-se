@@ -75,7 +75,7 @@ $ java Installation
 
 If a link is missing, the build fails with errors such as `CryptoError cannot be resolved to a variable`.
 
-- **CLI (macOS / Linux / WSL):** `scripts/build.sh` (also run by `scripts/cap-build.sh` and `scripts/run-web-server.sh`) checks the links before compiling and runs `Installation` itself when one is missing, so only `git submodule update` is needed.
+- **CLI (macOS / Linux / WSL):** `scripts/build.sh` (also run by `scripts/cap-build.sh` and `scripts/run-web-server.sh`) checks the links before compiling and creates any that are missing (it never replaces a regular file), so only `git submodule update` is needed.
 - **Windows (Eclipse):** Eclipse does not run that check. Re-run `java Installation` yourself, from an elevated or Developer Mode session (see the Windows Note above), then refresh the project.
 
 ## Environment Setup
