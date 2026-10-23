@@ -463,6 +463,11 @@ public class DeviceManager {
 		if (pinCode.isFreezed() || pinCode.getTriesRemaining() <= 0) {
 			ISOException.throwIt(ErrorMessage.DEVICE_PIN_FROZEN);
 		}
+		// recoverRegisterData (0x82) would restore the old password from a
+		// backup taken before the change.
+		if (Main.storeInterface.isDataBackup()) {
+			ISOException.throwIt(ErrorMessage.DEVICE_PIN_BACKUP_PENDING);
+		}
 		if (!isValidPassword(buf, newOffset)) {
 			ISOException.throwIt(ErrorMessage.DEVICE_PIN_FORMAT_INVALID);
 		}

@@ -204,13 +204,18 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					// the passwords in EEPROM.
 					byte[] password = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 					short passwordOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_IV);
-					processLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, password,
-							passwordOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
-					if (processLength != (short) (Common.LENGTH_PASSWORD * 2)) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					// Clear the passwords on every exit, including 6914-6918: the
+					// workspace is only cleared on deselect.
+					try {
+						processLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, password,
+								passwordOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
+						if (processLength != (short) (Common.LENGTH_PASSWORD * 2)) {
+							ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+						}
+						DeviceManager.changePassword(password, passwordOffset);
+					} finally {
+						Util.arrayFillNonAtomic(password, passwordOffset, Common.LENGTH_IV, (byte) 0);
 					}
-					DeviceManager.changePassword(password, passwordOffset);
-					Util.arrayFillNonAtomic(password, passwordOffset, Common.LENGTH_IV, (byte) 0);
 					WorkCenter.release(WorkCenter.WORK, Common.LENGTH_IV);
 					break;
 				}
