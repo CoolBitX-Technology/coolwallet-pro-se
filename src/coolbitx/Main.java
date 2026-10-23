@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 347;
+	private static final short ver = 348;
 
 	private static boolean isInit = false;
 
@@ -187,6 +187,38 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					DeviceManager.setDevice(buf, dataOffset, destBuf, destOffset);
 					resultLength = Common.LENGTH_APP_ID;
 					break;
+				case (byte) 0x12: {// changePairPwd
+					// data=ECIES_SE_TRANS(oldPwd(4B)||newPwd(4B))
+					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+					dataLength -= 92;
+					// 8 bytes of passwords are one AES block after PKCS#5 padding.
+					// Check before decrypting: a longer ciphertext would not fit
+					// the workspace next to the password buffer, and its plaintext
+					// would overrun it.
+					if (dataLength != (short) (Common.LENGTH_PUBLICKEY
+							+ Common.LENGTH_MAC + Common.LENGTH_IV)) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					// Decrypt into the RAM workspace, not in place: buf is the
+					// persistent longBuf for an extended APDU, which would keep
+					// the passwords in EEPROM.
+					byte[] password = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
+					short passwordOffset = WorkCenter.getWorkspaceOffset(Common.LENGTH_IV);
+					// Clear the passwords on every exit, including 6914-6918: the
+					// workspace is only cleared on deselect.
+					try {
+						processLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, password,
+								passwordOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_TRANS));
+						if (processLength != (short) (Common.LENGTH_PASSWORD * 2)) {
+							ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+						}
+						DeviceManager.changePassword(password, passwordOffset);
+					} finally {
+						Util.arrayFillNonAtomic(password, passwordOffset, Common.LENGTH_IV, (byte) 0);
+					}
+					WorkCenter.release(WorkCenter.WORK, Common.LENGTH_IV);
+					break;
+				}
 				case (byte) 0x14:// changePairingStatus
 					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
 					dataLength -= 92;

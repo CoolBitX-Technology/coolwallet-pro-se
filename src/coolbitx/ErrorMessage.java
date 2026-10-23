@@ -51,6 +51,17 @@ public class ErrorMessage {
 	public static final short DEVICE_NOT_PAIRED = 0x6913;
 	/* The PIN is frozen. */
 	public static final short DEVICE_PIN_FROZEN = 0x6914;
+	/* The old PIN does not match; one try is consumed. */
+	public static final short DEVICE_PIN_WRONG = 0x6915;
+	/* The new PIN is not 6-8 BCD digits left-padded with F nibbles. */
+	public static final short DEVICE_PIN_FORMAT_INVALID = 0x6916;
+	/* The new PIN is the same as the old PIN. */
+	public static final short DEVICE_PIN_SAME_AS_OLD = 0x6917;
+	/*
+	 * Register data is backed up (0x80) and not yet recovered (0x82) or reset
+	 * (0x84); recovering it would restore the old PIN.
+	 */
+	public static final short DEVICE_PIN_BACKUP_PENDING = 0x6918;
 
 	// ------------ 0x692x BackupController
 	/* Backup data contains an unknown key type. */

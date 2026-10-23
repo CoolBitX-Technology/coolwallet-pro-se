@@ -15,6 +15,14 @@ import javacardx.crypto.Cipher;
  * @author Hank Liu <hankliu@coolbitx.com>
  */
 public class EcdhUtil {
+	/*
+	 * Largest AES-CBC ciphertext decrypt() accepts: the 800-byte workspace
+	 * also holds the shared secret (65B), the IV (16B) and the ephemeral public
+	 * key (65B) for the MAC, rounded down to a 16-byte block. The longest real
+	 * payload, 8A backup data, is 544 bytes.
+	 */
+	private static final short MAX_CIPHER_LENGTH = 640;
+
 	private static Cipher cipher;
 	private static KeyPair ephemkeyPair;
 	private static ECPublicKey ephemPublicKey;
@@ -48,6 +56,13 @@ public class EcdhUtil {
 		// buf: ephemeral public key(65bytes)||MAC(20bytes)||encryptData
 		short encryptDataOff = (short) (offset + Common.LENGTH_PUBLICKEY + Common.LENGTH_MAC);
 		short encryptDataLength = (short) (length - Common.LENGTH_PUBLICKEY - Common.LENGTH_MAC);
+		// A short or oversized payload would otherwise make the array copies
+		// below throw an uncaught runtime exception.
+		if (encryptDataLength < Common.LENGTH_IV
+				|| encryptDataLength > MAX_CIPHER_LENGTH
+				|| (encryptDataLength & 0x0F) != 0) {
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
 
 		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK);
 		short workspaceOffset = WorkCenter.getWorkspaceOffset((short) 65);
