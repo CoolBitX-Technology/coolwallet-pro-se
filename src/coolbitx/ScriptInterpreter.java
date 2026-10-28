@@ -165,7 +165,7 @@ public class ScriptInterpreter {
 			reserveType = script[si++];
 		}
 
-		interpret();
+		runCommands();
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
 		argumentLength = 0;
 		isExecuted = true;
@@ -174,7 +174,7 @@ public class ScriptInterpreter {
 	/**
 	 * Run the script from si until its end, or until a UTXO section starts.
 	 */
-	private static void interpret() {
+	private static void runCommands() {
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
@@ -1003,7 +1003,7 @@ public class ScriptInterpreter {
 		argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
 
 		si = utxoSectionOffset;
-		interpret();
+		runCommands();
 		if (di != utxoSectionDi) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
 		}
