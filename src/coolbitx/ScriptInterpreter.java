@@ -41,9 +41,10 @@ public class ScriptInterpreter {
 	private static final byte ARG_TYPE_CONCATENATED = (byte) 0x00;
 	private static final byte ARG_TYPE_RLP = (byte) 0x01;
 	private static boolean isUTXOtx = false;
-	// Where the UTXO section starts (0: the script has none), and the state the main part of the
-	// script leaves for it, so that every UTXO starts from the same state
-	private static short utxoSectionOffset, utxoSectionTi, utxoSectionDi, utxoSectionBufferInt;
+	// Where the UTXO section starts (0: the script has none)
+	private static short utxoSectionOffset;
+	// The state when the UTXO section starts, which every UTXO starts from
+	private static short tiAtUtxoSection, diAtUtxoSection, bufferIntAtUtxoSection;
 
 	private static final byte type_asc = (byte) 0x00;
 	private static final byte type_bcd = (byte) 0x01;
@@ -94,7 +95,7 @@ public class ScriptInterpreter {
 		hashType = signType = remainDataType = reserveType = argType = 0;
 		detailIcon = (byte) 0xFF;
 		isUTXOtx = false;
-		utxoSectionOffset = utxoSectionTi = utxoSectionDi = utxoSectionBufferInt = 0;
+		utxoSectionOffset = tiAtUtxoSection = diAtUtxoSection = bufferIntAtUtxoSection = 0;
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
@@ -166,6 +167,7 @@ public class ScriptInterpreter {
 		}
 
 		runCommands();
+
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
 		argumentLength = 0;
 		isExecuted = true;
@@ -869,16 +871,16 @@ public class ScriptInterpreter {
 							(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset, dataLength);
 					break;
 				// ================ script version 13 ================
+				// UTXO section: the rest of the script runs once per UTXO (80AA)
 				case (byte) 0xC9:
-					// UTXO section: the rest of the script runs once per UTXO (80AA), see
-					// signUtxoSection. Script execution stops here.
 					if (utxoSectionOffset != 0) {
+						// utxoSectionOffset has to be cleared before another UTXO section can start
 						ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_NESTED);
 					}
 					utxoSectionOffset = si;
-					utxoSectionTi = ti;
-					utxoSectionDi = di;
-					utxoSectionBufferInt = bufferInt;
+					tiAtUtxoSection = ti;
+					diAtUtxoSection = di;
+					bufferIntAtUtxoSection = bufferInt;
 					isUTXOtx = true;
 					return;
 				default:
@@ -1004,22 +1006,22 @@ public class ScriptInterpreter {
 
 		si = utxoSectionOffset;
 		runCommands();
-		if (di != utxoSectionDi) {
+		if (di != diAtUtxoSection) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
 		}
-		short resultLength = (short) (ti - utxoSectionTi);
+		short resultLength = (short) (ti - tiAtUtxoSection);
 		short ret;
 		if (hashType == 0) {
 			if (resultLength != Common.LENGTH_SHA256) {
 				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID);
 			}
-			ret = KeyManager.deriveKeyAndSign(transaction, utxoSectionTi, resultLength, path,
+			ret = KeyManager.deriveKeyAndSign(transaction, tiAtUtxoSection, resultLength, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
 		} else {
 			short workLength = Common.LENGTH_SHA256;
 			byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
 			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
-			getHash(transaction, utxoSectionTi, resultLength, workspace, workspaceOffset,
+			getHash(transaction, tiAtUtxoSection, resultLength, workspace, workspaceOffset,
 					hashType);
 			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset, workLength, path,
 					pathOffset, pathLength, signType, destBuf, destOffset);
@@ -1035,9 +1037,9 @@ public class ScriptInterpreter {
 		Util.arrayFillNonAtomic(cache2, (short) 0, cache2Max, (byte) 0);
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentLength, (byte) 0);
 		c1i = c2i = ai = argumentLength = 0;
-		ti = utxoSectionTi;
-		di = utxoSectionDi;
-		bufferInt = utxoSectionBufferInt;
+		ti = tiAtUtxoSection;
+		di = diAtUtxoSection;
+		bufferInt = bufferIntAtUtxoSection;
 	}
 
 	private static final byte[] utxoConstant = {(byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,
