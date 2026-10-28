@@ -5,7 +5,7 @@ import javacard.framework.ISOException;
 
 public class ScriptInterpreter {
 
-	public static final byte scriptVersion = 12;
+	public static final byte scriptVersion = 13;
 
 	public static byte[] script; // special
 	public static byte[] argument; // in
@@ -41,6 +41,9 @@ public class ScriptInterpreter {
 	private static final byte ARG_TYPE_CONCATENATED = (byte) 0x00;
 	private static final byte ARG_TYPE_RLP = (byte) 0x01;
 	private static boolean isUTXOtx = false;
+	// Where the UTXO section starts (0: the script has none), and the state the main part of the
+	// script leaves for it, so that every UTXO starts from the same state
+	private static short utxoSectionOffset, utxoSectionTi, utxoSectionDi, utxoSectionBufferInt;
 
 	private static final byte type_asc = (byte) 0x00;
 	private static final byte type_bcd = (byte) 0x01;
@@ -91,6 +94,7 @@ public class ScriptInterpreter {
 		hashType = signType = remainDataType = reserveType = argType = 0;
 		detailIcon = (byte) 0xFF;
 		isUTXOtx = false;
+		utxoSectionOffset = utxoSectionTi = utxoSectionDi = utxoSectionBufferInt = 0;
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
@@ -161,6 +165,16 @@ public class ScriptInterpreter {
 			reserveType = script[si++];
 		}
 
+		interpret();
+		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
+		argumentLength = 0;
+		isExecuted = true;
+	}
+
+	/**
+	 * Run the script from si until its end, or until a UTXO section starts.
+	 */
+	private static void interpret() {
 		for (; si < scriptLength;) {
 			byte command = script[si++];
 			byte[] dataBuf = getDataBuffer((byte) ((script[si] >> 4) & 0x0F));
@@ -854,15 +868,24 @@ public class ScriptInterpreter {
 					getUpdateAdvancedHash(dataBuf, (short) 0, (short) 0,
 							(byte) (argInt0 | (argInt1 << 4)), dataBuf, dataOffset, dataLength);
 					break;
+				// ================ script version 13 ================
+				case (byte) 0xC9:
+					// UTXO section: the rest of the script runs once per UTXO (80AA), see
+					// signUtxoSection. Script execution stops here.
+					if (utxoSectionOffset != 0) {
+						ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_NESTED);
+					}
+					utxoSectionOffset = si;
+					utxoSectionTi = ti;
+					utxoSectionDi = di;
+					utxoSectionBufferInt = bufferInt;
+					isUTXOtx = true;
+					return;
 				default:
 					ISOException.throwIt(ErrorMessage.SCRIPT_UNKNOWN_COMMAND);
 					break;
 			}
 		}
-		Util.arrayFillNonAtomic(argument, (short) 0, argumentMax, (byte) 0);
-		argumentLength = 0;
-		isExecuted = true;
-
 	}
 
 	public static boolean validateSignState(byte[] path, short pathOffset, short pathLength) {
@@ -912,6 +935,10 @@ public class ScriptInterpreter {
 	public static short signSegmentData(byte[] data, short offset, short length, byte[] path,
 			short pathOffset, short pathLength, byte[] key, short keyOffset, short keyLength,
 			byte[] destBuf, short destOffset, boolean shouldUpdateTransaction) {
+		if (utxoSectionOffset != 0) {
+			return signUtxoSection(data, offset, length, path, pathOffset, pathLength, keyLength,
+					shouldUpdateTransaction, destBuf, destOffset);
+		}
 		short ret = 0;
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
@@ -944,6 +971,73 @@ public class ScriptInterpreter {
 				pathLength, signType, destBuf, destOffset);
 		WorkCenter.release(WorkCenter.WORK1, workLength);
 		return ret;
+	}
+
+	/**
+	 * Sign one UTXO with the script's UTXO section: the section runs with the UTXO data as its
+	 * argument and appends what is to be signed to the transaction buffer. That result is hashed
+	 * with the header's hash type, or signed as is when the hash type is 0 (it must then be 32
+	 * bytes).
+	 *
+	 * This is for sighashes that nest the UTXO data in several hashes (e.g. ZEC v5, ZIP-244),
+	 * which a placeholder cannot express. Every UTXO starts from the state the main part of the
+	 * script left, so UTXOs cannot affect each other. The section cannot change what the user
+	 * confirms, and the APDU cannot supply a hash key: what is hashed is decided by the signed
+	 * script alone.
+	 *
+	 * @param isFirstChunk the UTXO data must come in one APDU
+	 */
+	private static short signUtxoSection(byte[] data, short offset, short length, byte[] path,
+			short pathOffset, short pathLength, short keyLength, boolean isFirstChunk,
+			byte[] destBuf, short destOffset) {
+		if (!validateSignState(path, pathOffset, pathLength)) {
+			return 0;
+		}
+		if (keyLength != 0) {
+			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_KEY_NOT_ALLOWED);
+		}
+		if (!isFirstChunk) {
+			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_CHUNK_UNSUPPORTED);
+		}
+		resetUtxoSectionState();
+		argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
+
+		si = utxoSectionOffset;
+		interpret();
+		if (di != utxoSectionDi) {
+			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
+		}
+		short resultLength = (short) (ti - utxoSectionTi);
+		short ret;
+		if (hashType == 0) {
+			if (resultLength != Common.LENGTH_SHA256) {
+				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID);
+			}
+			ret = KeyManager.deriveKeyAndSign(transaction, utxoSectionTi, resultLength, path,
+					pathOffset, pathLength, signType, destBuf, destOffset);
+		} else {
+			short workLength = Common.LENGTH_SHA256;
+			byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
+			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+			getHash(transaction, utxoSectionTi, resultLength, workspace, workspaceOffset,
+					hashType);
+			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset, workLength, path,
+					pathOffset, pathLength, signType, destBuf, destOffset);
+			WorkCenter.release(WorkCenter.WORK1, workLength);
+		}
+		resetUtxoSectionState();
+		return ret;
+	}
+
+	// Also done before each run, so that a run that throws cannot leak into the next UTXO
+	private static void resetUtxoSectionState() {
+		Util.arrayFillNonAtomic(cache1, (short) 0, cache1Max, (byte) 0);
+		Util.arrayFillNonAtomic(cache2, (short) 0, cache2Max, (byte) 0);
+		Util.arrayFillNonAtomic(argument, (short) 0, argumentLength, (byte) 0);
+		c1i = c2i = ai = argumentLength = 0;
+		ti = utxoSectionTi;
+		di = utxoSectionDi;
+		bufferInt = utxoSectionBufferInt;
 	}
 
 	private static final byte[] utxoConstant = {(byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,

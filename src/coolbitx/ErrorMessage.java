@@ -132,6 +132,16 @@ public class ErrorMessage {
 	public static final short SCRIPT_UTXO_SIGN_TYPE_UNSUPPORTED = 0x6A94;
 	/* Unsupported UTXO script type in updateBtcScript. */
 	public static final short SCRIPT_UTXO_SCRIPT_TYPE_UNSUPPORTED = 0x6A95;
+	/* A UTXO section starts inside another UTXO section. */
+	public static final short SCRIPT_UTXO_SECTION_NESTED = 0x6A96;
+	/* 80AA supplies a hash key to a script with a UTXO section. */
+	public static final short SCRIPT_UTXO_SECTION_KEY_NOT_ALLOWED = 0x6A97;
+	/* UTXO data for a UTXO section is sent in more than one APDU. */
+	public static final short SCRIPT_UTXO_SECTION_CHUNK_UNSUPPORTED = 0x6A98;
+	/* A UTXO section changes what the user confirms. */
+	public static final short SCRIPT_UTXO_SECTION_DETAIL_MODIFIED = 0x6A99;
+	/* A UTXO section with hash type 0 does not leave exactly 32 bytes to sign. */
+	public static final short SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID = 0x6A9A;
 
 	// ================ 0x6B NumberUtil ================
 

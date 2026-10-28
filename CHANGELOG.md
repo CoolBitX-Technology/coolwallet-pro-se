@@ -1,3 +1,10 @@
+## [348] - Unreleased
+
+- `ScriptInterpreter` add script version 13 command `0xC9` (UTXO section): the script stops there, and `80AA` then runs the rest of the script once per UTXO with the UTXO data as its argument. The section appends what is to be signed to the transaction buffer, which is hashed with the header's hash type (0: signed as is, must be 32 bytes). This lets a script express sighashes that nest the UTXO data in several hashes, such as ZEC v5 (ZIP-244), without coin-specific code in the SE.
+  - Every UTXO starts from the state the main part of the script left (caches cleared, transaction buffer cut back), so UTXOs cannot affect each other.
+  - A UTXO section cannot change what the user confirms, and `80AA` cannot supply a hash key for it: what is hashed is decided by the signed script alone.
+- `ErrorMessage` add `6A96`-`6A9A` for UTXO section errors: nested section, hash key supplied, UTXO data split across APDUs, confirmed content modified, and a result that is not 32 bytes with hash type 0.
+
 ## [347] - 2026-10-16
 
 - `ErrorMessage` **BREAKING:** renumber custom status words into module-based ranges (SW1 = module, SW2 high nibble = file/feature). Most custom codes changed; SDK/App error mapping must be updated.
