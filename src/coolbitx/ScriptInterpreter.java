@@ -99,6 +99,7 @@ public class ScriptInterpreter {
 	}
 
 	public static void setScript(byte[] buf, short offset, short length) {
+		isExecuted = false; // Safe Guard: invalidates the previous execution avoiding the risk of using the previous script.
 		length -= 72;
 		if (!SignUtil.isVerifiedFixedLength(buf, offset, length, buf, (short) (offset + length),
 				KeyUtil.getPubKey(KeyStore.ScriptPubKey, Common.OFFSET_ZERO))) {
@@ -1005,39 +1006,40 @@ public class ScriptInterpreter {
 
 		resetUtxoSectionState();
 
-		// run the UTXO section script
-		argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
-		si = utxoSectionOffset;
-		runCommands();
+		try {
+			// run the UTXO section script
+			argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
+			si = utxoSectionOffset;
+			runCommands();
 
-		// Safety check: The information displayed on the screen should not be modified when signing
-		// an individual UTXO.
-		if (di != diAtUtxoSection) {
-			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
-		}
-
-		short resultLength = (short) (ti - tiAtUtxoSection);
-		short ret;
-		if (hashType == 0) {
-			if (resultLength != Common.LENGTH_SHA256) {
-				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID);
+			// Safety check: The information displayed on the screen should not be modified when
+			// signing an individual UTXO.
+			if (di != diAtUtxoSection) {
+				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
 			}
-			ret = KeyManager.deriveKeyAndSign(transaction, tiAtUtxoSection, resultLength, path,
-					pathOffset, pathLength, signType, destBuf, destOffset);
-		} else {
-			short workLength = Common.LENGTH_SHA256;
-			byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
-			short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
-			getHash(transaction, tiAtUtxoSection, resultLength, workspace, workspaceOffset,
-					hashType);
-			ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset, workLength, path,
-					pathOffset, pathLength, signType, destBuf, destOffset);
-			WorkCenter.release(WorkCenter.WORK1, workLength);
+
+			short resultLength = (short) (ti - tiAtUtxoSection);
+			short ret;
+			if (hashType == 0) {
+				if (resultLength != Common.LENGTH_SHA256) {
+					ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID);
+				}
+				ret = KeyManager.deriveKeyAndSign(transaction, tiAtUtxoSection, resultLength, path,
+						pathOffset, pathLength, signType, destBuf, destOffset);
+			} else {
+				short workLength = Common.LENGTH_SHA256;
+				byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
+				short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+				getHash(transaction, tiAtUtxoSection, resultLength, workspace, workspaceOffset,
+						hashType);
+				ret = KeyManager.deriveKeyAndSign(workspace, workspaceOffset, workLength, path,
+						pathOffset, pathLength, signType, destBuf, destOffset);
+				WorkCenter.release(WorkCenter.WORK1, workLength);
+			}
+			return ret;
+		} finally {
+			resetUtxoSectionState();
 		}
-
-		resetUtxoSectionState();
-
-		return ret;
 	}
 
 	// Reset the state before and after executing the UTXO-section script, ensuring that each UTXO
