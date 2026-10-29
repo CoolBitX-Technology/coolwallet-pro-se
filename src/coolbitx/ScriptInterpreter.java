@@ -45,6 +45,8 @@ public class ScriptInterpreter {
 	private static short utxoSectionOffset;
 	// The state when the UTXO section starts, which every UTXO starts from
 	private static short tiAtUtxoSection, diAtUtxoSection, bufferIntAtUtxoSection;
+	// The digest of what the main part leaves for every UTXO, which no UTXO section may change
+	private static byte[] mainPartDigest;
 
 	private static final byte type_asc = (byte) 0x00;
 	private static final byte type_bcd = (byte) 0x01;
@@ -62,6 +64,7 @@ public class ScriptInterpreter {
 		array = new short[arrayMax];
 		count = new short[arrayMax];
 		coinType = new byte[coinTypeMax];
+		mainPartDigest = new byte[Common.LENGTH_SHA256];
 		reset();
 	}
 
@@ -75,6 +78,7 @@ public class ScriptInterpreter {
 		array = null;
 		count = null;
 		coinType = null;
+		mainPartDigest = null;
 	}
 
 	public static void reset() {
@@ -880,6 +884,7 @@ public class ScriptInterpreter {
 					tiAtUtxoSection = ti;
 					diAtUtxoSection = di;
 					bufferIntAtUtxoSection = bufferInt;
+					digestMainPart(mainPartDigest, (short) 0);
 					isUTXOtx = true;
 					return;
 				default:
@@ -889,9 +894,14 @@ public class ScriptInterpreter {
 		}
 	}
 
-	public static boolean validateSignState(byte[] path, short pathOffset, short pathLength) {
+	public static boolean validateSignState(byte[] path, short pathOffset, short pathLength,
+			boolean isSigningUtxoSection) {
 		if (!isExecuted) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_NOT_EXECUTED);
+		}
+		// Safety check: a UTXO section is signed only by 80AA, so every other signing path rejects it.
+		if (hasUtxoSection() && !isSigningUtxoSection) {
+			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_APDU_UNSUPPORTED);
 		}
 		if (signType == 0) {
 			return false;
@@ -914,7 +924,7 @@ public class ScriptInterpreter {
 		if (isUTXOtx) {
 			return ret;
 		}
-		if (!validateSignState(path, pathOffset, pathLength))
+		if (!validateSignState(path, pathOffset, pathLength, false))
 			return ret;
 		// If hashType is zero means transaction does not need to hash.
 		if (hashType != 0) {
@@ -936,15 +946,8 @@ public class ScriptInterpreter {
 	public static short signSegmentData(byte[] data, short offset, short length, byte[] path,
 			short pathOffset, short pathLength, byte[] key, short keyOffset, short keyLength,
 			byte[] destBuf, short destOffset, boolean shouldUpdateTransaction) {
-
-		// If a UTXO section script exists, execute the UTXO section script and then sign the UTXO.
-		if (utxoSectionOffset != 0) {
-			return signUtxoSection(data, offset, length, path, pathOffset, pathLength, keyLength,
-					shouldUpdateTransaction, destBuf, destOffset);
-		}
-
 		short ret = 0;
-		if (!validateSignState(path, pathOffset, pathLength))
+		if (!validateSignState(path, pathOffset, pathLength, false))
 			return ret;
 		if (shouldUpdateTransaction) {
 			if (keyLength > 0) {
@@ -983,12 +986,12 @@ public class ScriptInterpreter {
 	 * This is for sighashes that nest the UTXO data in several hashes (e.g. ZEC v5, ZIP-244),
 	 * which a utxo placeholder cannot express.
 	 */
-	private static short signUtxoSection(byte[] data, short offset, short length, byte[] path,
+	public static short signUtxoSection(byte[] data, short offset, short length, byte[] path,
 			short pathOffset, short pathLength, short keyLength, boolean isFirstChunk,
 			byte[] destBuf, short destOffset) {
 
 		// execute general validation function before sign
-		if (!validateSignState(path, pathOffset, pathLength)) {
+		if (!validateSignState(path, pathOffset, pathLength, true)) {
 			return 0;
 		}
 
@@ -1016,6 +1019,12 @@ public class ScriptInterpreter {
 			// signing an individual UTXO.
 			if (di != diAtUtxoSection) {
 				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
+			}
+
+			// Safety check: The next UTXO starts from what the main part left, so a UTXO section must
+			// not change it, e.g. by moving ti back and overwriting the main part's digests.
+			if (ti < tiAtUtxoSection || !isMainPartUnchanged()) {
+				ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_MAIN_PART_MODIFIED);
 			}
 
 			short resultLength = (short) (ti - tiAtUtxoSection);
@@ -1052,6 +1061,33 @@ public class ScriptInterpreter {
 		ti = tiAtUtxoSection;
 		di = diAtUtxoSection;
 		bufferInt = bufferIntAtUtxoSection;
+	}
+
+	// Whether the executed script has a UTXO section: after 80AC replaces the script, the old
+	// section's offset no longer counts.
+	public static boolean hasUtxoSection() {
+		return isExecuted && utxoSectionOffset != 0;
+	}
+
+	// The transaction data before the section and the coin type lock: the parts of the main
+	// part's state that resetUtxoSectionState() cannot restore.
+	private static void digestMainPart(byte[] destBuf, short destOffset) {
+		ShaUtil.m_sha_256.reset();
+		ShaUtil.m_sha_256.update(transaction, (short) 0, tiAtUtxoSection);
+		ShaUtil.m_sha_256.update(coinType, (short) 0, coinTypeMax);
+		destBuf[destOffset] = isCoinTypeExist ? (byte) 1 : (byte) 0;
+		ShaUtil.m_sha_256.doFinal(destBuf, destOffset, (short) 1, destBuf, destOffset);
+	}
+
+	private static boolean isMainPartUnchanged() {
+		short workLength = Common.LENGTH_SHA256;
+		byte[] workspace = WorkCenter.getWorkspaceArray(WorkCenter.WORK1);
+		short workspaceOffset = WorkCenter.getWorkspaceOffset(workLength);
+		digestMainPart(workspace, workspaceOffset);
+		boolean isUnchanged = Util.arrayCompare(workspace, workspaceOffset, mainPartDigest,
+				(short) 0, workLength) == 0;
+		WorkCenter.release(WorkCenter.WORK1, workLength);
+		return isUnchanged;
 	}
 
 	private static final byte[] utxoConstant = {(byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00,
@@ -1108,11 +1144,17 @@ public class ScriptInterpreter {
 		}
 	}
 
+	// Legacy (80A4): the UTXO sighash formats are hardcoded; new scripts use 80AA instead.
 	public static short signUtxoTransaction(byte[] utxoArgument, short utxoArgumentOffset,
 			byte[] path, short pathOffset, short pathLength, byte type, byte[] destBuf,
 			short destOffset) {
 		if (!isExecuted) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_NOT_EXECUTED);
+		}
+		// Safety check: 80A4 checks inline instead of calling validateSignState, so it needs its own
+		// copy of the UTXO section rule there.
+		if (hasUtxoSection()) {
+			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_APDU_UNSUPPORTED);
 		}
 		if (isCoinTypeExist) {
 			if (pathLength < 9) {

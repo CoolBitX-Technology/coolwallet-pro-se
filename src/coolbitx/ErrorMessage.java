@@ -142,6 +142,10 @@ public class ErrorMessage {
 	public static final short SCRIPT_UTXO_SECTION_DETAIL_MODIFIED = 0x6A99;
 	/* A UTXO section with hash type 0 does not leave exactly 32 bytes to sign. */
 	public static final short SCRIPT_UTXO_SECTION_RESULT_LENGTH_INVALID = 0x6A9A;
+	/* A UTXO section changes the transaction data or coin type the main part left. */
+	public static final short SCRIPT_UTXO_SECTION_MAIN_PART_MODIFIED = 0x6A9B;
+	/* A script with a UTXO section is signed by an APDU other than 80AA. */
+	public static final short SCRIPT_UTXO_SECTION_APDU_UNSUPPORTED = 0x6A9C;
 
 	// ================ 0x6B NumberUtil ================
 

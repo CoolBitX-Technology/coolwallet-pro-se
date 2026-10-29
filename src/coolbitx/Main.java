@@ -623,9 +623,15 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					dataLength = (short) (dataLength - 1 - pathLength - keyLength);
 					short keyOffset = (short) (dataOffset + dataLength);
 
-					processLength = ScriptInterpreter.signSegmentData(buf, dataOffset, dataLength,
-							path, Common.OFFSET_ONE, pathLength, buf, keyOffset, keyLength, buf,
-							dataOffset, shouldUpdateTransaction);
+					if (ScriptInterpreter.hasUtxoSection()) {
+						processLength = ScriptInterpreter.signUtxoSection(buf, dataOffset,
+								dataLength, path, Common.OFFSET_ONE, pathLength, keyLength,
+								shouldUpdateTransaction, buf, dataOffset);
+					} else {
+						processLength = ScriptInterpreter.signSegmentData(buf, dataOffset,
+								dataLength, path, Common.OFFSET_ONE, pathLength, buf, keyOffset,
+								keyLength, buf, dataOffset, shouldUpdateTransaction);
+					}
 					if (processLength != 0) {
 						if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 							NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO, (short) 32);
