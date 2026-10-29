@@ -1,4 +1,4 @@
-## [348] - Unreleased
+## [348] - 2026-10-29
 
 - `ScriptInterpreter` add script version 13 command `0xC9` (UTXO section): the script stops there, and `80AA` then runs the rest of the script once per UTXO with the UTXO data as its argument. The section appends what is to be signed to the transaction buffer, which is hashed with the header's hash type (0: signed as is, must be 32 bytes). This lets a script express sighashes that nest the UTXO data in several hashes, such as ZEC v5 (ZIP-244), without coin-specific code in the SE.
   - Every UTXO starts from the state the main part of the script left (caches cleared, transaction buffer cut back), so UTXOs cannot affect each other.

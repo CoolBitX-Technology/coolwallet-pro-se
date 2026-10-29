@@ -173,9 +173,6 @@ public class ScriptInterpreter {
 		isExecuted = true;
 	}
 
-	/**
-	 * Run the script from si until its end, or until a UTXO section starts.
-	 */
 	private static void runCommands() {
 		for (; si < scriptLength;) {
 			byte command = script[si++];
@@ -873,8 +870,9 @@ public class ScriptInterpreter {
 				// ================ script version 13 ================
 				// UTXO section: the rest of the script runs once per UTXO (80AA)
 				case (byte) 0xC9:
+					// Safety check: Nested UTXO sections are not currently supported; a UTXO
+					// section script cannot contain another `.utxoSection()` call.
 					if (utxoSectionOffset != 0) {
-						// utxoSectionOffset has to be cleared before another UTXO section can start
 						ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_NESTED);
 					}
 					utxoSectionOffset = si;
@@ -937,10 +935,13 @@ public class ScriptInterpreter {
 	public static short signSegmentData(byte[] data, short offset, short length, byte[] path,
 			short pathOffset, short pathLength, byte[] key, short keyOffset, short keyLength,
 			byte[] destBuf, short destOffset, boolean shouldUpdateTransaction) {
+
+		// If a UTXO section script exists, execute the UTXO section script and then sign the UTXO.
 		if (utxoSectionOffset != 0) {
 			return signUtxoSection(data, offset, length, path, pathOffset, pathLength, keyLength,
 					shouldUpdateTransaction, destBuf, destOffset);
 		}
+
 		short ret = 0;
 		if (!validateSignState(path, pathOffset, pathLength))
 			return ret;
@@ -976,39 +977,45 @@ public class ScriptInterpreter {
 	}
 
 	/**
-	 * Sign one UTXO with the script's UTXO section: the section runs with the UTXO data as its
-	 * argument and appends what is to be signed to the transaction buffer. That result is hashed
-	 * with the header's hash type, or signed as is when the hash type is 0 (it must then be 32
-	 * bytes).
+	 * Sign one UTXO with the script's UTXO section.
 	 *
 	 * This is for sighashes that nest the UTXO data in several hashes (e.g. ZEC v5, ZIP-244),
-	 * which a placeholder cannot express. Every UTXO starts from the state the main part of the
-	 * script left, so UTXOs cannot affect each other. The section cannot change what the user
-	 * confirms, and the APDU cannot supply a hash key: what is hashed is decided by the signed
-	 * script alone.
-	 *
-	 * @param isFirstChunk the UTXO data must come in one APDU
+	 * which a utxo placeholder cannot express.
 	 */
 	private static short signUtxoSection(byte[] data, short offset, short length, byte[] path,
 			short pathOffset, short pathLength, short keyLength, boolean isFirstChunk,
 			byte[] destBuf, short destOffset) {
+
+		// execute general validation function before sign
 		if (!validateSignState(path, pathOffset, pathLength)) {
 			return 0;
 		}
+
+		// Safety check: The UTXO section script can specify how the hash should be executed, no
+		// need to provide a hash key via the 80AA APDU.
 		if (keyLength != 0) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_KEY_NOT_ALLOWED);
 		}
+
+		// Safety check: The UTXO section script must be executed in one APDU, so the UTXO data
+		// cannot be split into multiple chunks.
 		if (!isFirstChunk) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_CHUNK_UNSUPPORTED);
 		}
-		resetUtxoSectionState();
-		argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
 
+		resetUtxoSectionState();
+
+		// run the UTXO section script
+		argumentLength = Util.arrayCopyNonAtomic(data, offset, argument, (short) 0, length);
 		si = utxoSectionOffset;
 		runCommands();
+
+		// Safety check: The information displayed on the screen should not be modified when signing
+		// an individual UTXO.
 		if (di != diAtUtxoSection) {
 			ISOException.throwIt(ErrorMessage.SCRIPT_UTXO_SECTION_DETAIL_MODIFIED);
 		}
+
 		short resultLength = (short) (ti - tiAtUtxoSection);
 		short ret;
 		if (hashType == 0) {
@@ -1027,11 +1034,14 @@ public class ScriptInterpreter {
 					pathOffset, pathLength, signType, destBuf, destOffset);
 			WorkCenter.release(WorkCenter.WORK1, workLength);
 		}
+
 		resetUtxoSectionState();
+
 		return ret;
 	}
 
-	// Also done before each run, so that a run that throws cannot leak into the next UTXO
+	// Reset the state before and after executing the UTXO-section script, ensuring that each UTXO
+	// remains independent and does not affect the others.
 	private static void resetUtxoSectionState() {
 		Util.arrayFillNonAtomic(cache1, (short) 0, cache1Max, (byte) 0);
 		Util.arrayFillNonAtomic(cache2, (short) 0, cache2Max, (byte) 0);
