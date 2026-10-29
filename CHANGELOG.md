@@ -1,7 +1,7 @@
 ## [348] - 2026-10-29
 
 - `ScriptInterpreter` add script version 13 command `0xC9` (UTXO section): the script stops there, and `80AA` then runs the rest of the script once per UTXO with the UTXO data as its argument. The section appends what is to be signed to the transaction buffer, which is hashed with the header's hash type (0: signed as is, must be 32 bytes). This lets a script express sighashes that nest the UTXO data in several hashes, such as ZEC v5 (ZIP-244), without coin-specific code in the SE.
-  - Every UTXO starts from the state the main part of the script left: caches and argument cleared, transaction buffer cut back, confirmed content restored. This also holds after a UTXO fails.
+  - Every UTXO starts from where the main part of the script left the buffers: caches, argument, array counters and script digests cleared, transaction buffer cut back, confirmed content restored. This also holds after a UTXO fails. A UTXO section reads only what the main part left and what the current UTXO writes.
   - A UTXO section cannot change what the user confirms, or the transaction data and coin type the main part left; `80AA` cannot supply a hash key for it.
   - Only `80AA` signs a script with a UTXO section: `validateSignState` rejects it for every other signing command, and `80A4`, which does not use it, rejects it too.
 - `ScriptInterpreter` `80AC` invalidates the previous execution, even when the new script's signature is invalid, so signing returns `6A90` until `80A2` runs the new script.

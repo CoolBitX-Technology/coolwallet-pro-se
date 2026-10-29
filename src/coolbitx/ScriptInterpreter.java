@@ -1051,12 +1051,18 @@ public class ScriptInterpreter {
 		}
 	}
 
-	// Reset the state before and after executing the UTXO-section script, ensuring that each UTXO
-	// remains independent and does not affect the others.
+	// Reset the state before and after executing the UTXO-section script: the caches, the argument,
+	// the array counters, the script digests and the buffer pointers. The transaction buffer after
+	// tiAtUtxoSection is not cleared, so a UTXO section reads only what the main part left and what
+	// the current UTXO writes.
 	private static void resetUtxoSectionState() {
 		Util.arrayFillNonAtomic(cache1, (short) 0, cache1Max, (byte) 0);
 		Util.arrayFillNonAtomic(cache2, (short) 0, cache2Max, (byte) 0);
 		Util.arrayFillNonAtomic(argument, (short) 0, argumentLength, (byte) 0);
+		Common.clearArray(array);
+		Common.clearArray(count);
+		// A UTXO that fails between 0x5D and 0x5A leaves its key or personal in the digest.
+		ShaUtil.resetScriptDigests();
 		c1i = c2i = ai = argumentLength = 0;
 		ti = tiAtUtxoSection;
 		di = diAtUtxoSection;
