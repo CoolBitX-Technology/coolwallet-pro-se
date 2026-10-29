@@ -512,16 +512,19 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
 					break;
 				}
-				case (byte) 0x8A: {
-					// recover data from main card
-					if (DeviceManager.isPaired()) {
-						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-					}
-					short processtLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, destBuf,
-							destOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
-					BackupController.recover(destBuf, destOffset, processtLength);
-					break;
-				}
+				// Disabled: recovering from a main card is the backup card's command. A Pro card never
+				// sets KEY_SE_BACKUP, so it cannot decrypt the data; it now returns
+				// SW_INS_NOT_SUPPORTED.
+				// case (byte) 0x8A: {
+				// 	// recover data from main card
+				// 	if (DeviceManager.isPaired()) {
+				// 		ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				// 	}
+				// 	short processtLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, destBuf,
+				// 			destOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
+				// 	BackupController.recover(destBuf, destOffset, processtLength);
+				// 	break;
+				// }
 				case (byte) 0xAC:// setScript
 					CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
 					ScriptInterpreter.setScript(buf, dataOffset, dataLength);

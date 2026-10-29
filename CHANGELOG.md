@@ -6,6 +6,7 @@
   - Only `80AA` signs a script with a UTXO section: `validateSignState` rejects it for every other signing command, and `80A4`, which does not use it, rejects it too.
 - `ScriptInterpreter` `80AC` invalidates the previous execution, even when the new script's signature is invalid, so signing returns `6A90` until `80A2` runs the new script.
 - `ErrorMessage` add `6A96`-`6A9C` for UTXO section errors: nested section, hash key supplied, UTXO data split across APDUs, confirmed content modified, a result that is not 32 bytes with hash type 0, main part modified, and signed by an APDU other than `80AA`.
+- `Main` disable `808A` (recover data from a main card): it is a backup card command, and a Pro card holds no backup key for it. It now returns `6D00` (`SW_INS_NOT_SUPPORTED`); the SDK already rejects it for Pro.
 
 ## [347] - 2026-10-16
 
