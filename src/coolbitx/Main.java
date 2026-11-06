@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 347;
+	private static final short ver = 348;
 
 	private static boolean isInit = false;
 
@@ -512,16 +512,19 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					WorkCenter.release(WorkCenter.WORK, Common.LENGTH_PUBLICKEY);
 					break;
 				}
-				case (byte) 0x8A: {
-					// recover data from main card
-					if (DeviceManager.isPaired()) {
-						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-					}
-					short processtLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, destBuf,
-							destOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
-					BackupController.recover(destBuf, destOffset, processtLength);
-					break;
-				}
+				// Disabled: recovering from a main card is the backup card's command. A Pro card never
+				// sets KEY_SE_BACKUP, so it cannot decrypt the data; it now returns
+				// SW_INS_NOT_SUPPORTED.
+				// case (byte) 0x8A: {
+				// 	// recover data from main card
+				// 	if (DeviceManager.isPaired()) {
+				// 		ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+				// 	}
+				// 	short processtLength = EcdhUtil.decrypt(buf, dataOffset, dataLength, destBuf,
+				// 			destOffset, KeyStore.getPrivKey(KeyStore.KEY_SE_BACKUP));
+				// 	BackupController.recover(destBuf, destOffset, processtLength);
+				// 	break;
+				// }
 				case (byte) 0xAC:// setScript
 					CardInfo.set(CardInfo.TRANSCATION_STATE, Common.STATE_PREPARE);
 					ScriptInterpreter.setScript(buf, dataOffset, dataLength);
@@ -623,9 +626,15 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					dataLength = (short) (dataLength - 1 - pathLength - keyLength);
 					short keyOffset = (short) (dataOffset + dataLength);
 
-					processLength = ScriptInterpreter.signSegmentData(buf, dataOffset, dataLength,
-							path, Common.OFFSET_ONE, pathLength, buf, keyOffset, keyLength, buf,
-							dataOffset, shouldUpdateTransaction);
+					if (ScriptInterpreter.hasUtxoSection()) {
+						processLength = ScriptInterpreter.signUtxoSection(buf, dataOffset,
+								dataLength, path, Common.OFFSET_ONE, pathLength, keyLength,
+								shouldUpdateTransaction, buf, dataOffset);
+					} else {
+						processLength = ScriptInterpreter.signSegmentData(buf, dataOffset,
+								dataLength, path, Common.OFFSET_ONE, pathLength, buf, keyOffset,
+								keyLength, buf, dataOffset, shouldUpdateTransaction);
+					}
 					if (processLength != 0) {
 						if (!CardInfo.is(CardInfo.SIGN_AESKEY_VALID)) {
 							NonceUtil.randomNonce(signAesKey, Common.OFFSET_ZERO, (short) 32);
