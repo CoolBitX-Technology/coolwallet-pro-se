@@ -87,7 +87,6 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		CardInfo.init(true);
 		FlowCounter.init();
 		ScriptInterpreter.init();
-		CoolSeedBackup.init();
 		CardInfo.defaultSettings();
 	}
 

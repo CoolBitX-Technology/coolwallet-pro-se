@@ -8,6 +8,7 @@
   - `84B4` (backend, C-MAC and R-MAC): a new one-time restore public key (65), with an R-MAC. Only without a wallet. It drops the CoolSeed key, so the backend sends `84B0` again after it.
   - `80B5`: one restore segment encrypted for the restore key. CoolSeed encrypts it from its own key (static ECDH), so the first 65 bytes must equal the `84B0` key: otherwise `6949`, or `6940` when there is no `84B0` key. This stops the app, which knows the restore key, from importing a seed of its own. The wallet is written after the last segment; a resent segment is ignored, a first segment of another backup starts over, and unknown TLV types are skipped.
   - `8056` reset also clears the CoolSeed export and restore state.
+  - The state is allocated on the first `84B0` or `84B4`, not at install: creating the applet already takes about 1.2 s, and contactless readers drop an INSTALL that runs past 1.3-1.5 s.
 - `SecureSession` relay the GP secure channel handshake of the Security Domain (SCP02) to the backend: `8050` with an 8-byte host challenge is INITIALIZE UPDATE (`hi` carries a 20-byte appId), `8482` is EXTERNAL AUTHENTICATE. CLA `84` commands are accepted only in a session with C-MAC, and the session is reset on deselect.
 - `ErrorMessage` add `6930`-`6931` (secure channel without C-MAC / R-MAC) and `6940`-`6949` (CoolSeed backup errors).
 - Build: compile against the GlobalPlatform API 2.3.0 (`gp230.jar`, `globalplatform.exp`), which `scripts/setup-libs.sh` now extracts. The simulator uses a stub secure channel that never authenticates.

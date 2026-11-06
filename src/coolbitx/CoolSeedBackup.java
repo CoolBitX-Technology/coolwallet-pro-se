@@ -64,13 +64,30 @@ public class CoolSeedBackup {
 	private static byte importCount;
 	private static byte importNext;
 
-	public static void init() {
-		coolSeedKey = new byte[Common.LENGTH_PUBLICKEY];
-		backupId = new byte[LENGTH_BACKUP_ID];
-		password = new byte[LENGTH_PASSWORD];
-		restoreKeyPair = Secp256k1.newKeyPair();
-		importId = new byte[LENGTH_BACKUP_ID];
-		importData = new byte[MAX_DATA_LENGTH];
+	// Allocated on the first 84B0 or 84B4 instead of at install: creating Main
+	// already takes about 1.2 s, and contactless readers drop an INSTALL that
+	// runs past 1.3-1.5 s. Every other entry point needs one of the two first.
+	// Each field is checked on its own, so a call cut off midway allocates
+	// only what is still missing when it runs again.
+	private static void allocate() {
+		if (coolSeedKey == null) {
+			coolSeedKey = new byte[Common.LENGTH_PUBLICKEY];
+		}
+		if (backupId == null) {
+			backupId = new byte[LENGTH_BACKUP_ID];
+		}
+		if (password == null) {
+			password = new byte[LENGTH_PASSWORD];
+		}
+		if (restoreKeyPair == null) {
+			restoreKeyPair = Secp256k1.newKeyPair();
+		}
+		if (importId == null) {
+			importId = new byte[LENGTH_BACKUP_ID];
+		}
+		if (importData == null) {
+			importData = new byte[MAX_DATA_LENGTH];
+		}
 	}
 
 	public static void uninit() {
@@ -106,6 +123,7 @@ public class CoolSeedBackup {
 				|| length != (short) (Common.LENGTH_PUBLICKEY + 1 + cardNumberLength)) {
 			ISOException.throwIt(ErrorMessage.COOLSEED_KEY_INVALID);
 		}
+		allocate();
 		// The card number is for the user to compare on the screen, which
 		// comes later
 		Util.arrayCopy(buf, offset, coolSeedKey, Common.OFFSET_ZERO, Common.LENGTH_PUBLICKEY);
@@ -221,6 +239,7 @@ public class CoolSeedBackup {
 	 */
 	public static short newRestoreKey(byte[] destBuf, short destOffset) {
 		CardInfo.checkWalletStatusNotEqual(Common.WALLET_CREATED);
+		allocate();
 		coolSeedKeySet = false;
 		clearImport();
 		restoreKeyPair.genKeyPair();
@@ -393,6 +412,10 @@ public class CoolSeedBackup {
 
 	private static void clearExport() {
 		exportStarted = false;
+		// Nothing to clear before the first 84B0 or 84B4 (8056 reset)
+		if (backupId == null || password == null) {
+			return;
+		}
 		Util.arrayFillNonAtomic(backupId, Common.OFFSET_ZERO, LENGTH_BACKUP_ID, (byte) 0);
 		Util.arrayFillNonAtomic(password, Common.OFFSET_ZERO, LENGTH_PASSWORD, (byte) 0);
 	}
@@ -400,6 +423,10 @@ public class CoolSeedBackup {
 	private static void clearImport() {
 		importCount = 0;
 		importNext = 0;
+		if (importData == null || importId == null) {
+			importLength = 0;
+			return;
+		}
 		Util.arrayFillNonAtomic(importData, Common.OFFSET_ZERO, importLength, (byte) 0);
 		importLength = 0;
 		Util.arrayFillNonAtomic(importId, Common.OFFSET_ZERO, LENGTH_BACKUP_ID, (byte) 0);
