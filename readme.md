@@ -239,7 +239,42 @@ Produces two CAP packages:
 
 #### Step 5: Install onto a Physical Card
 
-Both scripts use GlobalPlatformPro (`gp.jar`) with its default test key. The main package depends on the SIO package, so on a fresh card install SIO first, then main.
+The scripts use GlobalPlatformPro (`gp.jar`) with its default test key, so they are for test cards only. As on production cards, the main applet goes into the supplementary security domain (SSD) `A000000151535041`, so its secure channel (`SecureSession`) uses the SSD's keyset `0A`; SIO stays in the ISD.
+
+On a fresh card, run the stages in this order:
+
+```bash
+# Stage 0 (one-time): extract the JavaCard / JCOP / GlobalPlatform libraries
+scripts/setup-libs.sh
+
+# Stage 1: build the CAP files. Run it whenever:
+#   - code under src/ changed (including the crypto submodule, as src/coolbitx
+#     links into it), e.g. after editing, pulling or switching branches
+#   - bin/ was wiped by scripts/build.sh or scripts/run-web-server.sh
+#     (e.g. after running the simulator)
+# The install scripts only check that the CAP exists, not that it is current.
+scripts/cap-build.sh
+
+# Several readers connected: pick one (the contact interface is recommended)
+export GP_READER="<reader name>"
+
+# Stage 2: create the SSD A000000151535041 with the test keyset 0A
+# (5051...5F). Skipped if the card already has it.
+scripts/ssd-setup.sh
+
+# Stage 3: install SIO (BackupApplet) into the ISD and write the card id
+scripts/sio-cap-install.sh <card id>      # e.g. scripts/sio-cap-install.sh CWP000001
+
+# Stage 4: install main (CoolWalletPRO) into the SSD
+scripts/main-cap-install.sh 1
+```
+
+The order matters: main is installed into the SSD, so the SSD must exist first, and the main package imports the SIO package, so SIO goes before main. To update only the main applet on a card that already has the SSD and SIO, run stage 1 and then stage 4.
+
+**SSD (`ssd-setup.sh`):**
+
+- Creates the SSD with privileges `A0` (Security Domain + Delegated Management) and install parameters `C9 01 45`, then writes keyset `0A` (3DES, SCP02), as production perso does. The key is `SSD_KEY` (default `505152535455565758595A5B5C5D5E5F`, the same test SSD key as cool-seed-se); the ISD key is `GP_KEY` (default `404142434445464748494A4B4C4D4E4F`).
+- An existing SSD is reused if `SSD_KEY` works on it; the script never overwrites an existing SSD's keys.
 
 **SIO applet (`BackupApplet`):**
 
@@ -263,6 +298,8 @@ scripts/main-cap-install.sh 1     # install with -params c0 (factoryMode + devel
 ```
 
 - Install parameter bits: `0x80` enables `factoryMode`, `0x40` enables `developMode`.
+- The applet is installed into the SSD `A000000151535041`. If the card has no SSD, the script stops before deleting anything; run `scripts/ssd-setup.sh` first.
+- Creating the applet takes about 1.2 s, and contactless readers give up on a command after about 1.3-1.5 s. Over a contactless reader the link can drop there (`SCARD_E_NOT_TRANSACTED`) after the package has loaded; the script then waits for the card to recover and creates the applet once more. If that fails too, use the contact interface.
 - After install, the script selects the applet and sends a test APDU (`80 52 00 00 00`). It reports `[FAIL]` if any response is not `9000`.
 
 **Selecting a card reader:**
@@ -270,6 +307,7 @@ scripts/main-cap-install.sh 1     # install with -params c0 (factoryMode + devel
 By default `gp.jar` auto-selects the reader, preferring the one with a card present. A dual-interface reader shows up as two readers, e.g. `... Dual Interface Reader(1)` and `(2)`, and their numbering can shift between sessions. If `gp.jar` picks the wrong reader or cannot decide, set `GP_READER` to the reader name. On macOS, list reader names with `system_profiler SPSmartCardsDataType`:
 
 ```bash
+GP_READER="<reader name>" scripts/ssd-setup.sh
 GP_READER="<reader name>" scripts/sio-cap-install.sh <card id>
 GP_READER="<reader name>" scripts/main-cap-install.sh
 ```

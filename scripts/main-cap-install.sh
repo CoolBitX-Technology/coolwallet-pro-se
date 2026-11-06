@@ -8,6 +8,12 @@ READER="${GP_READER:-}"
 # GlobalPlatformPro's own default test key — passing it explicitly avoids
 # its "no keys given, defaulting to ..." warning on every command.
 KEY="404142434445464748494A4B4C4D4E4F"
+# Main goes into the SSD, as on production cards, so SecureSession uses the
+# SSD's keyset 0A. Create it first with scripts/ssd-setup.sh. sio stays in
+# the ISD (sio-cap-install.sh).
+SSD_AID="A000000151535041"
+PACKAGE_AID="436f6f6c57616c6c6574"
+APPLET_AID="436f6f6c57616c6c657450524f"
 
 COLOR_OK="\033[32m"
 COLOR_FAIL="\033[31m"
@@ -94,31 +100,65 @@ READER_ARGS=()
 if [ -n "${READER}" ]; then
   READER_ARGS=(-r "${READER}")
 fi
+# Lists the card, trying again until gp.jar shows the ISD: right after a
+# dropped contactless link the card answers 6982 to everything until it has
+# been left alone for several seconds.
+card_list() {
+  local output i
+  for i in 1 2 3 4; do
+    [ ${i} -gt 1 ] && sleep 5
+    output="$(java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -list "${READER_ARGS[@]}" 2>&1)"
+    if echo "${output}" | grep -q "^ISD: "; then
+      break
+    fi
+  done
+  echo "${output}"
+}
+
+# Check the SSD before touching the card, so a card without it doesn't lose
+# its main applet first.
+if ! card_list | grep -qi "^DOM: ${SSD_AID}"; then
+  echo -e "${COLOR_FAIL}✘ 卡片上沒有 SSD ${SSD_AID}${COLOR_RESET}"
+  echo "  請先執行 scripts/ssd-setup.sh"
+  exit 1
+fi
 
 # Delete applet and package in separate calls so each gets its own
 # [OK]/[FAIL] result. Applet must go first.
 run_step_delete "刪除舊 applet（若尚未安裝過則視為正常）" \
-  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c657450524f "${READER_ARGS[@]}" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete "${APPLET_AID}" "${READER_ARGS[@]}" \
   || overall_status=$?
 
 run_step_delete "刪除舊 package（若尚未安裝過則視為正常）" \
-  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete 436f6f6c57616c6c6574 "${READER_ARGS[@]}" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -delete "${PACKAGE_AID}" "${READER_ARGS[@]}" \
   || overall_status=$?
 
+PARAMS_ARGS=()
+install_desc="安裝 CAP 到 SSD ${SSD_AID}（無 params）"
 if [ "$1" == "1" ]; then
-  install_desc="安裝 CAP（params c0）"
-  run_step "${install_desc}" \
-    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${MAIN_CAP}" -params c0 "${READER_ARGS[@]}" -default \
-    || overall_status=$?
-else
-  install_desc="安裝 CAP（無 params）"
-  run_step "${install_desc}" \
-    java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${MAIN_CAP}" "${READER_ARGS[@]}" -default \
-    || overall_status=$?
+  PARAMS_ARGS=(-params c0)
+  install_desc="安裝 CAP 到 SSD ${SSD_AID}（params c0）"
+fi
+if ! run_step "${install_desc}" \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -install "${MAIN_CAP}" "${PARAMS_ARGS[@]}" --to "${SSD_AID}" "${READER_ARGS[@]}" -default; then
+  # Over contactless, creating the applet (about 1.2 s) can drop the link
+  # (SCARD_E_NOT_TRANSACTED) after the package has loaded. The card rolls the
+  # INSTALL back, so create the instance once more from the loaded package.
+  echo "等待卡片恢復（10 秒）..."
+  sleep 10
+  listing="$(card_list)"
+  if echo "${listing}" | grep -qi "^PKG: ${PACKAGE_AID}" && ! echo "${listing}" | grep -qi "^APP: ${APPLET_AID}"; then
+    run_step "package 已載入，補建 applet" \
+      java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" --package "${PACKAGE_AID}" --applet "${APPLET_AID}" \
+      --create "${APPLET_AID}" "${PARAMS_ARGS[@]}" --to "${SSD_AID}" "${READER_ARGS[@]}" -default \
+      || overall_status=$?
+  else
+    overall_status=1
+  fi
 fi
 
 run_step_apdu "選取 applet 並發送測試 APDU" \
-  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -apdu 00a404000d436f6f6c57616c6c657450524f -apdu 8052000000 "${READER_ARGS[@]}" -debug \
+  java -jar "${PROJECT_ROOT}/gp.jar" -key "${KEY}" -apdu "00a404000d${APPLET_AID}" -apdu 8052000000 "${READER_ARGS[@]}" -debug \
   || overall_status=$?
 
 echo "========================================"
