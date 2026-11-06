@@ -39,6 +39,7 @@ TOOLS_JAR="$JC_LIB_DIR/tools-1.0.jar"
 API_JAR="$JC_LIB_DIR/api_classic.jar"
 EXPORT_DIR="$JC_LIB_DIR/api_export_files"
 JCOPX_EXPORT_DIR="$JC_LIB_DIR/jcopx_export_files"
+GP_EXPORT_DIR="$JC_LIB_DIR/gp_export_files"
 # Older/manually-populated local_lib layouts extract the JCOPx .exp tree
 # (com/nxp/id/jcopx/...) directly under $JC_LIB_DIR instead of a
 # jcopx_export_files/ subfolder — fall back to that layout if present.
@@ -124,6 +125,11 @@ EXPORT_PATH="$EXPORT_DIR"
 if [ -d "$JCOPX_EXPORT_DIR" ]; then
   EXPORT_PATH="$EXPORT_PATH:$JCOPX_EXPORT_DIR"
 fi
+if [ ! -d "$GP_EXPORT_DIR" ]; then
+  echo "ERROR: gp_export_files not found in $JC_LIB_DIR. Run: scripts/setup-libs.sh"
+  exit 1
+fi
+EXPORT_PATH="$EXPORT_PATH:$GP_EXPORT_DIR"
 
 # Strips a converter-produced .cap down to just the real */javacard/*.cap
 # component entries — discards META-INF/MANIFEST.MF, javacard.xml,

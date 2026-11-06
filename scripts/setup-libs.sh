@@ -57,6 +57,18 @@ if [ -d "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" ]; then
   cp -R "$JTOOLS/Java_Card_Classic_API-3.0.5/api_export_files" "$OUT_DIR"/api_export_files
 fi
 
+# GlobalPlatform API 2.3.0 (org.globalplatform, for SecureSession)
+GP_API="$JTOOLS/GlobalPlatform_API-2.3.0"
+if [ -f "$GP_API/gp230.jar" ]; then
+  cp "$GP_API/gp230.jar" "$OUT_DIR"/
+  mkdir -p "$OUT_DIR/gp_export_files/org/globalplatform/javacard"
+  cp "$GP_API/org/globalplatform/javacard/globalplatform.exp" \
+    "$OUT_DIR/gp_export_files/org/globalplatform/javacard/"
+  echo "  Copied GlobalPlatform API 2.3.0"
+else
+  echo "WARNING: GlobalPlatform_API-2.3.0/gp230.jar not found."
+fi
+
 echo "[4/5] Copy Oracle converter jars and JCOPx export files..."
 
 # Oracle converter (tools-1.0.jar — the actual jar Windows Eclipse + JCOP

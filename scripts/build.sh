@@ -42,9 +42,10 @@ fi
 
 API_JAR="$JC_LIB_DIR/api_classic.jar"
 JCOPX_JAR="$JC_LIB_DIR/JCOPx_API-R1.1.4.jar"
+GP_JAR="$JC_LIB_DIR/gp230.jar"
 BC_JAR="$JC_LIB_DIR/bcprov-jdk15on-1.70.jar"
 
-if [ ! -f "$API_JAR" ] || [ ! -f "$JCOPX_JAR" ]; then
+if [ ! -f "$API_JAR" ] || [ ! -f "$JCOPX_JAR" ] || [ ! -f "$GP_JAR" ]; then
   echo "ERROR: Required JavaCard jars not found in $JC_LIB_DIR."
   echo "Make sure scripts/setup-libs.sh ran successfully."
   exit 1
@@ -56,7 +57,7 @@ if [ ! -f "$BC_JAR" ]; then
   exit 1
 fi
 
-CLASSPATH="$API_JAR:$JCOPX_JAR:$BC_JAR"
+CLASSPATH="$API_JAR:$JCOPX_JAR:$GP_JAR:$BC_JAR"
 
 CRYPTO_DIR="$PROJECT_ROOT/coolwallet-pro-se-crypto"
 
@@ -102,7 +103,7 @@ if [ -n "$ECJ_JAR" ]; then
     "$JAVA8" -jar "$ECJ_JAR" -cp "$CLASSPATH" -source 1.5 -target 1.5 -g -nowarn \
       -d "$BIN_DIR" $SRC_FILES
   else
-    "$JAVA8" -jar "$ECJ_JAR" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -g -nowarn \
+    "$JAVA8" -jar "$ECJ_JAR" -bootclasspath "$API_JAR:$JCOPX_JAR:$GP_JAR" -source 1.5 -target 1.5 -g -nowarn \
       -d "$BIN_DIR" $SRC_FILES
   fi
 else
@@ -113,7 +114,7 @@ else
   else
     # Use -bootclasspath so the compiler sees JavaCard types as boot classes (not standard rt.jar).
     # This produces cleaner type information that the JavaCard converter can process without errors.
-    "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR" -source 1.5 -target 1.5 -g -Xlint:-options \
+    "$JAVAC" -bootclasspath "$API_JAR:$JCOPX_JAR:$GP_JAR" -source 1.5 -target 1.5 -g -Xlint:-options \
       -d "$BIN_DIR" $SRC_FILES
   fi
 fi
