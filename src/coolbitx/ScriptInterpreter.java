@@ -1053,8 +1053,8 @@ public class ScriptInterpreter {
 
 	// Reset the state before and after executing the UTXO-section script: the caches, the argument,
 	// the array counters, the script digests and the buffer pointers. The transaction buffer after
-	// tiAtUtxoSection is not cleared, so a UTXO section reads only what the main part left and what
-	// the current UTXO writes.
+	// tiAtUtxoSection is not cleared, so a UTXO section must read only what the main part left and
+	// what the current UTXO writes.
 	private static void resetUtxoSectionState() {
 		Util.arrayFillNonAtomic(cache1, (short) 0, cache1Max, (byte) 0);
 		Util.arrayFillNonAtomic(cache2, (short) 0, cache2Max, (byte) 0);
