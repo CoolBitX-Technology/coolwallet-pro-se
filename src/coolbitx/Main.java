@@ -21,7 +21,7 @@ import javacardx.apdu.ExtendedLength;
  */
 public class Main extends Applet implements AppletEvent, ExtendedLength {
 
-	private static final short ver = 348;
+	private static final short ver = 349;
 
 	private static boolean isInit = false;
 
@@ -29,6 +29,8 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 	private byte[] destBuf;
 	public static final short bufferLength = 3800;
 	public static final short destBufLength = 3800;
+	// CoolSeedBackup builds the backup after the response in destBuf
+	private static final short COOLSEED_WORK_OFFSET = 256;
 
 	private byte[] signAesKey;
 
@@ -85,7 +87,12 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		CardInfo.init(true);
 		FlowCounter.init();
 		ScriptInterpreter.init();
+		CoolSeedBackup.init();
 		CardInfo.defaultSettings();
+	}
+
+	public void deselect() {
+		SecureSession.reset();
 	}
 
 	public void process(APDU apdu) {
@@ -105,7 +112,8 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 			return;
 		}
 		byte[] apduBuf = apdu.getBuffer();
-		if (apduBuf[ISO7816.OFFSET_CLA] != (byte) 0x80) {
+		boolean secureCommand = SecureSession.isSecureCommand(apduBuf);
+		if (!secureCommand && apduBuf[ISO7816.OFFSET_CLA] != (byte) 0x80) {
 			ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 		}
 		if (!factoryMode) {
@@ -117,6 +125,10 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
 				}
 			}
+		}
+		if (secureCommand) {
+			processSecure(apdu);
+			return;
 		}
 
 		short dataLength = apdu.setIncomingAndReceive();
@@ -368,6 +380,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					KeyManager.clearKey();
 					DeviceManager.reset();
 					ScriptInterpreter.reset();
+					CoolSeedBackup.reset();
 					CardInfo.defaultSettings();
 					break;
 				case (byte) 0x60:// updateBalanceData
@@ -646,6 +659,23 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 					}
 					break;
 				}
+				case (byte) 0xB1:// startCoolSeedExport
+					Check.verifyCommand(buf, (short) 0, dataOffset, dataLength);
+					dataLength -= 92;
+					CoolSeedBackup.startExport(buf, dataOffset, dataLength);
+					break;
+				case (byte) 0xB2:// getCoolSeedSegment
+					resultLength = CoolSeedBackup.getSegment(buf[ISO7816.OFFSET_P1], destBuf,
+							COOLSEED_WORK_OFFSET, destBuf, destOffset);
+					break;
+				case (byte) 0xB3:// confirmCoolSeedExport
+					CoolSeedBackup.confirmExport(buf, dataOffset, dataLength, destBuf,
+							COOLSEED_WORK_OFFSET);
+					break;
+				case (byte) 0xB5:// importCoolSeedSegment
+					CoolSeedBackup.importSegment(buf, dataOffset, dataLength, destBuf,
+							COOLSEED_WORK_OFFSET);
+					break;
 				case (byte) 0xCA:// Get card id from storage applet
 					resultLength = storeInterface.getCardId(APDU.getCurrentAPDUBuffer(), (short) 0);
 					Util.arrayCopyNonAtomic(APDU.getCurrentAPDUBuffer(), (short) 0, destBuf,
@@ -680,6 +710,44 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		apdu.sendBytesLong(destBuf, destOffset, resultLength);
 	}
 
+	// Commands from the backend over the GP secure channel (CLA 84), and the
+	// handshake that opens it
+	private void processSecure(APDU apdu) {
+		byte[] buf = apdu.getBuffer();
+		try {
+			switch (buf[ISO7816.OFFSET_INS]) {
+				case SecureSession.INS_INITIALIZE_UPDATE:
+					SecureSession.initializeUpdate(apdu);
+					break;
+				case SecureSession.INS_EXTERNAL_AUTHENTICATE:
+					SecureSession.externalAuthenticate(apdu);
+					break;
+				case (byte) 0xB0: {
+					// setCoolSeedKey: the CoolSeed key the backend verified
+					short length = SecureSession.unwrap(apdu);
+					CoolSeedBackup.setCoolSeedKey(buf, ISO7816.OFFSET_CDATA, length);
+					SecureSession.send(apdu, (short) 0);
+					break;
+				}
+				case (byte) 0xB4: {
+					// getRestoreKey: the R-MAC shows the backend the key is this card's
+					SecureSession.unwrap(apdu);
+					SecureSession.requireRMac();
+					short length = CoolSeedBackup.newRestoreKey(buf, Common.OFFSET_ZERO);
+					SecureSession.send(apdu, length);
+					break;
+				}
+				default:
+					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+			}
+		} catch (ISOException e) {
+			throw e;
+		} catch (Exception e) {
+			// Any other exception escaping the applet may brick it on real hardware
+			ISOException.throwIt(ISO7816.SW_UNKNOWN);
+		}
+	}
+
 	public final void uninstall() {
 		// Ed25519.uninit();
 		ScriptInterpreter.uninit();
@@ -699,6 +767,7 @@ public class Main extends Applet implements AppletEvent, ExtendedLength {
 		CardInfo.uninit();
 		WorkCenter.uninit();
 		FlowCounter.uninit();
+		CoolSeedBackup.uninit();
 		uninit();
 		JCSystem.requestObjectDeletion();
 	}

@@ -1,3 +1,17 @@
+## [349] - 2026-11-06
+
+- `CoolSeedBackup` back the wallet up to a CoolSeed backup card and restore it from one (CW-29467). The interface follows cool-seed-se `docs/backup-card-spec.md`. The data is a TLV list with `BackupController`'s type numbers (`01` seed, `05` Cardano seed) cut into segments, each encrypted with `EcdhUtil` for the other card. Nothing is shown on the screen: the card number in `84B0` is format-checked but not stored, so a screen check can be added later without a format change (spec 9.7).
+  - `84B0` (backend, C-MAC): CoolSeed public key (65) ‖ card number length (1, 1-16) ‖ card number (ASCII). A malformed key or length returns `6941`. It is the key to export to, and during a restore (after `84B4`) the key every segment must come from. A new key drops the export or import in progress.
+  - `80B1` (signed): start an export with the 8-digit BCD password (4 bytes) and a new random backup ID. Needs a wallet.
+  - `80B2` P1 = segment number: the segment encrypted for CoolSeed. A segment can be requested again.
+  - `80B3`: compare the hash CoolSeed returned with SHA-256(backup ID ‖ data). A match ends the export; a mismatch returns `6945` and keeps it.
+  - `84B4` (backend, C-MAC and R-MAC): a new one-time restore public key (65), with an R-MAC. Only without a wallet. It drops the CoolSeed key, so the backend sends `84B0` again after it.
+  - `80B5`: one restore segment encrypted for the restore key. CoolSeed encrypts it from its own key (static ECDH), so the first 65 bytes must equal the `84B0` key: otherwise `6949`, or `6940` when there is no `84B0` key. This stops the app, which knows the restore key, from importing a seed of its own. The wallet is written after the last segment; a resent segment is ignored, a first segment of another backup starts over, and unknown TLV types are skipped.
+  - `8056` reset also clears the CoolSeed export and restore state.
+- `SecureSession` relay the GP secure channel handshake of the Security Domain (SCP02) to the backend: `8050` with an 8-byte host challenge is INITIALIZE UPDATE (`hi` carries a 20-byte appId), `8482` is EXTERNAL AUTHENTICATE. CLA `84` commands are accepted only in a session with C-MAC, and the session is reset on deselect.
+- `ErrorMessage` add `6930`-`6931` (secure channel without C-MAC / R-MAC) and `6940`-`6949` (CoolSeed backup errors).
+- Build: compile against the GlobalPlatform API 2.3.0 (`gp230.jar`, `globalplatform.exp`), which `scripts/setup-libs.sh` now extracts. The simulator uses a stub secure channel that never authenticates.
+
 ## [348] - 2026-10-29
 
 - `ScriptInterpreter` add script version 13 command `0xC9` (UTXO section): the script stops there, and `80AA` then runs the rest of the script once per UTXO with the UTXO data as its argument. The section appends what is to be signed to the transaction buffer, which is hashed with the header's hash type (0: signed as is, must be 32 bytes). This lets a script express sighashes that nest the UTXO data in several hashes, such as ZEC v5 (ZIP-244), without coin-specific code in the SE.

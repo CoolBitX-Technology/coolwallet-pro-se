@@ -56,6 +56,40 @@ public class ErrorMessage {
 	/* Backup data contains an unknown key type. */
 	public static final short BACKUP_UNKNOWN_KEY_TYPE = 0x6920;
 
+	// ------------ 0x693x SecureSession
+	/* A secure messaging command arrived in a session without C-MAC. */
+	public static final short SECURE_NO_C_MAC = 0x6930;
+	/* The restore key was requested in a session without R-MAC. */
+	public static final short SECURE_NO_R_MAC = 0x6931;
+
+	// ------------ 0x694x CoolSeedBackup
+	/*
+	 * Export or import segment sent before the backend sent the CoolSeed
+	 * public key.
+	 */
+	public static final short COOLSEED_KEY_NOT_SET = 0x6940;
+	/* CoolSeed public key or card number is malformed. */
+	public static final short COOLSEED_KEY_INVALID = 0x6941;
+	/* Segment or write confirmation requested before the export started. */
+	public static final short COOLSEED_EXPORT_NOT_STARTED = 0x6942;
+	/* Password is not 8 BCD digits. */
+	public static final short COOLSEED_PASSWORD_INVALID = 0x6943;
+	/* Requested segment number is not between 1 and the segment count. */
+	public static final short COOLSEED_SEGMENT_OUT_OF_RANGE = 0x6944;
+	/* Hash returned by CoolSeed does not match the exported backup. */
+	public static final short COOLSEED_HASH_MISMATCH = 0x6945;
+	/* Import segment sent before the backend got a restore key. */
+	public static final short COOLSEED_RESTORE_KEY_NOT_SET = 0x6946;
+	/*
+	 * Import segment has a bad version, segment number, segment count or
+	 * length, belongs to another backup, or skips a segment.
+	 */
+	public static final short COOLSEED_SEGMENT_INVALID = 0x6947;
+	/* Imported data is not valid TLV or has no valid seed. */
+	public static final short COOLSEED_DATA_INVALID = 0x6948;
+	/* Import segment is not sent from the CoolSeed public key. */
+	public static final short COOLSEED_SENDER_INVALID = 0x6949;
+
 	// ================ 0x6A ScriptInterpreter ================
 
 	// ------------ 0x6A0x Script loading / header / command
